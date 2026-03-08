@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { fetchAndBuildConfig } from '../api/auth';
-import { AuthError, NetworkError } from '../api/errors';
+import { ApiError, AuthError, NetworkError } from '../api/errors';
 import type { CrossoverConfig } from '../types/config';
 
 export type OnboardingStep = 'welcome' | 'credentials' | 'verifying' | 'setup' | 'success';
@@ -48,12 +48,24 @@ export function useSetup(): UseSetupResult {
         setStep('success');
       }
     } catch (err) {
-      setStep('credentials');
       if (err instanceof AuthError) {
+        setStep('credentials');
         setError('Invalid email or password.');
       } else if (err instanceof NetworkError) {
+        setStep('credentials');
         setError('Connection failed. Please check your network and try again.');
+      } else if (err instanceof ApiError) {
+        // SC5.2: detail endpoint 403 — allow manual rate entry via Setup screen
+        const now = new Date().toISOString();
+        setPendingConfig({
+          userId: '0', fullName: username, managerId: '0', primaryTeamId: '0',
+          assignmentId: '0', hourlyRate: 0, weeklyLimit: 40, useQA: useQARef.current,
+          isManager: false, teams: [], lastRoleCheck: now,
+          setupComplete: false, setupDate: now, debugMode: false,
+        });
+        setStep('setup');
       } else {
+        setStep('credentials');
         setError('An unexpected error occurred. Please try again.');
       }
     } finally {

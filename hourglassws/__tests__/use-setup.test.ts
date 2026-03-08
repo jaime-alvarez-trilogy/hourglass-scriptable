@@ -2,7 +2,7 @@
 import React from 'react';
 import { act, create } from 'react-test-renderer';
 import { useSetup } from '../src/hooks/useAuth';
-import { AuthError, NetworkError } from '../src/api/errors';
+import { ApiError, AuthError, NetworkError } from '../src/api/errors';
 import type { CrossoverConfig } from '../src/types/config';
 import * as SecureStoreMock from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -148,6 +148,18 @@ describe('FR8: useSetup — submitCredentials transitions', () => {
     await act(async () => { await get().submitCredentials('u', 'bad'); });
     expect(get().step).toBe('credentials');
     expect(get().error).toBe('Invalid email or password.');
+  });
+
+  it('transitions to setup on ApiError from detail endpoint (SC5.2)', async () => {
+    mockFetch.mockRejectedValueOnce(new ApiError(403));
+    const { get } = mountHook();
+    await act(async () => { await get().submitCredentials('u@e.com', 'p'); });
+    expect(get().step).toBe('setup');
+    expect(get().error).toBeNull();
+    expect(get().isLoading).toBe(false);
+    // pendingConfig should have placeholder IDs but store the username
+    expect(get().pendingConfig?.fullName).toBe('u@e.com');
+    expect(get().pendingConfig?.hourlyRate).toBe(0);
   });
 
   it('reverts to credentials and sets connection error message on NetworkError', async () => {
