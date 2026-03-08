@@ -165,7 +165,7 @@ describe('FR5: fetchAndBuildConfig — happy path', () => {
     );
   });
 
-  it('calls payments endpoint with local YYYY-MM-DD date range (not ISO)', async () => {
+  it('calls payments endpoint with local YYYY-MM-DD date range spanning ~3 months', async () => {
     // Salary=0 triggers the payments path
     mockApiGet.mockImplementationOnce(async () => makeDetailNoSalary());
     await fetchAndBuildConfig('user@test.com', 'pass', false);
@@ -176,6 +176,14 @@ describe('FR5: fetchAndBuildConfig — happy path', () => {
     expect(params.to).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(params.from).not.toContain('T');
     expect(params.to).not.toContain('T');
+    // Verify the date range is approximately 3 months (80-100 days)
+    const fromDate = new Date(params.from);
+    const toDate = new Date(params.to);
+    const daysDiff = Math.round((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24));
+    expect(daysDiff).toBeGreaterThanOrEqual(80);
+    expect(daysDiff).toBeLessThanOrEqual(100);
+    // 'to' should be today in local time
+    expect(params.to).toBe(localDateStr(new Date()));
   });
 
   it('sets useQA from the parameter passed in', async () => {
@@ -222,21 +230,29 @@ describe('FR5: fetchAndBuildConfig — error cases', () => {
     await expect(fetchAndBuildConfig('u', 'p', false)).rejects.toBeInstanceOf(NetworkError);
   });
 
-  it('sets hourlyRate to 0 when payments call fails (does not throw)', async () => {
+  it('sets hourlyRate to 0 when payments call fails but preserves other config fields', async () => {
     // salary=0 triggers payments path; payments then throws
     mockApiGet
       .mockImplementationOnce(async () => makeDetailNoSalary())
       .mockRejectedValueOnce(new Error('payments down'));
     const config = await fetchAndBuildConfig('user@test.com', 'pass', false);
     expect(config.hourlyRate).toBe(0);
+    // Other fields must still be correctly extracted from the detail response
+    expect(config.userId).toBe('2362707');
+    expect(config.fullName).toBe('Jane Doe');
+    expect(config.assignmentId).toBe('79996');
+    expect(config.setupComplete).toBe(false);
   });
 
-  it('sets hourlyRate to 0 when payments returns empty array', async () => {
+  it('sets hourlyRate to 0 when payments returns empty array but preserves other config fields', async () => {
     // salary=0 triggers payments path; payments returns []
     mockApiGet
       .mockImplementationOnce(async () => makeDetailNoSalary())
       .mockResolvedValueOnce([]);
     const config = await fetchAndBuildConfig('user@test.com', 'pass', false);
     expect(config.hourlyRate).toBe(0);
+    expect(config.userId).toBe('2362707');
+    expect(config.fullName).toBe('Jane Doe');
+    expect(config.assignmentId).toBe('79996');
   });
 });

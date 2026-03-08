@@ -122,7 +122,8 @@ describe('FR2: Welcome Screen', () => {
     const { UNSAFE_getAllByType } = render(<WelcomeScreen />);
     const touchables = UNSAFE_getAllByType(TouchableOpacity);
     const prodOption = touchables.find((t) => collectText(t.props.children).includes('Production'));
-    if (prodOption) fireEvent.press(prodOption);
+    expect(prodOption).toBeDefined(); // guard: fail fast if button not found
+    fireEvent.press(prodOption!);
     expect(setEnvironment).toHaveBeenCalledWith(false);
   });
 
@@ -132,7 +133,8 @@ describe('FR2: Welcome Screen', () => {
     const { UNSAFE_getAllByType } = render(<WelcomeScreen />);
     const touchables = UNSAFE_getAllByType(TouchableOpacity);
     const qaOption = touchables.find((t) => collectText(t.props.children).includes('QA'));
-    if (qaOption) fireEvent.press(qaOption);
+    expect(qaOption).toBeDefined(); // guard: fail fast if button not found
+    fireEvent.press(qaOption!);
     expect(setEnvironment).toHaveBeenCalledWith(true);
   });
 
@@ -142,7 +144,8 @@ describe('FR2: Welcome Screen', () => {
     const getStartedBtn = UNSAFE_getAllByType(TouchableOpacity).find((t) =>
       collectText(t.props.children).includes('Get Started')
     );
-    if (getStartedBtn) fireEvent.press(getStartedBtn);
+    expect(getStartedBtn).toBeDefined(); // guard: fail fast if button not found
+    fireEvent.press(getStartedBtn!);
     expect(push).toHaveBeenCalledWith('/(auth)/credentials');
   });
 
@@ -179,7 +182,8 @@ describe('FR3: Credentials Screen', () => {
     const button = UNSAFE_getAllByType(TouchableOpacity).find((t) =>
       collectText(t.props.children).includes('Sign In')
     );
-    if (button) fireEvent.press(button);
+    expect(button).toBeDefined(); // guard: fail fast if button not found
+    fireEvent.press(button!);
     expect(submitCredentials).not.toHaveBeenCalled();
     const texts = UNSAFE_getAllByType(Text).map((t) => String(t.props.children));
     expect(texts.some((t) => t.toLowerCase().includes('required'))).toBe(true);
@@ -192,20 +196,29 @@ describe('FR3: Credentials Screen', () => {
     const inputs = UNSAFE_getAllByType(TextInput);
     const emailInput = inputs.find((i) => i.props.keyboardType === 'email-address');
     const passwordInput = inputs.find((i) => i.props.secureTextEntry);
-    if (emailInput) fireEvent.changeText(emailInput, 'user@test.com');
-    if (passwordInput) fireEvent.changeText(passwordInput, 'pass123');
+    expect(emailInput).toBeDefined();
+    expect(passwordInput).toBeDefined();
+    fireEvent.changeText(emailInput!, 'user@test.com');
+    fireEvent.changeText(passwordInput!, 'pass123');
     const button = UNSAFE_getAllByType(TouchableOpacity).find((t) =>
       collectText(t.props.children).includes('Sign In')
     );
-    if (button) fireEvent.press(button);
+    expect(button).toBeDefined();
+    fireEvent.press(button!);
     expect(submitCredentials).toHaveBeenCalledWith('user@test.com', 'pass123');
   });
 
-  it('submit button is disabled while isLoading (SC3.4)', () => {
+  it('submit button is disabled and shows spinner while isLoading (SC3.4)', () => {
     mockUseOnboarding.mockReturnValue(makeSetupResult({ isLoading: true }));
-    const { UNSAFE_getAllByType } = render(<CredentialsScreen />);
+    const { UNSAFE_getAllByType, UNSAFE_queryAllByType } = render(<CredentialsScreen />);
+    // When loading, the CTA shows ActivityIndicator instead of button label text
     const disabledBtn = UNSAFE_getAllByType(TouchableOpacity).find((t) => t.props.disabled === true);
-    expect(disabledBtn).toBeDefined();
+    expect(disabledBtn).toBeDefined(); // a disabled button must exist
+    // Verify spinner is rendered inside the disabled button (confirms loading state)
+    expect(UNSAFE_queryAllByType(ActivityIndicator).length).toBeGreaterThanOrEqual(1);
+    // The button's own children should contain the spinner, not "Sign In" text
+    const btnText = collectText(disabledBtn!.props.children);
+    expect(btnText).not.toContain('Sign In');
   });
 
   it('shows error string from hook when error is non-null (SC3.5)', () => {
@@ -276,7 +289,8 @@ describe('FR6: Setup Screen', () => {
     const button = UNSAFE_getAllByType(TouchableOpacity).find((t) =>
       collectText(t.props.children).includes('Continue')
     );
-    if (button) fireEvent.press(button);
+    expect(button).toBeDefined();
+    fireEvent.press(button!);
     expect(submitRate).not.toHaveBeenCalled();
   });
 
@@ -287,19 +301,26 @@ describe('FR6: Setup Screen', () => {
     const input = UNSAFE_getAllByType(TextInput).find(
       (i) => i.props.keyboardType === 'decimal-pad'
     );
-    if (input) fireEvent.changeText(input, '75');
+    expect(input).toBeDefined();
+    fireEvent.changeText(input!, '75');
     const button = UNSAFE_getAllByType(TouchableOpacity).find((t) =>
       collectText(t.props.children).includes('Continue')
     );
-    if (button) fireEvent.press(button);
+    expect(button).toBeDefined();
+    fireEvent.press(button!);
     expect(submitRate).toHaveBeenCalledWith(75);
   });
 
-  it('button is disabled while isLoading (SC6.5)', () => {
+  it('submit button is disabled and shows spinner while isLoading (SC6.5)', () => {
     mockUseOnboarding.mockReturnValue(makeSetupResult({ isLoading: true }));
-    const { UNSAFE_getAllByType } = render(<SetupScreen />);
+    const { UNSAFE_getAllByType, UNSAFE_queryAllByType } = render(<SetupScreen />);
+    // When loading, the CTA shows ActivityIndicator instead of "Continue" text
     const disabledBtn = UNSAFE_getAllByType(TouchableOpacity).find((t) => t.props.disabled === true);
     expect(disabledBtn).toBeDefined();
+    expect(UNSAFE_queryAllByType(ActivityIndicator).length).toBeGreaterThanOrEqual(1);
+    // "Continue" text should NOT appear during loading
+    const texts = UNSAFE_getAllByType(Text).map((t) => String(t.props.children));
+    expect(texts.some((t) => t === 'Continue')).toBe(false);
   });
 
   it('displays error string when error is non-null (SC6.6)', () => {
@@ -362,18 +383,20 @@ describe('FR7: Success Screen', () => {
     const button = UNSAFE_getAllByType(TouchableOpacity).find((t) =>
       collectText(t.props.children).includes('Dashboard')
     );
-    if (button) fireEvent.press(button);
+    expect(button).toBeDefined();
+    fireEvent.press(button!);
     await new Promise((r) => setTimeout(r, 10));
     expect(mockSaveCredentials).toHaveBeenCalledWith('user@test.com', 'pass');
     expect(mockSaveConfig).toHaveBeenCalledWith(expect.objectContaining({ setupComplete: true }));
   });
 
-  it('button is not disabled initially (SC7.7)', () => {
+  it('Dashboard button exists and is not disabled initially (SC7.7)', () => {
     const { UNSAFE_getAllByType } = render(<SuccessScreen />);
     const button = UNSAFE_getAllByType(TouchableOpacity).find((t) =>
       collectText(t.props.children).includes('Dashboard')
     );
-    expect(button?.props.disabled).toBeFalsy();
+    expect(button).toBeDefined(); // guard: button must exist
+    expect(button!.props.disabled).not.toBe(true);
   });
 
   it('shows error message when storage write fails (SC7.5)', async () => {
@@ -387,11 +410,11 @@ describe('FR7: Success Screen', () => {
     const button = UNSAFE_getAllByType(TouchableOpacity).find((t) =>
       collectText(t.props.children).includes('Dashboard')
     );
-    if (button) {
-      fireEvent.press(button);
-      await new Promise((r) => setTimeout(r, 20));
-    }
-    const texts = UNSAFE_getAllByType(Text).map((t) => String(t.props.children));
-    expect(texts.some((t) => t.includes('SecureStore failed') || t.includes('Failed') || t.includes('save'))).toBe(true);
+    expect(button).toBeDefined(); // guard: fail fast if button not found
+    fireEvent.press(button!);
+    await new Promise((r) => setTimeout(r, 20));
+    const allText = UNSAFE_getAllByType(Text).map((t) => String(t.props.children)).join(' ');
+    // Must show the actual error message from the failed SecureStore write
+    expect(allText).toContain('SecureStore failed');
   });
 });

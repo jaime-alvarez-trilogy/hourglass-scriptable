@@ -59,14 +59,10 @@ describe('FR8: useSetup — initial state', () => {
     expect(get().error).toBeNull();
   });
 
-  it('exposes the full hook API', () => {
+  it('starts with pendingConfig = null and pendingCredentials = null', () => {
     const { get } = mountHook();
-    const hook = get();
-    expect(typeof hook.setEnvironment).toBe('function');
-    expect(typeof hook.submitCredentials).toBe('function');
-    expect(typeof hook.submitRate).toBe('function');
-    expect(typeof hook.isLoading).toBe('boolean');
-    expect(hook.error === null || typeof hook.error === 'string').toBe(true);
+    expect(get().pendingConfig).toBeNull();
+    expect(get().pendingCredentials).toBeNull();
   });
 });
 
@@ -118,19 +114,25 @@ describe('FR8: useSetup — submitCredentials transitions', () => {
     await act(async () => { resolveConfig(makeConfig()); });
   });
 
-  it('transitions to success when hourlyRate > 0', async () => {
+  it('transitions to success and populates pendingConfig + pendingCredentials when hourlyRate > 0', async () => {
     mockFetch.mockResolvedValueOnce(makeConfig({ hourlyRate: 50 }));
     const { get } = mountHook();
-    await act(async () => { await get().submitCredentials('u', 'p'); });
+    await act(async () => { await get().submitCredentials('u@e.com', 'p'); });
     expect(get().step).toBe('success');
     expect(get().isLoading).toBe(false);
+    expect(get().pendingConfig).not.toBeNull();
+    expect(get().pendingConfig?.hourlyRate).toBe(50);
+    expect(get().pendingCredentials).toEqual({ username: 'u@e.com', password: 'p' });
   });
 
-  it('transitions to setup when hourlyRate === 0', async () => {
+  it('transitions to setup and populates pendingConfig with hourlyRate 0 when rate is zero', async () => {
     mockFetch.mockResolvedValueOnce(makeConfig({ hourlyRate: 0 }));
     const { get } = mountHook();
-    await act(async () => { await get().submitCredentials('u', 'p'); });
+    await act(async () => { await get().submitCredentials('u@e.com', 'p'); });
     expect(get().step).toBe('setup');
+    expect(get().pendingConfig).not.toBeNull();
+    expect(get().pendingConfig?.hourlyRate).toBe(0);
+    expect(get().pendingCredentials).toEqual({ username: 'u@e.com', password: 'p' });
   });
 
   it('reverts to credentials and sets "Invalid email or password." on AuthError 401', async () => {
@@ -164,16 +166,13 @@ describe('FR8: useSetup — submitCredentials transitions', () => {
     expect(get().pendingCredentials).toEqual({ username: 'u@e.com', password: 'p' });
   });
 
-  it('reverts to credentials and sets connection error message on NetworkError', async () => {
+  it('reverts to credentials and sets user-friendly connection error on NetworkError', async () => {
     mockFetch.mockRejectedValueOnce(new NetworkError('connection refused'));
     const { get } = mountHook();
     await act(async () => { await get().submitCredentials('u', 'p'); });
     expect(get().step).toBe('credentials');
-    expect(typeof get().error).toBe('string');
-    expect(get().error).toBeTruthy();
-    // Must not expose stack trace or raw error object
-    expect(get().error).not.toContain('Error:');
-    expect(get().error).not.toContain('at ');
+    expect(get().error).toBe('Connection failed. Please check your network and try again.');
+    expect(get().isLoading).toBe(false);
   });
 });
 
@@ -222,9 +221,19 @@ describe('FR8: useSetup — submitRate', () => {
     const { get } = mountHook();
     await act(async () => { await get().submitCredentials('u', 'p'); });
     expect(get().step).toBe('setup');
+    expect(get().pendingConfig?.hourlyRate).toBe(0);
 
     await act(async () => { await get().submitRate(75); });
     expect(get().step).toBe('success');
     expect(get().isLoading).toBe(false);
+    expect(get().pendingConfig?.hourlyRate).toBe(75);
+  });
+
+  it('is a no-op when called without a prior submitCredentials (no pendingConfig)', async () => {
+    const { get } = mountHook();
+    expect(get().pendingConfig).toBeNull();
+    await act(async () => { await get().submitRate(75); });
+    expect(get().step).toBe('welcome'); // step should not change
+    expect(get().pendingConfig).toBeNull();
   });
 });

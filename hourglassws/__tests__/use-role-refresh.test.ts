@@ -114,14 +114,19 @@ describe('FR10: runRoleRefresh action', () => {
     jest.spyOn(queryClient, 'invalidateQueries');
   });
 
-  it('calls getProfileDetail with the stored token', async () => {
+  it('calls getProfileDetail with the actual auth token from getAuthToken', async () => {
     mockGetProfileDetail.mockResolvedValueOnce(makeDetailResponse());
     const config = makeConfig();
 
     await runRoleRefresh(queryClient, config, MOCK_CREDS);
 
+    expect(mockGetAuthToken).toHaveBeenCalledWith(
+      MOCK_CREDS.username,
+      MOCK_CREDS.password,
+      config.useQA,
+    );
     expect(mockGetProfileDetail).toHaveBeenCalledWith(
-      expect.any(String), // token derived from credentials
+      MOCK_TOKEN, // must be the exact token returned by getAuthToken
       config.useQA,
     );
   });
@@ -139,7 +144,7 @@ describe('FR10: runRoleRefresh action', () => {
     );
   });
 
-  it('updates hourlyRate, weeklyLimit, and lastRoleCheck on success', async () => {
+  it('updates hourlyRate, weeklyLimit, and lastRoleCheck while preserving other config fields', async () => {
     mockGetProfileDetail.mockResolvedValueOnce(
       makeDetailResponse(), // salary: 60, weeklyLimit: 35
     );
@@ -147,24 +152,38 @@ describe('FR10: runRoleRefresh action', () => {
 
     await runRoleRefresh(queryClient, config, MOCK_CREDS);
 
-    expect(mockSaveConfig).toHaveBeenCalledWith(
-      expect.objectContaining({
-        hourlyRate: 60,
-        weeklyLimit: 35,
-        lastRoleCheck: expect.any(String),
-      }),
-    );
+    const savedConfig = mockSaveConfig.mock.calls[0][0];
+    // Verify updated fields
+    expect(savedConfig.hourlyRate).toBe(60);
+    expect(savedConfig.weeklyLimit).toBe(35);
+    expect(savedConfig.lastRoleCheck).toBeDefined();
+    // lastRoleCheck should be a recent ISO timestamp (within the last 5 seconds)
+    const checkTime = new Date(savedConfig.lastRoleCheck).getTime();
+    expect(Date.now() - checkTime).toBeLessThan(5000);
+    // Verify original config fields are preserved (not dropped by the spread)
+    expect(savedConfig.userId).toBe(config.userId);
+    expect(savedConfig.assignmentId).toBe(config.assignmentId);
+    expect(savedConfig.managerId).toBe(config.managerId);
+    expect(savedConfig.primaryTeamId).toBe(config.primaryTeamId);
+    expect(savedConfig.fullName).toBe(config.fullName);
+    expect(savedConfig.setupComplete).toBe(config.setupComplete);
   });
 
-  it('invalidates ["config"] query after writing updated fields', async () => {
+  it('invalidates ["config"] query AFTER saveConfig completes (correct ordering)', async () => {
     mockGetProfileDetail.mockResolvedValueOnce(makeDetailResponse());
     const config = makeConfig();
+
+    const callOrder: string[] = [];
+    mockSaveConfig.mockImplementation(async () => { callOrder.push('saveConfig'); });
+    (queryClient.invalidateQueries as jest.Mock).mockImplementation(() => { callOrder.push('invalidateQueries'); });
 
     await runRoleRefresh(queryClient, config, MOCK_CREDS);
 
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: ['config'] }),
     );
+    // saveConfig must complete before cache invalidation to avoid stale reads
+    expect(callOrder).toEqual(['saveConfig', 'invalidateQueries']);
   });
 
   it('silently swallows errors and does NOT update lastRoleCheck on failure', async () => {
