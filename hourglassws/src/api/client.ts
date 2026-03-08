@@ -10,7 +10,7 @@ export async function getAuthToken(
   useQA: boolean
 ): Promise<string> {
   const base = getApiBase(useQA);
-  const credentials = Buffer.from(`${username}:${password}`).toString('base64');
+  const credentials = btoa(`${username}:${password}`);
 
   let response: Response;
   try {

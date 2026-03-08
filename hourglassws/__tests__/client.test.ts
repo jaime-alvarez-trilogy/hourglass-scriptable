@@ -26,7 +26,7 @@ describe('FR3: getAuthToken', () => {
     mockFetch.mockResolvedValueOnce({ ok: true, status: 200, text: async () => 'tok' });
     await getAuthToken('user@example.com', 'pass', false);
     const [, options] = mockFetch.mock.calls[0];
-    const expected = 'Basic ' + Buffer.from('user@example.com:pass').toString('base64');
+    const expected = 'Basic ' + btoa('user@example.com:pass');
     expect(options.headers['Authorization']).toBe(expected);
   });
 
