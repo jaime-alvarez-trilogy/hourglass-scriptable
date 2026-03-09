@@ -111,6 +111,10 @@ WS/
       notifications/
         handler.ts              ← FR5: background push handler            [07-ping-server]
       components/               ← Shared UI
+        AIProgressBar.tsx       ← progress bar with target marker  [04-ai-brainlift]
+        DailyAIRow.tsx          ← per-day breakdown row            [04-ai-brainlift]
+      lib/
+        ai.ts                   ← countDiaryTags, aggregateAICache, shouldRefetchDay  [04-ai-brainlift]
     server/                     ← NEW: Railway ping server                [07-ping-server]
       index.ts                  ← FR1: Express routes /register /unregister /health
       db.ts                     ← FR2: SQLite token store (better-sqlite3)
