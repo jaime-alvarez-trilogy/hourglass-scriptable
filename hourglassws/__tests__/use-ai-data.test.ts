@@ -123,16 +123,8 @@ beforeEach(() => {
   });
   mockLoadCredentials.mockResolvedValue(VALID_CREDS);
 
-  // Fix time: Wednesday 2026-03-04
-  jest.useFakeTimers();
-  jest.setSystemTime(new Date('2026-03-04T12:00:00.000Z'));
-
   // Default fetch returns some slots
   mockFetchWorkDiary.mockResolvedValue(makeSlots(20, 3, 5));
-});
-
-afterEach(() => {
-  jest.useRealTimers();
 });
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
