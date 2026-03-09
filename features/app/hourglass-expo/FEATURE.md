@@ -95,10 +95,7 @@ Widget reads local store
 
 ```
 WS/
-  app/                          ← NEW: Expo app root
-    CONTEXT.md                  ← project context doc
-    app.json                    ← Expo config
-    package.json
+  hourglassws/                  ← Expo app root
     app/                        ← Expo Router screens
       (auth)/
       (tabs)/
@@ -107,8 +104,28 @@ WS/
       hooks/                    ← React Query hooks
       store/                    ← SecureStore config
       widgets/                  ← Widget definitions
-      lib/                      ← Business logic
+      lib/
+        pushToken.ts            ← FR4: register/unregister device tokens  [07-ping-server]
+        crossoverData.ts        ← Boundary stub: fetchFreshData()         [07-ping-server]
+        widgetBridge.ts         ← Boundary stub: updateWidgetData()       [07-ping-server]
+      notifications/
+        handler.ts              ← FR5: background push handler            [07-ping-server]
       components/               ← Shared UI
-  server/                       ← NEW: Vercel ping server
+    server/                     ← NEW: Railway ping server                [07-ping-server]
+      index.ts                  ← FR1: Express routes /register /unregister /health
+      db.ts                     ← FR2: SQLite token store (better-sqlite3)
+      push.ts                   ← FR3: Expo push batch sender
+      cron.ts                   ← FR3: node-cron dispatcher (*/15 * * * *)
+      package.json
+      tsconfig.json
+      railway.json
+      .env.example
+    server/__tests__/
+      db.test.ts
+      push.test.ts
+      routes.test.ts
+    src/__tests__/
+      lib/pushToken.test.ts
+      notifications/handler.test.ts
   features/app/hourglass-expo/  ← this feature
 ```
