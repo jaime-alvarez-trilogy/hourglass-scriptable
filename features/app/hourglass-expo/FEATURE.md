@@ -90,6 +90,7 @@ Widget reads local store
 | 2026-03-08 | [05-manager-approvals](specs/05-manager-approvals/spec.md) | Pending manual time + overtime fetch, approve/reject actions, optimistic updates, role-guarded approvals screen |
 | 2026-03-08 | [03-hours-dashboard](specs/03-hours-dashboard/spec.md) | Contributor dashboard: hours, earnings, deadline countdown, daily bar chart, cache failover, urgency theming |
 | 2026-03-08 | [04-ai-brainlift](specs/04-ai-brainlift/spec.md) | Work diary fetch, tag parsing, AI% formula, BrainLift hours, per-day AsyncStorage cache, AI tab screen |
+| 2026-03-08 | [06-widgets](specs/06-widgets/spec.md) | iOS (expo-widgets) + Android (react-native-android-widget) home screen widgets, WidgetData bridge, timeline entry generation, graceful degradation |
 
 ## Files Created/Modified
 
