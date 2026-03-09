@@ -58,27 +58,6 @@
           "icon": "./assets/images/notification-icon.png",
           "color": "#00FF88"
         }
-      ],
-      [
-        "expo-widgets",
-        {
-          "widgets": ["./src/widgets/ios/HourglassWidget"],
-          "appGroupIdentifier": "group.com.jalvarez0907.hourglass.widgets"
-        }
-      ],
-      [
-        "react-native-android-widget",
-        {
-          "widgets": [
-            {
-              "name": "HourglassWidget",
-              "label": "Hourglass",
-              "description": "Track your weekly hours, earnings, and AI% at a glance",
-              "previewImage": "./assets/images/widget-preview.png",
-              "taskHandler": "./src/widgets/android/widgetTaskHandler"
-            }
-          ]
-        }
       ]
     ],
     "experiments": {
