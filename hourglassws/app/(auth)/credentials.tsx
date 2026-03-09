@@ -1,10 +1,19 @@
 // FR3: Credentials screen — email + password form with validation
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useOnboarding } from '@/src/contexts/OnboardingContext';
 
 export default function CredentialsScreen() {
-  const { submitCredentials, isLoading, error } = useOnboarding();
+  const router = useRouter();
+  const { submitCredentials, isLoading, error, step } = useOnboarding();
+
+  // Navigate when step transitions away from credentials
+  useEffect(() => {
+    if (step === 'verifying') {
+      router.push('/(auth)/verifying');
+    }
+  }, [step]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
