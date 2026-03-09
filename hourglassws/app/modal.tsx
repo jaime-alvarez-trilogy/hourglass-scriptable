@@ -1,9 +1,11 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { clearAll } from '@/src/store/config';
 
 export default function ModalScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   async function handleSignOut() {
     Alert.alert('Sign Out', 'This will clear your saved credentials and return to the login screen.', [
@@ -13,6 +15,7 @@ export default function ModalScreen() {
         style: 'destructive',
         onPress: async () => {
           await clearAll();
+          queryClient.setQueryData(['config'], null); // clear in-memory cache immediately
           router.replace('/(auth)/welcome');
         },
       },
