@@ -1,10 +1,13 @@
-// FR4: ApprovalCard — swipeable card for a single approval item
+// FR2: ApprovalCard — swipeable card for a single approval item
+// FR6: Type badges — gold pill (MANUAL) and warning pill (OVERTIME)
+//
+// Gesture: PanResponder retained — Reanimated gesture migration is out of scope
+// Visual styles: NativeWind className only (migrated from StyleSheet.create)
 
 import React, { useRef } from 'react'
 import {
   View,
   Text,
-  StyleSheet,
   Animated,
   TouchableOpacity,
   PanResponder,
@@ -22,6 +25,7 @@ const SWIPE_THRESHOLD = 80
 export function ApprovalCard({ item, onApprove, onReject }: Props) {
   const translateX = useRef(new Animated.Value(0)).current
 
+  // Gesture: PanResponder retained — Reanimated gesture migration is out of scope
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dx) > 10,
@@ -48,159 +52,82 @@ export function ApprovalCard({ item, onApprove, onReject }: Props) {
   ).current
 
   const isManual = item.category === 'MANUAL'
-  const manualItem = isManual ? (item as ManualApprovalItem) : null
   const overtimeItem = !isManual ? (item as OvertimeApprovalItem) : null
 
   const label = `${item.fullName} — ${item.hours}h — ${item.category}`
 
   return (
     <View
-      style={styles.container}
+      className="relative mx-4 my-1.5 rounded-2xl overflow-hidden"
       accessibilityLabel={label}
     >
       {/* Swipe hint backgrounds */}
-      <View style={[styles.actionBg, styles.approveBg]} />
-      <View style={[styles.actionBg, styles.rejectBg]} />
+      <View className="absolute top-0 bottom-0 left-0 w-1/2 bg-success rounded-l-2xl" />
+      <View className="absolute top-0 bottom-0 right-0 w-1/2 bg-destructive rounded-r-2xl" />
 
+      {/* Card content — only style prop for gesture transform */}
       <Animated.View
-        style={[styles.card, { transform: [{ translateX }] }]}
+        className="bg-surface rounded-2xl p-3.5"
+        style={{ transform: [{ translateX }] }}
         {...panResponder.panHandlers}
         accessibilityLabel={label}
       >
-        {/* Header row: name + type badge or cost */}
-        <View style={styles.row}>
-          <Text style={styles.name}>{item.fullName}</Text>
-          {manualItem && (
-            <View style={styles.typeBadge}>
-              <Text style={styles.typeBadgeText}>{manualItem.type}</Text>
+        {/* Header row: name + type badge */}
+        <View className="flex-row items-center mb-1">
+          <Text className="flex-1 text-textPrimary text-base font-sans-semibold">
+            {item.fullName}
+          </Text>
+
+          {/* FR6: Gold pill badge for manual time */}
+          {isManual && (
+            <View className="bg-gold/20 rounded-full px-2 py-0.5 ml-2">
+              <Text className="text-gold text-xs font-sans-medium">Manual</Text>
             </View>
           )}
+
+          {/* FR6: Warning pill badge for overtime */}
+          {!isManual && (
+            <View className="bg-warning/20 rounded-full px-2 py-0.5 ml-2">
+              <Text className="text-warning text-xs font-sans-medium">Overtime</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Hours + description row */}
+        <View className="flex-row items-center mb-2">
+          <Text className="text-textSecondary text-sm mr-2 min-w-[36px]">
+            {item.hours}h
+          </Text>
+          <Text className="flex-1 text-textSecondary text-sm" numberOfLines={2}>
+            {item.description}
+          </Text>
+
+          {/* FR6: Overtime cost */}
           {overtimeItem && (
-            <Text style={styles.cost}>
+            <Text className="text-success text-sm font-sans-semibold ml-2">
               ${overtimeItem.cost.toFixed(2)}
             </Text>
           )}
         </View>
 
-        {/* Hours + description */}
-        <View style={styles.row}>
-          <Text style={styles.hours}>{item.hours}h</Text>
-          <Text style={styles.description} numberOfLines={2}>
-            {item.description}
-          </Text>
-        </View>
-
         {/* Quick action buttons (accessibility fallback for gesture) */}
-        <View style={styles.actionRow}>
+        <View className="flex-row gap-2 mt-1">
           <TouchableOpacity
-            style={[styles.actionBtn, styles.approveBtn]}
+            className="flex-1 py-1.5 rounded-xl bg-success/20 items-center"
             onPress={onApprove}
             accessibilityLabel={`Approve ${item.fullName}`}
           >
-            <Text style={styles.actionBtnText}>Approve</Text>
+            <Text className="text-success text-sm font-sans-medium">Approve</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionBtn, styles.rejectBtn]}
+            className="flex-1 py-1.5 rounded-xl bg-destructive/20 items-center"
             onPress={onReject}
             accessibilityLabel={`Reject ${item.fullName}`}
           >
-            <Text style={styles.actionBtnText}>Reject</Text>
+            <Text className="text-destructive text-sm font-sans-medium">Reject</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-    marginHorizontal: 16,
-    marginVertical: 6,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  actionBg: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: '50%',
-  },
-  approveBg: {
-    left: 0,
-    backgroundColor: '#22c55e',
-  },
-  rejectBg: {
-    right: 0,
-    backgroundColor: '#ef4444',
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  name: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111',
-  },
-  typeBadge: {
-    backgroundColor: '#dbeafe',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  typeBadgeText: {
-    fontSize: 11,
-    color: '#1d4ed8',
-    fontWeight: '500',
-  },
-  cost: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#16a34a',
-  },
-  hours: {
-    fontSize: 13,
-    color: '#555',
-    marginRight: 8,
-    minWidth: 36,
-  },
-  description: {
-    flex: 1,
-    fontSize: 13,
-    color: '#666',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
-  actionBtn: {
-    flex: 1,
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  approveBtn: {
-    backgroundColor: '#dcfce7',
-  },
-  rejectBtn: {
-    backgroundColor: '#fee2e2',
-  },
-  actionBtnText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-})

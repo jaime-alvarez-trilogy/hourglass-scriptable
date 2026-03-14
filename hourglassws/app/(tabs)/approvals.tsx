@@ -1,13 +1,15 @@
-// FR6: Manager Approvals Screen
-// Role-guarded: contributors are redirected to the hours tab on mount.
+// FR1: Manager Approvals Screen — NativeWind layout with design tokens
+// FR4: Empty states — manager "All caught up" Card + contributor redirect
+// FR5: Loading state — SkeletonLoader cards during initial data fetch
+//
+// Role-guarded: contributors see a brief redirect message before being sent to hours tab.
 
 import React, { useState, useEffect } from 'react'
 import {
   View,
   Text,
   FlatList,
-  TouchableOpacity,
-  StyleSheet,
+  Pressable,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native'
@@ -16,6 +18,8 @@ import { useConfig } from '@/src/hooks/useConfig'
 import { useApprovalItems } from '@/src/hooks/useApprovalItems'
 import { ApprovalCard } from '@/src/components/ApprovalCard'
 import { RejectionSheet } from '@/src/components/RejectionSheet'
+import Card from '@/src/components/Card'
+import SkeletonLoader from '@/src/components/SkeletonLoader'
 import type { ApprovalItem } from '@/src/lib/approvals'
 
 export default function ApprovalsScreen() {
@@ -33,6 +37,20 @@ export default function ApprovalsScreen() {
       router.replace('/(tabs)')
     }
   }, [config])
+
+  // Contributor state — brief render before useEffect redirect fires
+  if (config && config.isManager === false) {
+    return (
+      <View className="flex-1 items-center justify-center p-8 bg-background">
+        <Card elevated className="items-center gap-3 w-full">
+          <Text className="text-4xl text-textMuted">👤</Text>
+          <Text className="text-textSecondary text-base text-center font-body">
+            This screen is for managers
+          </Text>
+        </Card>
+      </View>
+    )
+  }
 
   async function handleApproveAll() {
     setIsApprovingAll(true)
@@ -64,22 +82,25 @@ export default function ApprovalsScreen() {
     )
   }
 
+  // FR5: Loading state — initial fetch only (no existing items yet)
+  const showSkeletons = isLoading && items.length === 0
+
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-background">
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.title}>Approvals</Text>
+      <View className="flex-row items-center justify-between px-4 pt-14 pb-3 bg-surface border-b border-border">
+        <View className="flex-row items-center gap-2">
+          <Text className="text-textPrimary text-xl font-display-bold">Approvals</Text>
           {items.length > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{items.length}</Text>
+            <View className="bg-violet/20 rounded-full px-2 py-0.5">
+              <Text className="text-violet text-xs font-sans-bold">{items.length}</Text>
             </View>
           )}
         </View>
 
         {items.length > 0 && (
-          <TouchableOpacity
-            style={[styles.approveAllBtn, isApprovingAll && styles.approveAllBtnLoading]}
+          <Pressable
+            className={`rounded-xl px-4 py-2 ${isApprovingAll ? 'bg-success/50' : 'bg-success'}`}
             onPress={handleApproveAll}
             disabled={isApprovingAll}
             accessibilityLabel="Approve all pending items"
@@ -87,33 +108,41 @@ export default function ApprovalsScreen() {
             {isApprovingAll ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={styles.approveAllText}>Approve All</Text>
+              <Text className="text-white font-sans-semibold text-sm">Approve All</Text>
             )}
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
 
       {/* Error banner */}
       {error && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={refetch}>
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
+        <View className="flex-row items-center bg-critical/10 px-4 py-2.5 gap-3">
+          <Text className="text-critical text-sm flex-1">{error}</Text>
+          <Pressable onPress={refetch}>
+            <Text className="text-violet font-sans-semibold text-sm">Retry</Text>
+          </Pressable>
         </View>
       )}
 
-      {/* Loading state */}
-      {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#6366f1" />
+      {/* FR5: Loading state — SkeletonLoader cards */}
+      {showSkeletons ? (
+        <View className="px-4 pt-3 gap-3">
+          <SkeletonLoader className="h-24 rounded-2xl" />
+          <SkeletonLoader className="h-24 rounded-2xl" />
+          <SkeletonLoader className="h-24 rounded-2xl" />
         </View>
       ) : items.length === 0 ? (
-        /* Empty state */
-        <View style={styles.center}>
-          <Text style={styles.emptyIcon}>✓</Text>
-          <Text style={styles.emptyTitle}>All caught up</Text>
-          <Text style={styles.emptySubtitle}>No pending approvals</Text>
+        /* FR4: Manager empty state */
+        <View className="flex-1 items-center justify-center p-8">
+          <Card className="items-center w-full">
+            <Text className="text-5xl text-success mb-3">✓</Text>
+            <Text className="text-textPrimary text-xl font-sans-semibold mb-1.5">
+              All caught up
+            </Text>
+            <Text className="text-textSecondary text-sm text-center">
+              No pending approvals
+            </Text>
+          </Card>
         </View>
       ) : (
         /* Item list */
@@ -121,9 +150,13 @@ export default function ApprovalsScreen() {
           data={items}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={{ paddingTop: 12, paddingBottom: 40 }}
           refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={refetch}
+              tintColor="#10B981"
+            />
           }
         />
       )}
@@ -137,104 +170,3 @@ export default function ApprovalsScreen() {
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 56,
-    paddingBottom: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111',
-  },
-  badge: {
-    backgroundColor: '#6366f1',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  approveAllBtn: {
-    backgroundColor: '#22c55e',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    minWidth: 100,
-    alignItems: 'center',
-  },
-  approveAllBtnLoading: {
-    backgroundColor: '#86efac',
-  },
-  approveAllText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fee2e2',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 12,
-  },
-  errorText: {
-    flex: 1,
-    color: '#b91c1c',
-    fontSize: 13,
-  },
-  retryText: {
-    color: '#6366f1',
-    fontWeight: '600',
-    fontSize: 13,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-    color: '#22c55e',
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#111',
-    marginBottom: 6,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#9ca3af',
-  },
-  list: {
-    paddingTop: 12,
-    paddingBottom: 40,
-  },
-})
