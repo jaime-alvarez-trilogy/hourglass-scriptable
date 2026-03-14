@@ -201,8 +201,10 @@ export function useAIData(): UseAIDataResult {
 
       // FR4 (06-ai-tab): On Monday, persist current week's midpoint AI% as the
       // previous week value so next week's delta badge has a reference point.
+      // Guard: only write if there's real tagged data (taggedSlots > 0), so we don't
+      // corrupt the previous week value with a zero from an empty Monday morning fetch.
       const isMonday = new Date().getDay() === 1;
-      if (isMonday) {
+      if (isMonday && freshData.taggedSlots > 0) {
         const midpoint = (freshData.aiPctLow + freshData.aiPctHigh) / 2;
         AsyncStorage.setItem(PREV_WEEK_KEY, String(midpoint)).catch(() => {});
         setPreviousWeekPercent(midpoint);

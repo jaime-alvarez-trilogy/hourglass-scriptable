@@ -30,6 +30,10 @@ import { colors } from '@/src/lib/colors';
 const RING_SIZE = 160;
 const BRAINLIFT_TARGET = 5;
 
+// ─── Layout constants ─────────────────────────────────────────────────────────
+
+const CONTENT_STYLE = { padding: 16, paddingTop: 56, gap: 12 } as const;
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function AIScreen() {
@@ -91,8 +95,8 @@ export default function AIScreen() {
   const brainliftHours = data?.brainliftHours ?? 0;
   const brainliftPercent = Math.min(100, (brainliftHours / BRAINLIFT_TARGET) * 100);
 
-  // Week-over-week delta (FR4)
-  const delta = previousWeekPercent !== undefined ? aiPercent - previousWeekPercent : null;
+  // Week-over-week delta (FR4) — only computed when we have real data and a prior week reference
+  const delta = (data && previousWeekPercent !== undefined) ? aiPercent - previousWeekPercent : null;
 
   // Skeleton layout: shown only when isLoading=true AND no data yet
   const showSkeleton = isLoading && !data;
@@ -100,7 +104,7 @@ export default function AIScreen() {
   return (
     <ScrollView
       className="flex-1 bg-background"
-      contentContainerStyle={{ padding: 16, paddingTop: 56, gap: 12 }}
+      contentContainerStyle={CONTENT_STYLE}
       refreshControl={
         <RefreshControl
           refreshing={isLoading}
