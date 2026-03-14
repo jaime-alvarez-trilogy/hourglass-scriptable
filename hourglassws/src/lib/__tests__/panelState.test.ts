@@ -1,5 +1,6 @@
 import {
   computePanelState,
+  computeDaysElapsed,
   PACING_ON_TRACK_THRESHOLD,
   PACING_BEHIND_THRESHOLD,
 } from '../panelState';
@@ -114,6 +115,82 @@ describe('computePanelState', () => {
 
     it('exports PACING_BEHIND_THRESHOLD as 0.60', () => {
       expect(PACING_BEHIND_THRESHOLD).toBe(0.6);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// computeDaysElapsed — FR1 (05-hours-dashboard)
+// Uses local timezone via Date.getDay() / getHours() etc.
+// ---------------------------------------------------------------------------
+
+describe('computeDaysElapsed', () => {
+  // Helper: build a local Date for a given ISO-like string but interpreted
+  // in local time (avoid UTC shift).
+  function localDate(
+    year: number,
+    month: number, // 1-based
+    day: number,
+    hour = 12,
+    minute = 0,
+    second = 0,
+  ): Date {
+    return new Date(year, month - 1, day, hour, minute, second, 0);
+  }
+
+  describe('weekdays', () => {
+    it('SC1.1 — Monday 08:00 → 1', () => {
+      // 2026-03-09 is a Monday
+      expect(computeDaysElapsed(localDate(2026, 3, 9, 8, 0, 0))).toBe(1);
+    });
+
+    it('SC1.2 — Monday 00:00:00 → 0 (start-of-week edge)', () => {
+      expect(computeDaysElapsed(localDate(2026, 3, 9, 0, 0, 0))).toBe(0);
+    });
+
+    it('SC1.3 — Tuesday 12:00 → 2', () => {
+      expect(computeDaysElapsed(localDate(2026, 3, 10, 12, 0, 0))).toBe(2);
+    });
+
+    it('SC1.4 — Wednesday 12:00 → 3', () => {
+      expect(computeDaysElapsed(localDate(2026, 3, 11, 12, 0, 0))).toBe(3);
+    });
+
+    it('SC1.5 — Thursday 09:00 → 4', () => {
+      expect(computeDaysElapsed(localDate(2026, 3, 12, 9, 0, 0))).toBe(4);
+    });
+
+    it('SC1.6 — Friday 23:59 → 5', () => {
+      expect(computeDaysElapsed(localDate(2026, 3, 13, 23, 59, 0))).toBe(5);
+    });
+  });
+
+  describe('weekend clamping', () => {
+    it('SC1.7 — Saturday 10:00 → 5 (clamped)', () => {
+      expect(computeDaysElapsed(localDate(2026, 3, 14, 10, 0, 0))).toBe(5);
+    });
+
+    it('SC1.8 — Sunday 10:00 → 5 (clamped)', () => {
+      expect(computeDaysElapsed(localDate(2026, 3, 15, 10, 0, 0))).toBe(5);
+    });
+  });
+
+  describe('Monday midnight boundary', () => {
+    it('SC1.9 — Monday 00:01 → 1 (one minute past midnight is elapsed)', () => {
+      expect(computeDaysElapsed(localDate(2026, 3, 9, 0, 1, 0))).toBe(1);
+    });
+
+    it('SC1.10 — Monday 23:59:59 → 1', () => {
+      expect(computeDaysElapsed(localDate(2026, 3, 9, 23, 59, 59))).toBe(1);
+    });
+  });
+
+  describe('no-argument call', () => {
+    it('SC1.11 — called with no argument does not crash and returns 0–5', () => {
+      const result = computeDaysElapsed();
+      expect(typeof result).toBe('number');
+      expect(result).toBeGreaterThanOrEqual(0);
+      expect(result).toBeLessThanOrEqual(5);
     });
   });
 });
