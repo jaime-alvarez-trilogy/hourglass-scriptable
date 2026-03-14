@@ -14,7 +14,7 @@ interface AuthContainerProps {
  * - bg-background: fills the screen with the design system background color
  * - flex-1 px-4: full height with standard screen edge padding
  */
-export default function AuthContainer({ children }: AuthContainerProps): JSX.Element {
+export default function AuthContainer({ children }: AuthContainerProps): React.JSX.Element {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1 px-4">
