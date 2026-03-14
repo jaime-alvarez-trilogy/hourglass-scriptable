@@ -4,7 +4,7 @@ export type { PanelState };
 /** Fraction of expected pace considered "on track" (within 15% of pace). */
 export const PACING_ON_TRACK_THRESHOLD = 0.85;
 
-/** Fraction of expected pace considered "recoverable behind" (40–85% of pace). */
+/** Fraction of expected pace considered "recoverable behind" (60–84% of pace). */
 export const PACING_BEHIND_THRESHOLD = 0.60;
 
 /**
