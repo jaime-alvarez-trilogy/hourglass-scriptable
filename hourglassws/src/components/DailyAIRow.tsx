@@ -1,7 +1,8 @@
 // FR9 (04-ai-brainlift): DailyAIRow — single row in daily AI breakdown list
+// FR5 (06-ai-tab): Migrated from StyleSheet.create() to NativeWind className.
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import type { DailyTagData } from '../lib/ai';
 
 interface DailyAIRowProps {
@@ -32,42 +33,21 @@ export function DailyAIRow({ item }: DailyAIRowProps) {
   const brainliftDisplay = item.secondBrain > 0 ? `${item.secondBrain} slots` : '—';
 
   return (
-    <View style={[styles.row, item.isToday && styles.todayRow]}>
-      <Text style={[styles.dateLabel, item.isToday && styles.todayText]}>
+    <View
+      className={`flex-row items-center py-2.5 px-1 border-b border-border${item.isToday ? ' bg-surface' : ''}`}
+    >
+      <Text
+        className={`flex-1 text-sm${item.isToday ? ' text-success font-semibold' : ' text-textPrimary'}`}
+      >
         {dateLabel}
         {item.isToday ? ' (today)' : ''}
       </Text>
-      <Text style={styles.metric}>{aiPct}</Text>
-      <Text style={styles.metric}>{brainliftDisplay}</Text>
+      <Text className="w-[70px] text-right text-sm text-textSecondary">
+        {aiPct}
+      </Text>
+      <Text className="w-[70px] text-right text-sm text-textSecondary">
+        {brainliftDisplay}
+      </Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#2C2C2E',
-  },
-  todayRow: {
-    backgroundColor: '#1A1A2E',
-  },
-  dateLabel: {
-    flex: 1,
-    fontSize: 14,
-    color: '#EBEBF5',
-  },
-  todayText: {
-    color: '#00FF88',
-    fontWeight: '600',
-  },
-  metric: {
-    width: 70,
-    textAlign: 'right',
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-});
