@@ -86,3 +86,4 @@ hex colors, no `StyleSheet.create()`, no raw `Animated` API.
 | 2026-03-14 | [01-nativewind-verify](specs/01-nativewind-verify/spec.md) | NativeWindSmoke component + visual verification of className pipeline — **Complete** |
 | 2026-03-14 | [02-panel-state](specs/02-panel-state/spec.md) | computePanelState utility — pure function mapping hours/days → PanelState — **Complete** |
 | 2026-03-14 | [03-base-components](specs/03-base-components/spec.md) | Card, MetricValue, SectionLabel, PanelGradient, SkeletonLoader — design system primitives with NativeWind + Reanimated v4 |
+| 2026-03-14 | [04-skia-charts](specs/04-skia-charts/spec.md) | WeeklyBarChart, TrendSparkline, AIRingChart, ProgressBar + colors.ts — Skia chart library with Reanimated v4 animations |
