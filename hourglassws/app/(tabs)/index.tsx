@@ -20,10 +20,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useConfig } from '@/src/hooks/useConfig';
 import { useHoursData } from '@/src/hooks/useHoursData';
-import { usePaymentHistory } from '@/src/hooks/usePaymentHistory';
+import { useEarningsHistory } from '@/src/hooks/useEarningsHistory';
 import { computePanelState, computeDaysElapsed } from '@/src/lib/panelState';
 import { getUrgencyLevel } from '@/src/lib/hours';
-import { getWeeklyEarningsTrend } from '@/src/lib/payments';
 import { colors } from '@/src/lib/colors';
 import PanelGradient from '@/src/components/PanelGradient';
 import MetricValue from '@/src/components/MetricValue';
@@ -118,7 +117,7 @@ export default function HoursDashboard() {
   const router = useRouter();
   const { config } = useConfig();
   const { data, isLoading, isStale, cachedAt, error, refetch } = useHoursData();
-  const { data: paymentHistory } = usePaymentHistory(4);
+  const { trend: earningsHistoryTrend } = useEarningsHistory();
 
   // Layout dimensions for chart and sparkline (measured via onLayout)
   const [chartDims, setChartDims] = useState({ width: 0, height: 0 });
@@ -129,7 +128,7 @@ export default function HoursDashboard() {
   const panelState = computePanelState(data?.total ?? 0, weeklyLimit, daysElapsed);
   const urgencyLevel = data ? getUrgencyLevel(data.timeRemaining) : 'none';
 
-  const earningsTrend = getWeeklyEarningsTrend(paymentHistory ?? []);
+  const earningsTrend = earningsHistoryTrend;
   const dailyChartData: DailyHours[] = mapDailyToChartData(data?.daily ?? []);
 
   return (

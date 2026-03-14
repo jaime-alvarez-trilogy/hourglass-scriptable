@@ -1,14 +1,25 @@
 /**
- * WeeklyBarChart — Skia bar chart (FR2)
+ * WeeklyBarChart — Skia animated bar chart (FR2)
  *
- * Static render for Skia 2.2.12 compatibility — no state, no animation inside Canvas.
- * Each slot always renders a faint full-height track bar so the chart is visible even
- * when hours are zero. Actual-hours bar overlays the track bar.
+ * Animation pattern (Skia 2.2.12 + Fabric compatible):
+ *   useSharedValue → withTiming → useAnimatedReaction → runOnJS(setProgress)
+ *   → React state → static Canvas re-render with scaled heights
+ *
+ * Avoids passing SharedValue/DerivedValue as arbitrary Skia props (crashes on
+ * Skia < 2.3). State lives at the component level, not inside Canvas children,
+ * so Skia's reconciler sees clean static values on every frame.
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Canvas, Rect, Line, vec } from '@shopify/react-native-skia';
+import {
+  useSharedValue,
+  withTiming,
+  useAnimatedReaction,
+  runOnJS,
+} from 'react-native-reanimated';
 import { colors } from '@/src/lib/colors';
+import { timingChartFill } from '@/src/lib/reanimated-presets';
 
 export interface DailyHours {
   day: string;
@@ -24,25 +35,34 @@ export interface WeeklyBarChartProps {
   height: number;
 }
 
-// Track bar alpha — visible enough to show the chart structure, subtle enough
-// that real data bars stand out.
-const TRACK_COLOR = colors.border; // #2A2A3D
+const TRACK_COLOR = colors.border;
 
 export default function WeeklyBarChart({ data, maxHours, width, height }: WeeklyBarChartProps) {
-  // Need width to render; height can fall back to a safe default
+  const [animProgress, setAnimProgress] = useState(0);
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withTiming(1, timingChartFill);
+  }, []);
+
+  useAnimatedReaction(
+    () => progress.value,
+    (v) => { runOnJS(setAnimProgress)(v); },
+  );
+
   if (data.length === 0 || width === 0) return null;
 
   const h = height > 0 ? height : 120;
-
   const resolvedMax = maxHours ?? Math.max(8, ...data.map(d => d.hours));
   const GAP_FRACTION = 0.3;
   const slotWidth = width / data.length;
   const barWidth = slotWidth * (1 - GAP_FRACTION);
   const barOffset = slotWidth * (GAP_FRACTION / 2);
 
-  // Faint guideline at max (top of chart)
   const guideY = 2;
-  const chartHeight = h - 4; // usable height below guide
+  const trackY = guideY + 1;
+  const trackHeight = h - trackY;
+  const chartHeight = h - 4;
 
   return (
     <Canvas style={{ width, height: h }}>
@@ -57,41 +77,25 @@ export default function WeeklyBarChart({ data, maxHours, width, height }: Weekly
       {data.map((entry, index) => {
         const x = index * slotWidth + barOffset;
 
-        // Track bar — always full chart height so the column is visible
-        const trackY = guideY + 1;
-        const trackHeight = h - trackY;
-
-        // Data bar — proportional to hours
-        const dataBarHeight = resolvedMax > 0
-          ? Math.max(2, (entry.hours / resolvedMax) * chartHeight)
-          : 0;
-        const dataBarY = h - dataBarHeight;
-
         const barColor = entry.isToday
           ? colors.gold
           : entry.isFuture
             ? colors.textMuted
             : colors.success;
 
+        const fullBarHeight = resolvedMax > 0
+          ? Math.max(2, (entry.hours / resolvedMax) * chartHeight)
+          : 0;
+        const animatedBarHeight = fullBarHeight * animProgress;
+        const dataBarY = h - animatedBarHeight;
+
         return (
           <React.Fragment key={entry.day + index}>
-            {/* Track (background) */}
-            <Rect
-              x={x}
-              y={trackY}
-              width={barWidth}
-              height={trackHeight}
-              color={TRACK_COLOR}
-            />
-            {/* Data (foreground) — only render when there are hours */}
-            {entry.hours > 0 && (
-              <Rect
-                x={x}
-                y={dataBarY}
-                width={barWidth}
-                height={dataBarHeight}
-                color={barColor}
-              />
+            {/* Track (always visible) */}
+            <Rect x={x} y={trackY} width={barWidth} height={trackHeight} color={TRACK_COLOR} />
+            {/* Data bar (animates up from bottom) */}
+            {entry.hours > 0 && animatedBarHeight >= 1 && (
+              <Rect x={x} y={dataBarY} width={barWidth} height={animatedBarHeight} color={barColor} />
             )}
           </React.Fragment>
         );

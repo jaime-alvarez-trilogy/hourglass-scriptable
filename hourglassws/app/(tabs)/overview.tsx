@@ -12,9 +12,8 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useConfig } from '@/src/hooks/useConfig';
-import { usePaymentHistory } from '@/src/hooks/usePaymentHistory';
+import { useEarningsHistory } from '@/src/hooks/useEarningsHistory';
 import { useAIData } from '@/src/hooks/useAIData';
-import { getWeeklyEarningsTrend } from '@/src/lib/payments';
 import { colors } from '@/src/lib/colors';
 import Card from '@/src/components/Card';
 import SectionLabel from '@/src/components/SectionLabel';
@@ -67,17 +66,14 @@ function TrendCard({ label, value, subtitle, data, color, maxValue, showGuide }:
 
 export default function OverviewScreen() {
   const { config } = useConfig();
-  const { data: paymentHistory } = usePaymentHistory(4);
+  const { trend: earningsTrend } = useEarningsHistory();
   const { data: aiData } = useAIData();
 
   const hourlyRate = config?.hourlyRate ?? 0;
   const weeklyLimit = config?.weeklyLimit ?? 40;
   const maxEarnings = hourlyRate * weeklyLimit;
 
-  // 4-week earnings (real API data)
-  const earningsTrend = getWeeklyEarningsTrend(paymentHistory ?? []);
-
-  // 4-week hours — derived from earnings ÷ rate (approximate, same scale)
+  // Hours — derived from earnings ÷ rate (approximate, same scale)
   const hoursTrend = hourlyRate > 0
     ? earningsTrend.map(e => parseFloat((e / hourlyRate).toFixed(1)))
     : earningsTrend.map(() => 0);
