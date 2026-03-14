@@ -83,8 +83,11 @@ describe('Card — FR1: source file class strings', () => {
     expect(source).toMatch(/className/);
   });
 
-  it('SC1.5 — source does not use StyleSheet.create', () => {
-    expect(source).not.toContain('StyleSheet.create');
+  it('SC1.5 — source does not use StyleSheet.create (outside comments)', () => {
+    const codeWithoutComments = source
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(codeWithoutComments).not.toContain('StyleSheet.create');
   });
 
   it('SC1.6 — source does not contain hardcoded hex color values', () => {
@@ -95,7 +98,10 @@ describe('Card — FR1: source file class strings', () => {
     expect(codeWithoutComments).not.toMatch(/#[0-9A-Fa-f]{3,8}\b/);
   });
 
-  it('SC1.6 — source does not import StyleSheet', () => {
-    expect(source).not.toMatch(/\bStyleSheet\b/);
+  it('SC1.6 — source does not import StyleSheet (outside comments)', () => {
+    const codeWithoutComments = source
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(codeWithoutComments).not.toMatch(/\bStyleSheet\b/);
   });
 });

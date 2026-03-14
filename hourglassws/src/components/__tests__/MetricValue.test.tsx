@@ -5,14 +5,27 @@
 // NativeWind v4 transforms className to hashed IDs in Jest/node.
 // className assertions are done via source-file static analysis (fs.readFileSync).
 //
-// NOTE on Reanimated v4 mocks:
-// react-native-reanimated is mocked in the jest preset.
-// useSharedValue, withTiming, useAnimatedProps are stubs.
+// NOTE on TextInput in jest-expo/node:
+// jest-expo/node resolves react-native to react-native-web, whose TextInput runs
+// a DOM-dependent useEffect. We mock the web TextInput module to a simple stub.
 
 import React from 'react';
 import { create, act } from 'react-test-renderer';
 import * as fs from 'fs';
 import * as path from 'path';
+
+// Stub out the web TextInput that requires document in its mount effect.
+jest.mock('react-native-web/dist/exports/TextInput/index.js', () => {
+  const mockR = require('react');
+  const mockRN = jest.requireActual('react-native-web');
+  return {
+    __esModule: true,
+    default: ({ defaultValue, value, ...props }: any) =>
+      mockR.createElement(mockRN.View, props,
+        mockR.createElement(mockRN.Text, null, defaultValue ?? value ?? '')
+      ),
+  };
+});
 
 const METRIC_VALUE_FILE = path.resolve(__dirname, '../MetricValue.tsx');
 
@@ -74,9 +87,13 @@ describe('MetricValue — FR2: runtime render', () => {
 
 describe('MetricValue — FR2: source file class strings and animation', () => {
   let source: string;
+  let code: string; // source with comments stripped
 
   beforeAll(() => {
     source = fs.readFileSync(METRIC_VALUE_FILE, 'utf8');
+    code = source
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
   });
 
   it('SC2.5 — source contains font-display class string', () => {
@@ -88,7 +105,6 @@ describe('MetricValue — FR2: source file class strings and animation', () => {
   });
 
   it('SC2.6 — source uses timingChartFill in withTiming call', () => {
-    // timingChartFill should be passed to withTiming
     expect(source).toMatch(/withTiming\s*\([\s\S]{0,100}timingChartFill/);
   });
 
@@ -108,12 +124,12 @@ describe('MetricValue — FR2: source file class strings and animation', () => {
     expect(source).toMatch(/toFixed\s*\(/);
   });
 
-  it('SC2.7 — source does not use StyleSheet.create', () => {
-    expect(source).not.toContain('StyleSheet.create');
+  it('SC2.7 — code does not use StyleSheet.create (outside comments)', () => {
+    expect(code).not.toContain('StyleSheet.create');
   });
 
-  it('SC2.7 — source does not import StyleSheet', () => {
-    expect(source).not.toMatch(/\bStyleSheet\b/);
+  it('SC2.7 — code does not import StyleSheet (outside comments)', () => {
+    expect(code).not.toMatch(/\bStyleSheet\b/);
   });
 
   it('SC2.8 — source uses withTiming for count-up animation', () => {

@@ -6,17 +6,24 @@
 // className assertions are done via source-file static analysis (fs.readFileSync).
 //
 // NOTE on expo-linear-gradient:
-// Mocked below as a passthrough wrapper (renders children only).
+// Mocked as a passthrough View (renders children without gradient).
+// jest.mock factory cannot reference out-of-scope variables (React), so we use
+// require() inside the factory and a named 'mockLinearGradient' function.
 
 import React from 'react';
 import { create, act } from 'react-test-renderer';
 import * as fs from 'fs';
 import * as path from 'path';
 
-jest.mock('expo-linear-gradient', () => ({
-  LinearGradient: ({ children }: { children: React.ReactNode }) =>
-    React.createElement(React.Fragment, null, children),
-}));
+// jest.mock factory: only allowed built-ins + require() are in scope.
+// Use require() to get React inside the factory.
+jest.mock('expo-linear-gradient', () => {
+  const mockReact = require('react');
+  return {
+    LinearGradient: ({ children }: { children: unknown }) =>
+      mockReact.createElement(mockReact.Fragment, null, children),
+  };
+});
 
 const PANEL_GRADIENT_FILE = path.resolve(__dirname, '../PanelGradient.tsx');
 
@@ -110,7 +117,6 @@ describe('PanelGradient — FR4: PANEL_GRADIENTS export', () => {
 
   it('SC4.3 — PANEL_GRADIENTS.idle uses flat surface colors (no transparent)', () => {
     const idleColors: string[] = PANEL_GRADIENTS.idle.colors;
-    // idle state should not have transparent stops — it is a flat surface
     idleColors.forEach((c: string) => {
       expect(c.toLowerCase()).not.toBe('transparent');
     });
@@ -133,9 +139,13 @@ describe('PanelGradient — FR4: PANEL_GRADIENTS export', () => {
 
 describe('PanelGradient — FR4: source file imports and structure', () => {
   let source: string;
+  let code: string;
 
   beforeAll(() => {
     source = fs.readFileSync(PANEL_GRADIENT_FILE, 'utf8');
+    code = source
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
   });
 
   it('SC4.6 — source imports springPremium from reanimated-presets', () => {
@@ -146,18 +156,14 @@ describe('PanelGradient — FR4: source file imports and structure', () => {
     expect(source).toContain('expo-linear-gradient');
   });
 
-  it('SC4.8 — source does not use StyleSheet.create', () => {
-    expect(source).not.toContain('StyleSheet.create');
+  it('SC4.8 — code does not use StyleSheet.create (outside comments)', () => {
+    expect(code).not.toContain('StyleSheet.create');
   });
 
   it('SC4.9 — hex values only appear in PANEL_GRADIENTS constant (not scattered elsewhere)', () => {
-    // Remove the PANEL_GRADIENTS block and check no hex remains in other code
-    // Strategy: check that hex values in code appear only near PANEL_GRADIENTS
     const lines = source.split('\n');
     const hexLines = lines.filter(line => /#[0-9A-Fa-f]{6}/.test(line));
     hexLines.forEach(line => {
-      // Each hex line should be inside the PANEL_GRADIENTS definition or a comment
-      // Allow lines containing PANEL_GRADIENTS, colors:, or '//'
       const isInGradients = line.includes('colors') ||
         line.includes('PANEL_GRADIENTS') ||
         line.trim().startsWith('//') ||
