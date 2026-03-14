@@ -1,16 +1,21 @@
-// FR4: UrgencyBanner — countdown banner with urgency-level color theming
-// Returns null when urgency is 'none' (> 12h remaining)
+// FR7 (05-hours-dashboard): UrgencyBanner — design token migration
+// Updated from StyleSheet + hardcoded hex to NativeWind className only.
+//
+// Design tokens used:
+//   bg-warning  (#F59E0B) — low + high urgency
+//   bg-critical (#F43F5E) — critical + expired urgency
+//   text-background (#0A0A0F) — dark text on coloured banner
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { getUrgencyLevel, formatTimeRemaining } from '../lib/hours';
 import type { UrgencyLevel } from '../lib/hours';
 
-const URGENCY_COLORS: Record<Exclude<UrgencyLevel, 'none'>, string> = {
-  low: '#FFC107',      // yellow
-  high: '#FF9500',     // orange
-  critical: '#FF3B30', // red
-  expired: '#FF3B30',  // red
+const URGENCY_CLASSES: Record<Exclude<UrgencyLevel, 'none'>, string> = {
+  low: 'bg-warning',
+  high: 'bg-warning',
+  critical: 'bg-critical',
+  expired: 'bg-critical',
 };
 
 interface UrgencyBannerProps {
@@ -24,28 +29,17 @@ export function UrgencyBanner({ timeRemaining }: UrgencyBannerProps) {
     return null;
   }
 
-  const backgroundColor = URGENCY_COLORS[level];
   const label = formatTimeRemaining(timeRemaining);
+  const bgClass = URGENCY_CLASSES[level];
 
   return (
-    <View style={[styles.banner, { backgroundColor }]} testID="urgency-banner">
-      <Text style={styles.text}>
+    <View
+      className={`${bgClass} py-2.5 px-4 rounded-xl items-center`}
+      testID="urgency-banner"
+    >
+      <Text className="text-background font-sans-semibold text-sm">
         {level === 'expired' ? 'Expired' : `Deadline in ${label}`}
       </Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  banner: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  text: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-  },
-});
