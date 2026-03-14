@@ -83,5 +83,5 @@ hex colors, no `StyleSheet.create()`, no raw `Animated` API.
 | Date | Spec | Description |
 |------|------|-------------|
 | 2026-03-14 | [00-env-setup](specs/00-env-setup/spec.md) | Add gitignore entry + .env.example template — **Complete** |
-| 2026-03-14 | [01-nativewind-verify](specs/01-nativewind-verify/spec.md) | NativeWindSmoke component + visual verification of className pipeline |
+| 2026-03-14 | [01-nativewind-verify](specs/01-nativewind-verify/spec.md) | NativeWindSmoke component + visual verification of className pipeline — **Complete** |
 | 2026-03-14 | [02-panel-state](specs/02-panel-state/spec.md) | computePanelState utility — pure function mapping hours/days → PanelState — **Complete** |
