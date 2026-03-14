@@ -77,3 +77,9 @@ hex colors, no `StyleSheet.create()`, no raw `Animated` API.
 | `hourglassws/src/components/` | Component library — to extend with new design |
 | `hourglassws/tools/ux-gauntlet.ts` | AI UI generation tool |
 | `hourglassws/tools/gemini-ui.ts` | AI UI generation tool (single model) |
+
+## Changelog
+
+| Date | Spec | Description |
+|------|------|-------------|
+| 2026-03-14 | [00-env-setup](specs/00-env-setup/spec.md) | Add gitignore entry + .env.example template |
