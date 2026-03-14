@@ -29,18 +29,19 @@ describe('Card — FR1: runtime render', () => {
     }).not.toThrow();
   });
 
-  it('SC1.1 — renders with string children without crash', () => {
-    expect(() => {
-      act(() => {
-        create(React.createElement(Card, null, 'hello'));
-      });
-    }).not.toThrow();
+  it('SC1.1 — children are present in rendered output', () => {
+    let tree: any;
+    act(() => {
+      tree = create(React.createElement(Card, null, 'card content'));
+    });
+    const json = JSON.stringify(tree.toJSON());
+    expect(json).toContain('card content');
   });
 
   it('SC1.1 — renders with elevated=true without crash', () => {
     expect(() => {
       act(() => {
-        create(React.createElement(Card, { elevated: true }, 'hello'));
+        create(React.createElement(Card, { elevated: true }, 'elevated card'));
       });
     }).not.toThrow();
   });
@@ -48,9 +49,20 @@ describe('Card — FR1: runtime render', () => {
   it('SC1.1 — renders with className prop without crash', () => {
     expect(() => {
       act(() => {
-        create(React.createElement(Card, { className: 'p-8' }, 'hello'));
+        create(React.createElement(Card, { className: 'p-8' }, 'custom padding'));
       });
     }).not.toThrow();
+  });
+
+  it('SC1.1 — renders exactly one root element (not fragment, not array)', () => {
+    let tree: any;
+    act(() => {
+      tree = create(React.createElement(Card, null, 'child'));
+    });
+    const json = tree.toJSON();
+    // Should be a single element, not an array
+    expect(Array.isArray(json)).toBe(false);
+    expect(json).not.toBeNull();
   });
 });
 
@@ -58,9 +70,13 @@ describe('Card — FR1: runtime render', () => {
 
 describe('Card — FR1: source file class strings', () => {
   let source: string;
+  let code: string;
 
   beforeAll(() => {
     source = fs.readFileSync(CARD_FILE, 'utf8');
+    code = source
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
   });
 
   it('SC1.2 — source contains bg-surface class string', () => {
@@ -79,29 +95,27 @@ describe('Card — FR1: source file class strings', () => {
     expect(source).toContain('bg-surfaceElevated');
   });
 
+  it('SC1.3 — bg-surfaceElevated and bg-surface are in a conditional (elevated toggle)', () => {
+    // Both variants must be present and should appear in a conditional context
+    expect(source).toContain('bg-surfaceElevated');
+    expect(source).toContain('bg-surface');
+    // Verify there's conditional logic (ternary or if)
+    expect(source).toMatch(/elevated[\s\S]{0,30}bg-surface/);
+  });
+
   it('SC1.4 — source accepts className prop (className appears in props/destructuring)', () => {
     expect(source).toMatch(/className/);
   });
 
-  it('SC1.5 — source does not use StyleSheet.create (outside comments)', () => {
-    const codeWithoutComments = source
-      .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
-    expect(codeWithoutComments).not.toContain('StyleSheet.create');
+  it('SC1.5 — code does not use StyleSheet.create (outside comments)', () => {
+    expect(code).not.toContain('StyleSheet.create');
   });
 
-  it('SC1.6 — source does not contain hardcoded hex color values', () => {
-    // Allow hex in comments only — reject hex in code
-    const codeWithoutComments = source
-      .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
-    expect(codeWithoutComments).not.toMatch(/#[0-9A-Fa-f]{3,8}\b/);
+  it('SC1.6 — code does not contain hardcoded hex color values (outside comments)', () => {
+    expect(code).not.toMatch(/#[0-9A-Fa-f]{3,8}\b/);
   });
 
-  it('SC1.6 — source does not import StyleSheet (outside comments)', () => {
-    const codeWithoutComments = source
-      .replace(/\/\/.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
-    expect(codeWithoutComments).not.toMatch(/\bStyleSheet\b/);
+  it('SC1.6 — code does not import StyleSheet (outside comments)', () => {
+    expect(code).not.toMatch(/\bStyleSheet\b/);
   });
 });
