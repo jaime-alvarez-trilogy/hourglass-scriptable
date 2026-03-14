@@ -15,14 +15,9 @@
  *   </View>
  */
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Canvas, Path, Circle } from '@shopify/react-native-skia';
-import {
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 import { colors } from '@/src/lib/colors';
-import { timingChartFill } from '@/src/lib/reanimated-presets';
 
 export interface TrendSparklineProps {
   data: number[];
@@ -84,12 +79,6 @@ export default function TrendSparkline({
   color = colors.gold,
   strokeWidth = 2,
 }: TrendSparklineProps) {
-  const clipProgress = useSharedValue(0);
-
-  useEffect(() => {
-    clipProgress.value = withTiming(1, timingChartFill);
-  }, []);
-
   // Recompute path when data changes
   const { pathStr, min, max, hasData, isSinglePoint } = useMemo(() => {
     if (data.length === 0) {
@@ -132,7 +121,6 @@ export default function TrendSparkline({
         strokeWidth={strokeWidth}
         strokeCap="round"
         strokeJoin="round"
-        end={clipProgress}
       />
     </Canvas>
   );
