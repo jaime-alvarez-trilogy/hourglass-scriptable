@@ -46,6 +46,9 @@ export default function ProgressBar({
   }, [clamped]);
 
   const animatedStyle = useAnimatedStyle(() => ({
+    // RN accepts percentage strings for width in flex layouts.
+    // `as any` is intentional — the Reanimated style type doesn't include string widths
+    // but React Native's layout engine handles them correctly at runtime.
     width: `${fillFraction.value * 100}%` as any,
   }));
 

@@ -16,7 +16,7 @@
  */
 
 import React, { useEffect, useMemo } from 'react';
-import { Canvas, Path, Circle, useDerivedValue } from '@shopify/react-native-skia';
+import { Canvas, Path, Circle } from '@shopify/react-native-skia';
 import {
   useSharedValue,
   withTiming,
@@ -108,9 +108,6 @@ export default function TrendSparkline({
       isSinglePoint: false,
     };
   }, [data, width, height]);
-
-  // Animate clip rect width from 0 → canvas width
-  const clipWidth = useDerivedValue(() => clipProgress.value * width);
 
   if (!hasData || width === 0 || height === 0) {
     return <Canvas style={{ width, height }} />;
