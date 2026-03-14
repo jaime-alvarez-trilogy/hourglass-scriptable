@@ -1,7 +1,8 @@
 // FR4: Verifying screen — non-interactive loading while auth + profile fetch runs
 import { useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useOnboarding } from '@/src/contexts/OnboardingContext';
 
 export default function VerifyingScreen() {
@@ -20,14 +21,13 @@ export default function VerifyingScreen() {
   }, [step, router]);
 
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color="#00FF88" />
-      <Text style={styles.label}>Verifying your account…</Text>
-    </View>
+    <SafeAreaView className="flex-1 bg-background">
+      <View className="flex-1 px-4 items-center justify-center gap-5">
+        <ActivityIndicator size="large" color="#8B949E" />
+        <Text className="font-sans text-base text-textSecondary">
+          Verifying your account…
+        </Text>
+      </View>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0D1117', alignItems: 'center', justifyContent: 'center', gap: 20 },
-  label: { fontSize: 16, color: '#8B949E' },
-});
