@@ -20,6 +20,7 @@ import { ApprovalCard } from '@/src/components/ApprovalCard'
 import { RejectionSheet } from '@/src/components/RejectionSheet'
 import Card from '@/src/components/Card'
 import SkeletonLoader from '@/src/components/SkeletonLoader'
+import FadeInScreen from '@/src/components/FadeInScreen'
 import type { ApprovalItem } from '@/src/lib/approvals'
 
 export default function ApprovalsScreen() {
@@ -86,6 +87,7 @@ export default function ApprovalsScreen() {
   const showSkeletons = isLoading && items.length === 0
 
   return (
+    <FadeInScreen>
     <View className="flex-1 bg-background">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 pt-14 pb-3 bg-surface border-b border-border">
@@ -168,5 +170,6 @@ export default function ApprovalsScreen() {
         onCancel={() => setRejectTarget(null)}
       />
     </View>
+    </FadeInScreen>
   )
 }

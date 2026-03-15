@@ -21,9 +21,11 @@ import { useRouter } from 'expo-router';
 import { useConfig } from '@/src/hooks/useConfig';
 import { useHoursData } from '@/src/hooks/useHoursData';
 import { useEarningsHistory } from '@/src/hooks/useEarningsHistory';
+import { useFocusKey } from '@/src/hooks/useFocusKey';
 import { computePanelState, computeDaysElapsed } from '@/src/lib/panelState';
 import { getUrgencyLevel } from '@/src/lib/hours';
 import { colors } from '@/src/lib/colors';
+import FadeInScreen from '@/src/components/FadeInScreen';
 import PanelGradient from '@/src/components/PanelGradient';
 import MetricValue from '@/src/components/MetricValue';
 import WeeklyBarChart from '@/src/components/WeeklyBarChart';
@@ -123,6 +125,8 @@ export default function HoursDashboard() {
   const [chartDims, setChartDims] = useState({ width: 0, height: 0 });
   const [sparklineDims, setSparklineDims] = useState({ width: 0, height: 0 });
 
+  const chartKey = useFocusKey();
+
   const weeklyLimit = config?.weeklyLimit ?? 40;
   const daysElapsed = computeDaysElapsed();
   const panelState = computePanelState(data?.total ?? 0, weeklyLimit, daysElapsed);
@@ -132,6 +136,7 @@ export default function HoursDashboard() {
   const dailyChartData: DailyHours[] = mapDailyToChartData(data?.daily ?? []);
 
   return (
+    <FadeInScreen>
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView
         className="flex-1"
@@ -234,6 +239,7 @@ export default function HoursDashboard() {
               onLayout={e => setChartDims({ width: e.nativeEvent.layout.width, height: 120 })}
             >
               <WeeklyBarChart
+                key={chartKey}
                 data={dailyChartData}
                 width={chartDims.width}
                 height={120}
@@ -287,6 +293,7 @@ export default function HoursDashboard() {
                 className="mt-3"
               >
                 <TrendSparkline
+                  key={chartKey}
                   data={earningsTrend}
                   width={sparklineDims.width}
                   height={sparklineDims.height}
@@ -312,5 +319,6 @@ export default function HoursDashboard() {
         )}
       </ScrollView>
     </SafeAreaView>
+    </FadeInScreen>
   );
 }

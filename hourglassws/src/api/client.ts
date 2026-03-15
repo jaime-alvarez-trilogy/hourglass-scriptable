@@ -28,7 +28,14 @@ export async function getAuthToken(
   if (response.status === 403) throw new AuthError(403);
   if (!response.ok) throw new ApiError(response.status);
 
-  return response.text();
+  const text = await response.text();
+  // API returns either plain token string or JSON {"token":"..."}
+  try {
+    const json = JSON.parse(text);
+    return json.token ?? text;
+  } catch {
+    return text;
+  }
 }
 
 function buildUrl(base: string, path: string, params: Record<string, string>): string {

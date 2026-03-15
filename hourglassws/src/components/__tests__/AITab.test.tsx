@@ -76,6 +76,44 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: jest.fn() }),
 }));
 
+// Mock Reanimated-based design system components — their unit tests cover them individually.
+// Here we test screen structure/props, not component internals.
+jest.mock('@/src/components/SkeletonLoader', () => {
+  const mockR = require('react');
+  return {
+    __esModule: true,
+    default: ({ width, height, rounded, ...props }: any) =>
+      mockR.createElement('SkeletonLoader', { width, height, rounded, ...props }),
+  };
+});
+
+jest.mock('@/src/components/MetricValue', () => {
+  const mockR = require('react');
+  return {
+    __esModule: true,
+    default: ({ value, unit, precision, colorClass, sizeClass, ...props }: any) =>
+      mockR.createElement('MetricValue', { value, unit, precision, colorClass, sizeClass, ...props }),
+  };
+});
+
+jest.mock('@/src/components/ProgressBar', () => {
+  const mockR = require('react');
+  return {
+    __esModule: true,
+    default: ({ progress, colorClass, height, ...props }: any) =>
+      mockR.createElement('ProgressBar', { progress, colorClass, height, ...props }),
+  };
+});
+
+jest.mock('@/src/components/AIRingChart', () => {
+  const mockR = require('react');
+  return {
+    __esModule: true,
+    default: ({ aiPercent, brainliftPercent, size, ...props }: any) =>
+      mockR.createElement('AIRingChart', { aiPercent, brainliftPercent, size, ...props }),
+  };
+});
+
 // useAIData mock — default: data with known values
 const mockUseAIData = jest.fn();
 jest.mock('@/src/hooks/useAIData', () => ({

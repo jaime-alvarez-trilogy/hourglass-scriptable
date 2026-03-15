@@ -14,10 +14,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useConfig } from '@/src/hooks/useConfig';
 import { useEarningsHistory } from '@/src/hooks/useEarningsHistory';
 import { useAIData } from '@/src/hooks/useAIData';
+import { useFocusKey } from '@/src/hooks/useFocusKey';
 import { colors } from '@/src/lib/colors';
 import Card from '@/src/components/Card';
 import SectionLabel from '@/src/components/SectionLabel';
 import TrendSparkline from '@/src/components/TrendSparkline';
+import FadeInScreen from '@/src/components/FadeInScreen';
 
 // ─── Mini sparkline card ─────────────────────────────────────────────────────
 
@@ -65,6 +67,7 @@ function TrendCard({ label, value, subtitle, data, color, maxValue, showGuide }:
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function OverviewScreen() {
+  const chartKey = useFocusKey();
   const { config } = useConfig();
   const { trend: earningsTrend } = useEarningsHistory();
   const { data: aiData } = useAIData();
@@ -87,6 +90,7 @@ export default function OverviewScreen() {
   const thisWeekHours = hoursTrend[hoursTrend.length - 1] ?? 0;
 
   return (
+    <FadeInScreen>
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView
         className="flex-1"
@@ -97,6 +101,7 @@ export default function OverviewScreen() {
 
         {/* Earnings trend */}
         <TrendCard
+          key={`earnings-${chartKey}`}
           label="WEEKLY EARNINGS"
           value={`$${Math.round(thisWeekEarnings).toLocaleString()}`}
           subtitle={`Max $${Math.round(maxEarnings).toLocaleString()} / week`}
@@ -108,6 +113,7 @@ export default function OverviewScreen() {
 
         {/* Hours trend (derived) */}
         <TrendCard
+          key={`hours-${chartKey}`}
           label="WEEKLY HOURS"
           value={`${thisWeekHours}h`}
           subtitle={`Goal: ${weeklyLimit}h / week`}
@@ -152,5 +158,6 @@ export default function OverviewScreen() {
         </Card>
       </ScrollView>
     </SafeAreaView>
+    </FadeInScreen>
   );
 }

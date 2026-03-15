@@ -1,3 +1,5 @@
+import '../global.css';
+
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
@@ -5,7 +7,26 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
 import 'react-native-reanimated';
+
+import {
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
+import {
+  PlusJakartaSans_300Light,
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+} from '@expo-google-fonts/plus-jakarta-sans';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useConfig } from '@/src/hooks/useConfig';
@@ -30,6 +51,20 @@ function RootLayout() {
   const segments = useSegments();
   useRoleRefresh();
 
+  const [fontsLoaded] = useFonts({
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    PlusJakartaSans_300Light,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+  });
+
   // SC1.3: hide native splash once config resolves
   useEffect(() => {
     if (!isLoading) {
@@ -48,8 +83,8 @@ function RootLayout() {
     }
   }, [isLoading, config, segments, router]);
 
-  // SC1.3: overlay while config loads (Stack still mounted for navigation context)
-  if (isLoading) {
+  // SC1.3: overlay while config or fonts load
+  if (isLoading || !fontsLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0D1117' }}>
         <ActivityIndicator size="large" color="#00FF88" />

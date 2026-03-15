@@ -17,6 +17,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useAIData } from '@/src/hooks/useAIData';
 import AIRingChart from '@/src/components/AIRingChart';
+import FadeInScreen from '@/src/components/FadeInScreen';
 import MetricValue from '@/src/components/MetricValue';
 import Card from '@/src/components/Card';
 import SectionLabel from '@/src/components/SectionLabel';
@@ -102,6 +103,7 @@ export default function AIScreen() {
   const showSkeleton = isLoading && !data;
 
   return (
+    <FadeInScreen>
     <ScrollView
       className="flex-1 bg-background"
       contentContainerStyle={CONTENT_STYLE}
@@ -287,5 +289,6 @@ export default function AIScreen() {
 
       {/* TODO: TrendSparkline — deferred to future analytics spec (weeklyHistory not yet in useAIData) */}
     </ScrollView>
+    </FadeInScreen>
   );
 }
