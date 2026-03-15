@@ -306,8 +306,7 @@ describe('AIConeChart — FR2: toPixel Coordinate Helper', () => {
 describe('AIConeChart — FR3: buildActualPath', () => {
   let buildActualPath: (points: ConePoint[], toPixelFn: any) => any;
 
-  beforeEach(() => {
-    jest.resetModules();
+  beforeAll(() => {
     buildActualPath = require('@/src/components/AIConeChart').buildActualPath;
   });
 
@@ -328,10 +327,11 @@ describe('AIConeChart — FR3: buildActualPath', () => {
     expect(result).toBeTruthy();
   });
 
-  it('SC3.3 — 1 point: source uses moveTo for single-point case', () => {
-    // Static analysis: verify buildActualPath source contains moveTo usage
+  it('SC3.3 — 1 point: source uses M (moveTo) SVG command for path start', () => {
+    // Static analysis: verify buildActualPath source starts path with M command
     const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
-    expect(source).toContain('moveTo');
+    // Path strings use SVG M command: `M ${x} ${y}`
+    expect(source).toMatch(/[`'"]M \$\{/);
   });
 
   it('SC3.4 — 3 points: does not throw', () => {
@@ -367,9 +367,10 @@ describe('AIConeChart — FR3: buildActualPath', () => {
     expect(typeof mod.buildActualPath).toBe('function');
   });
 
-  it('SC3.8 — source: buildActualPath uses lineTo for multi-point path', () => {
+  it('SC3.8 — source: buildActualPath uses L (lineTo) SVG command for subsequent points', () => {
     const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
-    expect(source).toContain('lineTo');
+    // Path strings use SVG L command: ` L ${x} ${y}`
+    expect(source).toMatch(/L \$\{x\}/);
   });
 });
 
@@ -378,8 +379,7 @@ describe('AIConeChart — FR3: buildActualPath', () => {
 describe('AIConeChart — FR4: buildConePath', () => {
   let buildConePath: (upper: ConePoint[], lower: ConePoint[], toPixelFn: any) => any;
 
-  beforeEach(() => {
-    jest.resetModules();
+  beforeAll(() => {
     buildConePath = require('@/src/components/AIConeChart').buildConePath;
   });
 
@@ -447,8 +447,7 @@ describe('AIConeChart — FR4: buildConePath', () => {
 describe('AIConeChart — FR5: buildTargetLinePath', () => {
   let buildTargetLinePath: (targetPct: number, weeklyLimit: number, toPixelFn: any) => any;
 
-  beforeEach(() => {
-    jest.resetModules();
+  beforeAll(() => {
     buildTargetLinePath = require('@/src/components/AIConeChart').buildTargetLinePath;
   });
 
@@ -480,9 +479,10 @@ describe('AIConeChart — FR5: buildTargetLinePath', () => {
     expect(typeof mod.buildTargetLinePath).toBe('function');
   });
 
-  it('SC5.6 — source: uses lineTo to draw the horizontal line', () => {
+  it('SC5.6 — source: buildTargetLinePath uses L SVG command to draw the horizontal line', () => {
     const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
-    expect(source).toContain('lineTo');
+    // SVG path string: `M ${x0} ${y} L ${x1} ${y}`
+    expect(source).toMatch(/buildTargetLinePath[\s\S]{0,500}L \$\{x1\}/);
   });
 });
 
