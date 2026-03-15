@@ -28,8 +28,9 @@ describe('computePanelState', () => {
       expect(computePanelState(40, 40, 5)).toBe('crushedIt');
     });
 
-    it('returns crushedIt when over 40h on Fri', () => {
-      expect(computePanelState(42, 40, 5)).toBe('crushedIt');
+    it('returns crushedIt when over 40h on Fri — REPLACED BY overtime state', () => {
+      // Previously 'crushedIt', now 'overtime' because hours > weeklyLimit
+      expect(computePanelState(42, 40, 5)).toBe('overtime');
     });
 
     it('returns behind when recoverable behind mid-week (Wed, 10h, expected 16h, ratio 0.625)', () => {
@@ -102,6 +103,49 @@ describe('computePanelState', () => {
     it('returns critical when pacingRatio is just below PACING_BEHIND_THRESHOLD (0.59)', () => {
       // daysElapsed=5, expected=40, hours=23.6 → ratio=23.6/40=0.59
       expect(computePanelState(23.6, 40, 5)).toBe('critical');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // FR1 (01-overtime-display): overtime state
+  // ---------------------------------------------------------------------------
+  describe('overtime state — FR1 (01-overtime-display)', () => {
+    it('FR1.1 — returns overtime when hours strictly exceed weeklyLimit (41 > 40)', () => {
+      expect(computePanelState(41, 40, 3)).toBe('overtime');
+    });
+
+    it('FR1.2 — returns crushedIt when hours exactly equal weeklyLimit (40 === 40)', () => {
+      expect(computePanelState(40, 40, 5)).toBe('crushedIt');
+    });
+
+    it('FR1.3 — returns overtime for fractional overage (40.01 > 40)', () => {
+      expect(computePanelState(40.01, 40, 3)).toBe('overtime');
+    });
+
+    it('FR1.4 — returns non-overtime state when hours just under limit (39.9 < 40)', () => {
+      const result = computePanelState(39.9, 40, 3);
+      expect(result).not.toBe('overtime');
+      expect(result).not.toBe('crushedIt');
+    });
+
+    it('FR1.5 — zero-limit guard unchanged: weeklyLimit=0 returns idle regardless of hours', () => {
+      expect(computePanelState(0, 0, 0)).toBe('idle');
+      expect(computePanelState(10, 0, 3)).toBe('idle');
+    });
+
+    it('FR1.6 — zero hours with 40h limit and no days returns idle (not overtime)', () => {
+      expect(computePanelState(0, 40, 0)).toBe('idle');
+    });
+
+    it('FR1.7 — large overtime value (100h > 40h limit) returns overtime', () => {
+      expect(computePanelState(100, 40, 5)).toBe('overtime');
+    });
+
+    it('FR1.8 — overtime has higher priority than crushedIt (hours strictly > limit)', () => {
+      // hours=41 > limit=40 — must be overtime, never crushedIt
+      const result = computePanelState(41, 40, 5);
+      expect(result).toBe('overtime');
+      expect(result).not.toBe('crushedIt');
     });
   });
 

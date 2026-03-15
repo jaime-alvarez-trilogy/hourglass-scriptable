@@ -36,7 +36,7 @@ describe('PanelGradient — FR4: runtime render for all states', () => {
     PanelGradient = require('../PanelGradient').default;
   });
 
-  const allStates = ['onTrack', 'behind', 'critical', 'crushedIt', 'idle'] as const;
+  const allStates = ['onTrack', 'behind', 'critical', 'crushedIt', 'idle', 'overtime'] as const;
 
   allStates.forEach((state) => {
     it(`SC4.1 — renders without crash for state="${state}"`, () => {
@@ -100,7 +100,7 @@ describe('PanelGradient — FR4: PANEL_GRADIENTS export', () => {
   });
 
   it('SC4.2 — each PANEL_GRADIENTS entry has colors array', () => {
-    const states = ['onTrack', 'behind', 'critical', 'crushedIt', 'idle'];
+    const states = ['onTrack', 'behind', 'critical', 'crushedIt', 'idle', 'overtime'];
     states.forEach((state) => {
       expect(Array.isArray(PANEL_GRADIENTS[state].colors)).toBe(true);
       expect(PANEL_GRADIENTS[state].colors.length).toBeGreaterThan(0);
@@ -108,11 +108,27 @@ describe('PanelGradient — FR4: PANEL_GRADIENTS export', () => {
   });
 
   it('SC4.2 — each PANEL_GRADIENTS entry has start and end vectors', () => {
-    const states = ['onTrack', 'behind', 'critical', 'crushedIt', 'idle'];
+    const states = ['onTrack', 'behind', 'critical', 'crushedIt', 'idle', 'overtime'];
     states.forEach((state) => {
       expect(PANEL_GRADIENTS[state].start).toBeDefined();
       expect(PANEL_GRADIENTS[state].end).toBeDefined();
     });
+  });
+
+  // FR3 (01-overtime-display): overtime gradient entry
+  it('FR3.1 — PANEL_GRADIENTS has overtime key', () => {
+    expect(PANEL_GRADIENTS).toHaveProperty('overtime');
+  });
+
+  it('FR3.2 — PANEL_GRADIENTS.overtime.colors is an array with at least one entry', () => {
+    expect(Array.isArray(PANEL_GRADIENTS.overtime.colors)).toBe(true);
+    expect(PANEL_GRADIENTS.overtime.colors.length).toBeGreaterThan(0);
+  });
+
+  it('FR3.3 — PANEL_GRADIENTS.overtime colors contain warm white-gold hex (FFF8E7)', () => {
+    const overtimeColors: string[] = PANEL_GRADIENTS.overtime.colors;
+    const colorStr = overtimeColors.join('').toUpperCase();
+    expect(colorStr).toContain('FFF8E7');
   });
 
   it('SC4.3 — PANEL_GRADIENTS.idle uses flat surface colors (no transparent)', () => {

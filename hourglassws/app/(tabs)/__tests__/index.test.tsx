@@ -345,3 +345,224 @@ describe('HoursDashboard — FR4 (02-watermarks): prop wiring', () => {
     expect(source).toMatch(/data\?\.total|data\s*&&\s*.*total/);
   });
 });
+
+// ─── FR4 (01-overtime-display): Home tab overtime hero display ────────────────
+//
+// Strategy:
+// - Source-level static analysis verifies overtime branch logic and STATE maps
+// - Render tests verify crash-free rendering in overtime state
+//
+// Note: NativeWind v4 hashes className in Jest — do not assert on rendered
+// className values. Use testID attributes and source file analysis instead.
+
+describe('HoursDashboard — FR4 (01-overtime-display): source structure', () => {
+  let source: string;
+  let code: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(INDEX_FILE, 'utf8');
+    code = source
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+  });
+
+  it('FR4.1 — STATE_LABELS includes overtime key', () => {
+    expect(source).toMatch(/overtime\s*:\s*['"]OVERTIME['"]/);
+  });
+
+  it('FR4.2 — STATE_COLORS includes overtime key', () => {
+    expect(source).toMatch(/overtime\s*:\s*['"]text-\[#FFF8E7\]['"]/);
+  });
+
+  it('FR4.3 — source has conditional branch for panelState === overtime', () => {
+    expect(source).toMatch(/panelState\s*===\s*['"]overtime['"]/);
+  });
+
+  it('FR4.4 — overtime branch renders overtimeHours (not total)', () => {
+    // When overtime, MetricValue should use overtimeHours
+    expect(source).toMatch(/overtimeHours/);
+    // And the overtime block references it
+    expect(source).toMatch(/overtime['"][\s\S]{0,300}overtimeHours|overtimeHours[\s\S]{0,300}overtime['"]/);
+  });
+
+  it('FR4.5 — overtime branch uses "h OT" unit string', () => {
+    expect(source).toContain('h OT');
+  });
+
+  it('FR4.6 — overtime branch shows "overtime this week" label', () => {
+    expect(source).toContain('overtime this week');
+  });
+
+  it('FR4.7 — WeeklyBarChart receives weeklyLimit prop', () => {
+    // WeeklyBarChart JSX should have weeklyLimit={weeklyLimit} prop
+    expect(source).toMatch(/WeeklyBarChart[\s\S]{0,400}weeklyLimit/);
+  });
+});
+
+describe('HoursDashboard — FR4 (01-overtime-display): render in overtime state', () => {
+  // Need to mock useEarningsHistory and useAIData used by index.tsx
+  beforeAll(() => {
+    jest.mock('@/src/hooks/useEarningsHistory', () => ({
+      useEarningsHistory: () => ({ trend: [] }),
+    }));
+    jest.mock('@/src/hooks/useAIData', () => ({
+      useAIData: () => ({ data: null }),
+    }));
+  });
+
+  beforeEach(() => {
+    // Overtime: total=42 > weeklyLimit=40 → panelState will be 'overtime'
+    (useHoursData as jest.Mock).mockReturnValue({
+      data: {
+        total: 42,
+        average: 8.4,
+        today: 8,
+        daily: [
+          { date: '2026-03-09', hours: 9.0, isToday: false },
+          { date: '2026-03-10', hours: 9.0, isToday: false },
+          { date: '2026-03-11', hours: 8.5, isToday: false },
+          { date: '2026-03-12', hours: 8.5, isToday: false },
+          { date: '2026-03-13', hours: 7.0, isToday: true },
+        ],
+        weeklyEarnings: 1050,
+        todayEarnings: 200,
+        hoursRemaining: 0,
+        overtimeHours: 2,   // 42 - 40 = 2h overtime
+        timeRemaining: 0,
+        deadline: new Date('2026-03-15T23:59:59Z'),
+      },
+      isLoading: false,
+      isStale: false,
+      cachedAt: null,
+      error: null,
+      refetch: jest.fn(),
+    });
+    (useConfig as jest.Mock).mockReturnValue({
+      config: {
+        weeklyLimit: 40,
+        useQA: false,
+        hourlyRate: 25,
+        userId: 'u1',
+        fullName: 'Test User',
+        managerId: 'm1',
+        primaryTeamId: 't1',
+        teams: [],
+        isManager: false,
+        assignmentId: 'a1',
+        lastRoleCheck: '',
+        debugMode: false,
+        setupComplete: true,
+        setupDate: '',
+      },
+      isLoading: false,
+      refetch: jest.fn(),
+    });
+    (usePaymentHistory as jest.Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+    });
+  });
+
+  it('FR4.8 — renders without crash when panelState is overtime (total > weeklyLimit)', () => {
+    expect(() => {
+      act(() => { create(React.createElement(HoursDashboard)); });
+    }).not.toThrow();
+  });
+
+  it('FR4.9 — state-badge testID present in overtime render', () => {
+    let tree: any;
+    act(() => { tree = create(React.createElement(HoursDashboard)); });
+    expect(JSON.stringify(tree.toJSON())).toContain('"state-badge"');
+  });
+
+  it('FR4.10 — overtime state renders "OVERTIME" text in the badge', () => {
+    let tree: any;
+    act(() => { tree = create(React.createElement(HoursDashboard)); });
+    expect(JSON.stringify(tree.toJSON())).toContain('OVERTIME');
+  });
+
+  it('FR4.11 — overtime state renders "overtime this week" label', () => {
+    let tree: any;
+    act(() => { tree = create(React.createElement(HoursDashboard)); });
+    expect(JSON.stringify(tree.toJSON())).toContain('overtime this week');
+  });
+
+  it('FR4.12 — overtime state does NOT render "of 40h goal" label', () => {
+    let tree: any;
+    act(() => { tree = create(React.createElement(HoursDashboard)); });
+    // When in overtime, the "of {weeklyLimit}h goal" text should not appear
+    expect(JSON.stringify(tree.toJSON())).not.toContain('of 40h goal');
+  });
+});
+
+describe('HoursDashboard — FR4 (01-overtime-display): normal state preserved', () => {
+  beforeEach(() => {
+    // Normal state: total=28.5 < weeklyLimit=40 → not overtime
+    (useHoursData as jest.Mock).mockReturnValue({
+      data: {
+        total: 28.5,
+        average: 5.7,
+        today: 7.2,
+        daily: [
+          { date: '2026-03-09', hours: 8.0, isToday: false },
+          { date: '2026-03-10', hours: 7.5, isToday: false },
+          { date: '2026-03-11', hours: 6.0, isToday: false },
+          { date: '2026-03-12', hours: 7.0, isToday: false },
+          { date: '2026-03-13', hours: 7.2, isToday: true },
+        ],
+        weeklyEarnings: 712.5,
+        todayEarnings: 180,
+        hoursRemaining: 11.5,
+        overtimeHours: 0,
+        timeRemaining: 48 * 60 * 60 * 1000,
+        deadline: new Date('2026-03-15T23:59:59Z'),
+      },
+      isLoading: false,
+      isStale: false,
+      cachedAt: null,
+      error: null,
+      refetch: jest.fn(),
+    });
+    (useConfig as jest.Mock).mockReturnValue({
+      config: {
+        weeklyLimit: 40,
+        useQA: false,
+        hourlyRate: 25,
+        userId: 'u1',
+        fullName: 'Test User',
+        managerId: 'm1',
+        primaryTeamId: 't1',
+        teams: [],
+        isManager: false,
+        assignmentId: 'a1',
+        lastRoleCheck: '',
+        debugMode: false,
+        setupComplete: true,
+        setupDate: '',
+      },
+      isLoading: false,
+      refetch: jest.fn(),
+    });
+    (usePaymentHistory as jest.Mock).mockReturnValue({ data: [], isLoading: false });
+  });
+
+  it('FR4.13 — non-overtime state renders "of 40h goal" label (existing display preserved)', () => {
+    let tree: any;
+    act(() => { tree = create(React.createElement(HoursDashboard)); });
+    expect(JSON.stringify(tree.toJSON())).toContain('of 40h goal');
+  });
+
+  it('FR4.14 — non-overtime state does NOT render "overtime this week" label', () => {
+    let tree: any;
+    act(() => { tree = create(React.createElement(HoursDashboard)); });
+    expect(JSON.stringify(tree.toJSON())).not.toContain('overtime this week');
+  });
+
+  it('FR4.15 — non-overtime state renders sub-metrics (Today / Avg/day / Remaining)', () => {
+    let tree: any;
+    act(() => { tree = create(React.createElement(HoursDashboard)); });
+    const json = JSON.stringify(tree.toJSON());
+    // Sub-metrics labels should be visible in normal state
+    expect(json).toContain('TODAY');
+  });
+});
