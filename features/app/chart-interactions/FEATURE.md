@@ -43,6 +43,7 @@ The Hourglass app has rich chart visualizations but they are static — you can 
 | 2026-03-15 | [06-overview-history](specs/06-overview-history/spec.md) | WeeklySnapshot persistence layer — weekly_history_v2 store, mergeWeeklySnapshot, useWeeklyHistory hook |
 | 2026-03-15 | [03-scrub-engine](specs/03-scrub-engine/spec.md) | useScrubGesture hook + nearestIndex worklet + ScrubCursor utility — complete, 40 tests passing |
 | 2026-03-15 | [04-ai-scrub](specs/04-ai-scrub/spec.md) | AIConeChart scrub gesture + onScrubChange prop + AI tab hero MetricValue sync |
+| 2026-03-15 | [05-earnings-scrub](specs/05-earnings-scrub/spec.md) | TrendSparkline scrub + home earnings hero sync — getWeekLabels utility, gesture layer, hero value swap |
 
 | Spec | Description | Blocks | Blocked By | Complexity |
 |------|-------------|--------|------------|------------|
