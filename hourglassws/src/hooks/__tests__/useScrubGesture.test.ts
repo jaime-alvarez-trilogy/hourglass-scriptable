@@ -133,6 +133,17 @@ describe('FR1: useScrubGesture — source contract (static analysis)', () => {
   });
 });
 
+// ─── FR2: nearestIndex worklet directive (static analysis) ────────────────────
+
+describe('FR2: nearestIndex — worklet directive (static analysis)', () => {
+  it('nearestIndex function body contains worklet directive', () => {
+    const source = fs.readFileSync(HOOK_FILE, 'utf-8');
+    // The 'worklet' string literal must appear inside the nearestIndex function
+    // Pattern: function nearestIndex ... { 'worklet'; ... }
+    expect(source).toMatch(/function\s+nearestIndex[\s\S]*?'worklet'/);
+  });
+});
+
 // ─── FR4: ScrubChangeCallback type export ─────────────────────────────────────
 
 describe('FR4: ScrubChangeCallback type export', () => {
