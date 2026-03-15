@@ -27,17 +27,33 @@ module.exports = {
   useSharedValueEffect: (_effect: any, ..._deps: any[]) => {},
 
   Skia: {
-    Path: () => ({
-      moveTo: jest.fn().mockReturnThis(),
-      lineTo: jest.fn().mockReturnThis(),
-      cubicTo: jest.fn().mockReturnThis(),
-      quadTo: jest.fn().mockReturnThis(),
-      addArc: jest.fn().mockReturnThis(),
-      arcTo: jest.fn().mockReturnThis(),
-      close: jest.fn().mockReturnThis(),
-      copy: jest.fn().mockReturnThis(),
-      reset: jest.fn().mockReturnThis(),
-    }),
+    // Path supports both Skia.Path() (legacy factory) and Skia.Path.Make() (canonical API)
+    Path: Object.assign(
+      () => ({
+        moveTo: jest.fn().mockReturnThis(),
+        lineTo: jest.fn().mockReturnThis(),
+        cubicTo: jest.fn().mockReturnThis(),
+        quadTo: jest.fn().mockReturnThis(),
+        addArc: jest.fn().mockReturnThis(),
+        arcTo: jest.fn().mockReturnThis(),
+        close: jest.fn().mockReturnThis(),
+        copy: jest.fn().mockReturnThis(),
+        reset: jest.fn().mockReturnThis(),
+      }),
+      {
+        Make: () => ({
+          moveTo: jest.fn().mockReturnThis(),
+          lineTo: jest.fn().mockReturnThis(),
+          cubicTo: jest.fn().mockReturnThis(),
+          quadTo: jest.fn().mockReturnThis(),
+          addArc: jest.fn().mockReturnThis(),
+          arcTo: jest.fn().mockReturnThis(),
+          close: jest.fn().mockReturnThis(),
+          copy: jest.fn().mockReturnThis(),
+          reset: jest.fn().mockReturnThis(),
+        }),
+      },
+    ),
     XYWHRect: jest.fn((x: number, y: number, w: number, h: number) => ({ x, y, w, h })),
     Color: jest.fn((color: string) => color),
   },
