@@ -13,10 +13,14 @@ module.exports = {
   Path: (_props: any) => null,
   Circle: (_props: any) => null,
   Line: (_props: any) => null,
+  Text: (_props: any) => null,
   Group: ({ children }: any) => children ?? null,
   Paint: (_props: any) => null,
   Fill: (_props: any) => null,
   RoundedRect: (_props: any) => null,
+
+  // matchFont — returns a mock font object (non-null) for test predictability
+  matchFont: jest.fn((_descriptor: any) => ({ size: 10 })),
 
   // Reanimated-Skia bridge — synchronous in test environment
   useDerivedValue: (fn: () => any) => ({ value: fn() }),
