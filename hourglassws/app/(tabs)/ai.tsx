@@ -5,8 +5,9 @@
 // FR4: Delta badge (week-over-week AI% from AsyncStorage via useAIData)
 // FR5: DailyAIRow (className-only styling)
 // FR6: Loading/skeleton states (SkeletonLoader for ring, metrics, breakdown)
+// FR1 (03-ai-tab-integration): Prime Radiant card — AIConeChart full-size with re-animation
 
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -16,7 +17,10 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAIData } from '@/src/hooks/useAIData';
+import { useConfig } from '@/src/hooks/useConfig';
+import { useFocusKey } from '@/src/hooks/useFocusKey';
 import AIRingChart from '@/src/components/AIRingChart';
+import AIConeChart from '@/src/components/AIConeChart';
 import FadeInScreen from '@/src/components/FadeInScreen';
 import MetricValue from '@/src/components/MetricValue';
 import Card from '@/src/components/Card';
@@ -24,6 +28,7 @@ import SectionLabel from '@/src/components/SectionLabel';
 import ProgressBar from '@/src/components/ProgressBar';
 import SkeletonLoader from '@/src/components/SkeletonLoader';
 import { DailyAIRow } from '@/src/components/DailyAIRow';
+import { computeAICone } from '@/src/lib/aiCone';
 import { colors } from '@/src/lib/colors';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -40,6 +45,20 @@ const CONTENT_STYLE = { padding: 16, paddingTop: 56, gap: 12 } as const;
 export default function AIScreen() {
   const router = useRouter();
   const { data, isLoading, lastFetchedAt, error, refetch, previousWeekPercent } = useAIData();
+  const { config } = useConfig();
+  const chartKey = useFocusKey();
+
+  // Prime Radiant cone dims — measured via onLayout; chart renders null until width > 0
+  const [coneDims, setConeDims] = useState({ width: 0, height: 240 });
+
+  // Config-derived weekly limit (FR1 03-ai-tab-integration)
+  const weeklyLimit = config?.weeklyLimit ?? 40;
+
+  // Cone data — recomputed when data or weeklyLimit changes
+  const coneData = useMemo(
+    () => (data ? computeAICone(data.dailyBreakdown, weeklyLimit) : null),
+    [data, weeklyLimit],
+  );
 
   // Auth error state
   if (error === 'auth') {
@@ -236,6 +255,27 @@ export default function AIScreen() {
             </Text>
           </>
         )}
+      </Card>
+
+      {/* Prime Radiant Card — FR1 (03-ai-tab-integration) */}
+      <Card>
+        <SectionLabel className="mb-3">PRIME RADIANT</SectionLabel>
+        {showSkeleton ? (
+          <SkeletonLoader height={240} />
+        ) : coneData ? (
+          <View
+            style={{ height: 240 }}
+            onLayout={e => setConeDims({ width: e.nativeEvent.layout.width, height: 240 })}
+          >
+            <AIConeChart
+              key={chartKey}
+              data={coneData}
+              width={coneDims.width}
+              height={240}
+              size="full"
+            />
+          </View>
+        ) : null}
       </Card>
 
       {/* Daily Breakdown Card — FR5 */}
