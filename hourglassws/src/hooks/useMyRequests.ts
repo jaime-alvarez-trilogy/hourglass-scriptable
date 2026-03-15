@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useConfig } from './useConfig';
 import { loadConfig, loadCredentials } from '../store/config';
 import { fetchWorkDiary } from '../api/workDiary';
-import { AuthError, NetworkError } from '../api/errors';
+import { AuthError } from '../api/errors';
 import { getWeekStartDate } from '../lib/approvals';
 import { groupSlotsIntoEntries } from '../lib/requestsUtils';
 import type { ManualRequestEntry, UseMyRequestsResult } from '../types/requests';
@@ -79,7 +79,6 @@ export function buildMyRequestsQueryFn(
     // Collect entries from fulfilled days, track errors from rejected days
     const allEntries: ManualRequestEntry[] = [];
     let authFailed = 0;
-    let networkFailed = 0;
     let totalFailed = 0;
 
     for (let i = 0; i < settled.length; i++) {
@@ -91,8 +90,6 @@ export function buildMyRequestsQueryFn(
         totalFailed++;
         if (result.reason instanceof AuthError) {
           authFailed++;
-        } else if (result.reason instanceof NetworkError) {
-          networkFailed++;
         }
       }
     }
@@ -102,10 +99,11 @@ export function buildMyRequestsQueryFn(
 
     // Error classification: only report error if ALL days failed
     let error: 'auth' | 'network' | null = null;
-    if (totalFailed === dates.length) {
+    if (totalFailed === dates.length && totalFailed > 0) {
       if (authFailed > 0) {
         error = 'auth';
-      } else if (networkFailed > 0) {
+      } else {
+        // Network error, unknown error, or mix — surface as network
         error = 'network';
       }
     }
