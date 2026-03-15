@@ -1,57 +1,69 @@
-// FR1: Manager Approvals Screen — NativeWind layout with design tokens
-// FR4: Empty states — manager "All caught up" Card + contributor redirect
-// FR5: Loading state — SkeletonLoader cards during initial data fetch
+// FR3 (02-approvals-tab-redesign): Role-aware Requests screen
+// FR4: Empty states — "All caught up" (team), "No requests this week" (own)
+// FR5: Loading skeletons — independent per section
 //
-// Role-guarded: contributors see a brief redirect message before being sent to hours tab.
+// Layout:
+//   Manager: TEAM REQUESTS section (swipeable ApprovalCards) + MY REQUESTS section
+//   Contributor: MY REQUESTS section only
+//
+// Both hooks called unconditionally (React rules of hooks).
+// useApprovalItems returns [] for non-managers internally.
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   View,
   Text,
+  ScrollView,
   FlatList,
   Pressable,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native'
-import { useRouter } from 'expo-router'
 import { useConfig } from '@/src/hooks/useConfig'
 import { useApprovalItems } from '@/src/hooks/useApprovalItems'
+import { useMyRequests } from '@/src/hooks/useMyRequests'
 import { ApprovalCard } from '@/src/components/ApprovalCard'
+import MyRequestCard from '@/src/components/MyRequestCard'
 import { RejectionSheet } from '@/src/components/RejectionSheet'
 import Card from '@/src/components/Card'
+import SectionLabel from '@/src/components/SectionLabel'
 import SkeletonLoader from '@/src/components/SkeletonLoader'
 import FadeInScreen from '@/src/components/FadeInScreen'
 import type { ApprovalItem } from '@/src/lib/approvals'
 
 export default function ApprovalsScreen() {
-  const router = useRouter()
   const { config } = useConfig()
-  const { items, isLoading, error, refetch, approveItem, rejectItem, approveAll } =
-    useApprovalItems()
+  const isManager = config?.isManager === true
+
+  // My requests — all users
+  const { entries, isLoading: myLoading, error: myError, refetch: myRefetch } = useMyRequests()
+
+  // Team queue — called unconditionally; returns [] for non-managers
+  const {
+    items,
+    isLoading: teamLoading,
+    error: teamError,
+    refetch: teamRefetch,
+    approveItem,
+    rejectItem,
+    approveAll,
+  } = useApprovalItems()
 
   const [rejectTarget, setRejectTarget] = useState<ApprovalItem | null>(null)
   const [isApprovingAll, setIsApprovingAll] = useState(false)
 
-  // Role guard: redirect contributors to hours tab
-  useEffect(() => {
-    if (config && config.isManager === false) {
-      router.replace('/(tabs)')
-    }
-  }, [config])
+  // ─── Pull-to-refresh ────────────────────────────────────────────────────────
 
-  // Contributor state — brief render before useEffect redirect fires
-  if (config && config.isManager === false) {
-    return (
-      <View className="flex-1 items-center justify-center p-8 bg-background">
-        <Card elevated className="items-center gap-3 w-full">
-          <Text className="text-4xl text-textMuted">👤</Text>
-          <Text className="text-textSecondary text-base text-center font-body">
-            This screen is for managers
-          </Text>
-        </Card>
-      </View>
-    )
+  const isRefreshing = myLoading || (isManager && teamLoading)
+
+  function handleRefresh() {
+    myRefetch()
+    if (isManager) {
+      teamRefetch()
+    }
   }
+
+  // ─── Manager actions ────────────────────────────────────────────────────────
 
   async function handleApproveAll() {
     setIsApprovingAll(true)
@@ -73,7 +85,7 @@ export default function ApprovalsScreen() {
     }
   }
 
-  function renderItem({ item }: { item: ApprovalItem }) {
+  function renderApprovalItem({ item }: { item: ApprovalItem }) {
     return (
       <ApprovalCard
         item={item}
@@ -83,93 +95,146 @@ export default function ApprovalsScreen() {
     )
   }
 
-  // FR5: Loading state — initial fetch only (no existing items yet)
-  const showSkeletons = isLoading && items.length === 0
+  // ─── Skeleton helpers ───────────────────────────────────────────────────────
+
+  const showTeamSkeletons = isManager && teamLoading && items.length === 0
+  const showMySkeletons = myLoading && entries.length === 0
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <FadeInScreen>
-    <View className="flex-1 bg-background">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pt-14 pb-3 bg-surface border-b border-border">
-        <View className="flex-row items-center gap-2">
-          <Text className="text-textPrimary text-xl font-display-bold">Approvals</Text>
-          {items.length > 0 && (
-            <View className="bg-violet/20 rounded-full px-2 py-0.5">
-              <Text className="text-violet text-xs font-sans-bold">{items.length}</Text>
-            </View>
+      <View className="flex-1 bg-background">
+        {/* Header */}
+        <View className="flex-row items-center justify-between px-4 pt-14 pb-3 bg-surface border-b border-border">
+          <View className="flex-row items-center gap-2">
+            <Text className="text-textPrimary text-xl font-display-bold">Requests</Text>
+            {isManager && items.length > 0 && (
+              <View className="bg-violet/20 rounded-full px-2 py-0.5">
+                <Text className="text-violet text-xs font-sans-bold">{items.length}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Approve All — manager only, when team items present */}
+          {isManager && items.length > 0 && (
+            <Pressable
+              className={`rounded-xl px-4 py-2 ${isApprovingAll ? 'bg-success/50' : 'bg-success'}`}
+              onPress={handleApproveAll}
+              disabled={isApprovingAll}
+              accessibilityLabel="Approve all pending items"
+            >
+              {isApprovingAll ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text className="text-white font-sans-semibold text-sm">Approve All</Text>
+              )}
+            </Pressable>
           )}
         </View>
 
-        {items.length > 0 && (
-          <Pressable
-            className={`rounded-xl px-4 py-2 ${isApprovingAll ? 'bg-success/50' : 'bg-success'}`}
-            onPress={handleApproveAll}
-            disabled={isApprovingAll}
-            accessibilityLabel="Approve all pending items"
-          >
-            {isApprovingAll ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text className="text-white font-sans-semibold text-sm">Approve All</Text>
-            )}
-          </Pressable>
+        {/* Team error banner */}
+        {teamError && isManager && (
+          <View className="flex-row items-center bg-critical/10 px-4 py-2.5 gap-3">
+            <Text className="text-critical text-sm flex-1">{teamError}</Text>
+            <Pressable onPress={teamRefetch}>
+              <Text className="text-violet font-sans-semibold text-sm">Retry</Text>
+            </Pressable>
+          </View>
         )}
-      </View>
 
-      {/* Error banner */}
-      {error && (
-        <View className="flex-row items-center bg-critical/10 px-4 py-2.5 gap-3">
-          <Text className="text-critical text-sm flex-1">{error}</Text>
-          <Pressable onPress={refetch}>
-            <Text className="text-violet font-sans-semibold text-sm">Retry</Text>
-          </Pressable>
-        </View>
-      )}
-
-      {/* FR5: Loading state — SkeletonLoader cards */}
-      {showSkeletons ? (
-        <View className="px-4 pt-3 gap-3">
-          <SkeletonLoader className="h-24 rounded-2xl" />
-          <SkeletonLoader className="h-24 rounded-2xl" />
-          <SkeletonLoader className="h-24 rounded-2xl" />
-        </View>
-      ) : items.length === 0 ? (
-        /* FR4: Manager empty state */
-        <View className="flex-1 items-center justify-center p-8">
-          <Card className="items-center w-full">
-            <Text className="text-5xl text-success mb-3">✓</Text>
-            <Text className="text-textPrimary text-xl font-sans-semibold mb-1.5">
-              All caught up
-            </Text>
-            <Text className="text-textSecondary text-sm text-center">
-              No pending approvals
-            </Text>
-          </Card>
-        </View>
-      ) : (
-        /* Item list */
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={{ paddingTop: 12, paddingBottom: 40 }}
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 40 }}
           refreshControl={
             <RefreshControl
-              refreshing={isLoading}
-              onRefresh={refetch}
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
               tintColor="#10B981"
             />
           }
-        />
-      )}
+        >
+          {/* ── TEAM REQUESTS section (manager only) ───────────────────────── */}
+          {isManager && (
+            <View className="pt-4">
+              <SectionLabel className="px-4 mb-2">Team Requests</SectionLabel>
 
-      {/* Rejection bottom sheet */}
-      <RejectionSheet
-        visible={rejectTarget !== null}
-        onConfirm={handleConfirmReject}
-        onCancel={() => setRejectTarget(null)}
-      />
-    </View>
+              {showTeamSkeletons ? (
+                <View className="px-4 gap-3">
+                  <SkeletonLoader className="h-24 rounded-2xl" />
+                  <SkeletonLoader className="h-24 rounded-2xl" />
+                </View>
+              ) : items.length === 0 ? (
+                /* FR4: Manager empty state — team queue */
+                <View className="px-4">
+                  <Card className="items-center">
+                    <Text className="text-5xl text-success mb-3">✓</Text>
+                    <Text className="text-textPrimary text-xl font-sans-semibold mb-1.5">
+                      All caught up
+                    </Text>
+                    <Text className="text-textSecondary text-sm text-center">
+                      No pending approvals
+                    </Text>
+                  </Card>
+                </View>
+              ) : (
+                <FlatList
+                  data={items}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderApprovalItem}
+                  scrollEnabled={false}
+                  contentContainerStyle={{ paddingBottom: 8 }}
+                />
+              )}
+            </View>
+          )}
+
+          {/* ── MY REQUESTS section (all users) ────────────────────────────── */}
+          <View className="pt-4">
+            <SectionLabel className="px-4 mb-2">My Requests</SectionLabel>
+
+            {/* My requests error banner */}
+            {myError && (
+              <View className="flex-row items-center bg-critical/10 mx-4 mb-3 px-4 py-2.5 rounded-xl gap-3">
+                <Text className="text-critical text-sm flex-1">
+                  {myError === 'auth'
+                    ? 'Authentication error. Please re-open the app.'
+                    : 'Could not load requests.'}
+                </Text>
+                <Pressable onPress={myRefetch}>
+                  <Text className="text-violet font-sans-semibold text-sm">Retry</Text>
+                </Pressable>
+              </View>
+            )}
+
+            {showMySkeletons ? (
+              <View className="px-4 gap-3">
+                <SkeletonLoader className="h-16 rounded-2xl" />
+                <SkeletonLoader className="h-16 rounded-2xl" />
+              </View>
+            ) : entries.length === 0 ? (
+              /* FR4: Empty own requests */
+              <View className="px-4">
+                <Card>
+                  <Text className="text-textSecondary text-sm text-center">
+                    No requests this week
+                  </Text>
+                </Card>
+              </View>
+            ) : (
+              entries.map((entry) => (
+                <MyRequestCard key={entry.id} entry={entry} />
+              ))
+            )}
+          </View>
+        </ScrollView>
+
+        {/* Rejection bottom sheet */}
+        <RejectionSheet
+          visible={rejectTarget !== null}
+          onConfirm={handleConfirmReject}
+          onCancel={() => setRejectTarget(null)}
+        />
+      </View>
     </FadeInScreen>
   )
 }
