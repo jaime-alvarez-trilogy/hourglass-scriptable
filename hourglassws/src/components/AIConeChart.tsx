@@ -41,7 +41,7 @@ export interface AIConeChartProps {
 }
 
 type Padding = { top: number; right: number; bottom: number; left: number };
-export type ToPixelFn = (hoursX: number, pctY: number) => { x: number; y: number };
+type ToPixelFn = (hoursX: number, pctY: number) => { x: number; y: number };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -211,28 +211,24 @@ export function AIConeChart({
   }, [animState.dotOpacity]);
 
   // Build paths + compute dot pixel position (memoized)
-  const { actualPath, conePath, upperPath, lowerPath, targetPath, dotPixel } = useMemo(() => {
+  const { actualPath, conePath, upperPath, lowerPath, targetPath, dotPixel, toPixelFn } = useMemo(() => {
     const padding = size === 'full' ? PADDING_FULL : PADDING_COMPACT;
-    const toPixelFn: ToPixelFn = (hx, py) =>
+    const fn: ToPixelFn = (hx, py) =>
       toPixel(hx, py, { width, height }, data.weeklyLimit, padding);
 
     return {
-      actualPath: buildActualPath(data.actualPoints, toPixelFn),
-      conePath: buildConePath(data.upperBound, data.lowerBound, toPixelFn),
-      upperPath: buildActualPath(data.upperBound, toPixelFn),
-      lowerPath: buildActualPath(data.lowerBound, toPixelFn),
-      targetPath: buildTargetLinePath(data.targetPct, data.weeklyLimit, toPixelFn),
-      dotPixel: toPixelFn(data.currentHours, data.currentAIPct),
+      actualPath: buildActualPath(data.actualPoints, fn),
+      conePath: buildConePath(data.upperBound, data.lowerBound, fn),
+      upperPath: buildActualPath(data.upperBound, fn),
+      lowerPath: buildActualPath(data.lowerBound, fn),
+      targetPath: buildTargetLinePath(data.targetPct, data.weeklyLimit, fn),
+      dotPixel: fn(data.currentHours, data.currentAIPct),
+      toPixelFn: fn,
     };
   }, [data, width, height, size]);
 
   // Axis label font
   const font = matchFont({ fontFamily: 'System', fontSize: 10 });
-
-  // Determine padding for axis label positions
-  const padding = size === 'full' ? PADDING_FULL : PADDING_COMPACT;
-  const toPixelFn: ToPixelFn = (hx, py) =>
-    toPixel(hx, py, { width, height }, data.weeklyLimit, padding);
 
   // Guard: no canvas before dimensions are known (after all hooks — Rules of Hooks)
   if (width === 0 || height === 0) return null;
