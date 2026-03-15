@@ -26,7 +26,7 @@ import { useAIData } from '@/src/hooks/useAIData';
 import { useFocusKey } from '@/src/hooks/useFocusKey';
 import { computePanelState, computeDaysElapsed } from '@/src/lib/panelState';
 import { computeAICone } from '@/src/lib/aiCone';
-import { getUrgencyLevel } from '@/src/lib/hours';
+import { getUrgencyLevel, getWeekLabels } from '@/src/lib/hours';
 import { colors } from '@/src/lib/colors';
 import FadeInScreen from '@/src/components/FadeInScreen';
 import PanelGradient from '@/src/components/PanelGradient';
@@ -148,6 +148,22 @@ export default function HoursDashboard() {
 
   const earningsTrend = earningsHistoryTrend;
   const dailyChartData: DailyHours[] = mapDailyToChartData(data?.daily ?? []);
+
+  // ── Earnings scrub state (05-earnings-scrub FR3) ────────────────────────────
+  const [scrubEarningsIndex, setScrubEarningsIndex] = useState<number | null>(null);
+  const weekLabels = useMemo(() => getWeekLabels(earningsTrend.length), [earningsTrend.length]);
+
+  // Hero earnings: show scrubbed week value when actively scrubbing, live value otherwise
+  const displayEarnings =
+    scrubEarningsIndex !== null
+      ? (earningsTrend[scrubEarningsIndex] ?? 0)
+      : (data?.weeklyEarnings ?? 0);
+
+  // Sub-label: show week label during scrub, "this week" at rest
+  const earningsSubLabel =
+    scrubEarningsIndex !== null
+      ? (weekLabels[scrubEarningsIndex] ?? 'past week')
+      : 'this week';
 
   return (
     <FadeInScreen>
@@ -323,10 +339,11 @@ export default function HoursDashboard() {
           ) : (
             <>
               {/* Weekly earnings hero: "$" prefix + animated number */}
+              {/* During scrub: shows trend[scrubEarningsIndex]; at rest: live weeklyEarnings */}
               <View className="flex-row items-baseline gap-1">
                 <Text className="text-gold font-display-bold text-3xl">$</Text>
                 <MetricValue
-                  value={data?.weeklyEarnings ?? 0}
+                  value={displayEarnings}
                   unit=""
                   precision={0}
                   sizeClass="text-3xl"
@@ -334,9 +351,9 @@ export default function HoursDashboard() {
                 />
               </View>
               <Text className="text-textSecondary text-sm font-sans mt-1">
-                Today: ${Math.round(data?.todayEarnings ?? 0).toLocaleString()}
+                {earningsSubLabel}
               </Text>
-              {/* 4-week trend sparkline — scaled to max possible earnings */}
+              {/* 4-week trend sparkline — scaled to max possible earnings, scrub-enabled */}
               <View
                 style={{ height: 60 }}
                 onLayout={e => setSparklineDims({ width: e.nativeEvent.layout.width, height: 60 })}
@@ -355,6 +372,8 @@ export default function HoursDashboard() {
                       ? `$${Math.round(config.hourlyRate * config.weeklyLimit).toLocaleString()}`
                       : undefined
                   }
+                  onScrubChange={setScrubEarningsIndex}
+                  weekLabels={weekLabels}
                 />
               </View>
             </>

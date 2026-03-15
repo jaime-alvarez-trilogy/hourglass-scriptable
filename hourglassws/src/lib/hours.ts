@@ -132,6 +132,32 @@ export function formatTimeRemaining(ms: number): string {
   return `${totalMinutes}m`;
 }
 
+// ─── getWeekLabels ────────────────────────────────────────────────────────────
+
+/**
+ * Returns `count` human-readable week-start labels, oldest first.
+ * Each label is the Monday of that week, formatted "MMM D" (e.g. "Mar 3").
+ * Uses local timezone. count=0 returns [].
+ *
+ * Example for count=4 on a Wednesday 2026-03-18:
+ *   ["Feb 23", "Mar 2", "Mar 9", "Mar 16"]
+ */
+export function getWeekLabels(count: number): string[] {
+  if (count === 0) return [];
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const result: string[] = [];
+  const now = new Date();
+  const dow = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysToMonday = dow === 0 ? 6 : dow - 1;
+  // i = weeks back from current (count-1 = oldest, 0 = current)
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - daysToMonday - i * 7);
+    result.push(`${MONTHS[d.getMonth()]} ${d.getDate()}`);
+  }
+  return result;
+}
+
 // ─── calculateHours ───────────────────────────────────────────────────────────
 
 /**

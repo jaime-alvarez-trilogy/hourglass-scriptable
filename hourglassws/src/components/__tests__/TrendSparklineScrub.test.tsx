@@ -37,14 +37,33 @@ jest.mock('react-native-gesture-handler', () => ({
   },
 }));
 
-jest.mock('react-native-reanimated', () => ({
-  useSharedValue: (init: any) => ({ value: init }),
-  withTiming: (val: any) => val,
-  useAnimatedReaction: () => {},
-  runOnJS: (fn: any) => fn,
-  useReducedMotion: () => false,
-  Easing: { linear: (x: any) => x },
-}));
+jest.mock('react-native-reanimated', () => {
+  const identity = (x: any) => x;
+  const Easing = {
+    linear: identity,
+    ease: identity,
+    bezier: () => identity,
+    inOut: () => identity,
+    out: () => identity,
+    in: () => identity,
+    poly: () => identity,
+    sin: identity,
+    circle: identity,
+    exp: identity,
+    elastic: () => identity,
+    back: () => identity,
+    bounce: identity,
+    steps: () => identity,
+  };
+  return {
+    useSharedValue: (init: any) => ({ value: init }),
+    withTiming: (val: any) => val,
+    useAnimatedReaction: () => {},
+    runOnJS: (fn: any) => fn,
+    useReducedMotion: () => false,
+    Easing,
+  };
+});
 
 jest.mock('react-native-web/dist/exports/View/index.js', () => {
   const R = require('react');

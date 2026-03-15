@@ -21,6 +21,7 @@ export const Gesture = {
     }),
     enabled: jest.fn().mockReturnThis(),
     minDistance: jest.fn().mockReturnThis(),
+    activeOffsetX: jest.fn().mockReturnThis(),
     onBegin: jest.fn().mockReturnThis(),
     onUpdate: jest.fn().mockReturnThis(),
     onFinalize: jest.fn().mockReturnThis(),

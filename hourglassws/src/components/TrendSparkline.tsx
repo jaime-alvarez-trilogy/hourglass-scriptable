@@ -1,12 +1,18 @@
 /**
- * TrendSparkline — Skia animated line chart (FR3)
+ * TrendSparkline — Skia animated line chart with optional scrub gesture
  *
- * Renders a smooth bezier line through 4–8 data points on a Skia canvas.
+ * Renders a smooth bezier line through 4–12 data points on a Skia canvas.
  * The line animates from left to right on mount using timingChartFill.
  *
+ * Scrub gesture (05-earnings-scrub FR2):
+ *   - Wrap with GestureDetector for horizontal pan scrubbing
+ *   - Calls onScrubChange(index) during pan, onScrubChange(null) on release
+ *   - Renders a vertical line + dot cursor at the snapped data point
+ *   - activeOffsetX: [-5, 5] prevents conflict with ScrollView vertical scroll
+ *
  * Edge cases:
- *   - data=[]   → empty canvas (no crash)
- *   - data=[x]  → Circle at center (no line)
+ *   - data=[]   → empty canvas (no crash), gesture disabled
+ *   - data=[x]  → Circle at center (no line), cursor snaps to index 0
  *   - all zeros → flat line at vertical center
  *
  * Parent must provide width/height from onLayout:
@@ -15,11 +21,15 @@
  *   </View>
  */
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Canvas, Path, Circle, Line, vec, matchFont, Text } from '@shopify/react-native-skia';
-import { useSharedValue, withTiming } from 'react-native-reanimated';
+import { useSharedValue, withTiming, useAnimatedReaction, runOnJS } from 'react-native-reanimated';
+import { GestureDetector } from 'react-native-gesture-handler';
 import { colors } from '@/src/lib/colors';
 import { timingChartFill } from '@/src/lib/reanimated-presets';
+import { useScrubGesture } from '@/src/hooks/useScrubGesture';
+import type { ScrubChangeCallback } from '@/src/hooks/useScrubGesture';
+import { buildScrubCursor } from '@/src/components/ScrubCursor';
 
 export interface TrendSparklineProps {
   data: number[];
@@ -45,6 +55,17 @@ export interface TrendSparklineProps {
    * Only shown when showGuide is true. e.g. "$2,000"
    */
   capLabel?: string;
+  /**
+   * Called with the nearest data index (0..N-1) during a horizontal pan gesture,
+   * and with null when the gesture ends. Enables parent to update a hero value.
+   */
+  onScrubChange?: ScrubChangeCallback;
+  /**
+   * Human-readable week labels for each data point (oldest first).
+   * Length should match data.length. Used by parent for sub-label display.
+   * Not rendered inside the canvas.
+   */
+  weekLabels?: string[];
 }
 
 const PADDING_FRACTION = 0.1; // 10% top/bottom margin
@@ -91,6 +112,14 @@ function buildPath(
   return d;
 }
 
+/** Compute pixel X positions for each data point (matches buildPath spacing) */
+function computePixelXs(dataLength: number, width: number): number[] {
+  if (dataLength === 0) return [];
+  if (dataLength === 1) return [width / 2];
+  const xStep = width / (dataLength - 1);
+  return Array.from({ length: dataLength }, (_, i) => i * xStep);
+}
+
 export default function TrendSparkline({
   data,
   width,
@@ -100,6 +129,8 @@ export default function TrendSparkline({
   maxValue,
   showGuide = false,
   capLabel,
+  onScrubChange,
+  weekLabels: _weekLabels, // accepted prop — used by parent for sub-label, not rendered in canvas
 }: TrendSparklineProps) {
   const clipProgress = useSharedValue(0);
   // Resolve effective height — never 0 (avoids invisible canvas before onLayout fires)
@@ -130,6 +161,49 @@ export default function TrendSparkline({
     };
   }, [data, width, h, maxValue]);
 
+  // ── Scrub gesture ──────────────────────────────────────────────────────────
+
+  const pixelXs = useMemo(() => computePixelXs(data.length, width), [data.length, width]);
+
+  const { scrubIndex, gesture } = useScrubGesture({
+    pixelXs,
+    enabled: data.length > 0,
+  });
+
+  // Apply activeOffsetX so horizontal scrub doesn't block ScrollView vertical scroll
+  const scrubGesture = gesture.activeOffsetX([-5, 5]);
+
+  // Cursor pixel position bridged from UI thread to React state
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Safe fallback for optional onScrubChange
+  const safeOnScrubChange: ScrubChangeCallback = onScrubChange ?? (() => {});
+
+  // Bridge scrubIndex → onScrubChange callback (JS thread)
+  useAnimatedReaction(
+    () => scrubIndex.value,
+    (index) => {
+      runOnJS(safeOnScrubChange)(index === -1 ? null : index);
+    },
+  );
+
+  // Bridge scrubIndex → cursor pixel position (JS thread, for canvas rendering)
+  useAnimatedReaction(
+    () => scrubIndex.value,
+    (index) => {
+      if (index === -1 || data.length === 0) {
+        runOnJS(setCursorPos)(null);
+        return;
+      }
+      const clampedIdx = Math.min(Math.max(index, 0), data.length - 1);
+      const x = pixelXs[clampedIdx] ?? 0;
+      const y = toY(data[clampedIdx] ?? 0, min, max, h);
+      runOnJS(setCursorPos)({ x, y });
+    },
+  );
+
+  // ── Early return ───────────────────────────────────────────────────────────
+
   if (!hasData || width === 0) {
     return null;
   }
@@ -147,10 +221,50 @@ export default function TrendSparkline({
     : 0;
   const capLabelY = guideY + CAP_LABEL_FONT_SIZE;
 
+  // Cursor geometry (only when actively scrubbing)
+  const cursor = cursorPos
+    ? buildScrubCursor(cursorPos.x, cursorPos.y, h, h * PADDING_FRACTION)
+    : null;
+
   if (isSinglePoint) {
     const cx = width / 2;
     const cy = toY(data[0], min, max, h);
     return (
+      <GestureDetector gesture={scrubGesture}>
+        <Canvas style={{ width, height: h }}>
+          {showGuide && (
+            <Line p1={vec(0, guideY)} p2={vec(width, guideY)} color={colors.border} strokeWidth={1} />
+          )}
+          {showGuide && capLabel && capFont && (
+            <Text
+              x={capLabelX}
+              y={capLabelY}
+              text={capLabel}
+              font={capFont}
+              color={colors.textMuted}
+              opacity={0.35}
+            />
+          )}
+          <Circle cx={cx} cy={cy} r={strokeWidth * 2} color={color} />
+          {cursor && (
+            <>
+              <Path
+                path={cursor.linePath}
+                color={colors.textMuted}
+                style="stroke"
+                strokeWidth={1}
+                opacity={0.5}
+              />
+              <Circle cx={cursor.dotX} cy={cursor.dotY} r={cursor.dotRadius} color={color} />
+            </>
+          )}
+        </Canvas>
+      </GestureDetector>
+    );
+  }
+
+  return (
+    <GestureDetector gesture={scrubGesture}>
       <Canvas style={{ width, height: h }}>
         {showGuide && (
           <Line p1={vec(0, guideY)} p2={vec(width, guideY)} color={colors.border} strokeWidth={1} />
@@ -165,35 +279,28 @@ export default function TrendSparkline({
             opacity={0.35}
           />
         )}
-        <Circle cx={cx} cy={cy} r={strokeWidth * 2} color={color} />
-      </Canvas>
-    );
-  }
-
-  return (
-    <Canvas style={{ width, height: h }}>
-      {showGuide && (
-        <Line p1={vec(0, guideY)} p2={vec(width, guideY)} color={colors.border} strokeWidth={1} />
-      )}
-      {showGuide && capLabel && capFont && (
-        <Text
-          x={capLabelX}
-          y={capLabelY}
-          text={capLabel}
-          font={capFont}
-          color={colors.textMuted}
-          opacity={0.35}
+        <Path
+          path={pathStr}
+          color={color}
+          style="stroke"
+          strokeWidth={strokeWidth}
+          strokeCap="round"
+          strokeJoin="round"
+          end={clipProgress}
         />
-      )}
-      <Path
-        path={pathStr}
-        color={color}
-        style="stroke"
-        strokeWidth={strokeWidth}
-        strokeCap="round"
-        strokeJoin="round"
-        end={clipProgress}
-      />
-    </Canvas>
+        {cursor && (
+          <>
+            <Path
+              path={cursor.linePath}
+              color={colors.textMuted}
+              style="stroke"
+              strokeWidth={1}
+              opacity={0.5}
+            />
+            <Circle cx={cursor.dotX} cy={cursor.dotY} r={cursor.dotRadius} color={color} />
+          </>
+        )}
+      </Canvas>
+    </GestureDetector>
   );
 }

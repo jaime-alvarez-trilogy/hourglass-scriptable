@@ -174,16 +174,25 @@ describe('getWeekLabels', () => {
       Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
     };
 
-    function parseLabel(label: string): Date {
+    /**
+     * Parse a "MMM D" label to a Date, inferring the year from context.
+     * For labels near year boundaries (e.g. "Dec 29" when today is Jan 7),
+     * use the supplied currentYear to decide whether the label is in the prior year.
+     */
+    function parseLabelWithYear(label: string, currentYear: number, currentMonth: number): Date {
       const [mon, day] = label.split(' ');
-      return new RealDate(2026, MONTHS[mon], parseInt(day, 10), 12, 0, 0);
+      const month = MONTHS[mon];
+      // If the label month is later in the year than current month (by > 6 months),
+      // it must be from the prior year (e.g. label "Dec" when today is "Jan")
+      const year = month > currentMonth + 6 ? currentYear - 1 : currentYear;
+      return new RealDate(year, month, parseInt(day, 10), 12, 0, 0);
     }
 
     it('each label parses to a Monday (getDay() === 1)', () => {
       mockDate('2026-03-18');
       const result = getWeekLabels(4);
       result.forEach(label => {
-        const d = parseLabel(label);
+        const d = parseLabelWithYear(label, 2026, 2); // March = month 2
         expect(d.getDay()).toBe(1); // Monday
       });
     });
@@ -192,7 +201,7 @@ describe('getWeekLabels', () => {
       mockDate('2026-03-18');
       const result = getWeekLabels(12);
       result.forEach(label => {
-        const d = parseLabel(label);
+        const d = parseLabelWithYear(label, 2026, 2);
         expect(d.getDay()).toBe(1);
       });
     });
