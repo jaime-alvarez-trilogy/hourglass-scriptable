@@ -15,6 +15,7 @@ import { useConfig } from './useConfig';
 import { loadCredentials } from '../store/config';
 import { getAuthToken, apiGet } from '../api/client';
 import type { Payment } from '../lib/payments';
+import { loadWeeklyHistory, mergeWeeklySnapshot, saveWeeklyHistory } from '../lib/weeklyHistory';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -126,10 +127,12 @@ export function useEarningsHistory(
 
     // Build week map keyed by periodStartDate (YYYY-MM-DD)
     const weeks: Record<string, number> = {};
+    const hoursMap: Record<string, number> = {};
     for (const p of payments) {
       if (!p.periodStartDate) continue;
       const weekFrom = p.periodStartDate.slice(0, 10);
       weeks[weekFrom] = (weeks[weekFrom] ?? 0) + p.amount;
+      hoursMap[weekFrom] = (hoursMap[weekFrom] ?? 0) + p.paidHours;
     }
 
     // Merge with existing persisted data (keep weeks not in this API response)
@@ -143,6 +146,24 @@ export function useEarningsHistory(
       .catch(() => {
         // If read fails, just use the API data directly
         setPersistedTrend(mapToTrend(weeks, numWeeks));
+      });
+
+    // FR3 (06-overview-history): also write earnings + hours to weekly_history_v2.
+    // Additive write — failure is silent and does not affect the trend return value.
+    loadWeeklyHistory()
+      .then(history => {
+        let updated = history;
+        for (const weekStart of Object.keys(weeks)) {
+          updated = mergeWeeklySnapshot(updated, {
+            weekStart,
+            earnings: weeks[weekStart],
+            hours: hoursMap[weekStart] ?? 0,
+          });
+        }
+        return saveWeeklyHistory(updated);
+      })
+      .catch(() => {
+        // Silent failure — weekly_history_v2 write does not affect earnings trend
       });
   }, [payments]);
 
