@@ -21,6 +21,7 @@ import { useConfig } from '@/src/hooks/useConfig';
 import { useFocusKey } from '@/src/hooks/useFocusKey';
 import AIRingChart from '@/src/components/AIRingChart';
 import AIConeChart from '@/src/components/AIConeChart';
+import type { AIScrubPoint } from '@/src/components/AIConeChart';
 import FadeInScreen from '@/src/components/FadeInScreen';
 import MetricValue from '@/src/components/MetricValue';
 import Card from '@/src/components/Card';
@@ -50,6 +51,9 @@ export default function AIScreen() {
 
   // Prime Radiant cone dims — measured via onLayout; chart renders null until width > 0
   const [coneDims, setConeDims] = useState({ width: 0, height: 240 });
+
+  // Scrub state — when user drags AIConeChart, hero MetricValue shows scrubPoint.pctY
+  const [scrubPoint, setScrubPoint] = useState<AIScrubPoint | null>(null);
 
   // Config-derived weekly limit (FR1 03-ai-tab-integration)
   const weeklyLimit = config?.weeklyLimit ?? 40;
@@ -112,6 +116,9 @@ export default function AIScreen() {
 
   // Derive display values from data (or 0 while loading)
   const aiPercent = data ? (data.aiPctLow + data.aiPctHigh) / 2 : 0;
+
+  // Hero AI% — overridden by scrubPoint during scrub, otherwise live value
+  const heroAIPct = scrubPoint !== null ? scrubPoint.pctY : aiPercent;
   const brainliftHours = data?.brainliftHours ?? 0;
   const brainliftPercent = Math.min(100, (brainliftHours / BRAINLIFT_TARGET) * 100);
 
@@ -170,9 +177,9 @@ export default function AIScreen() {
                 }}
               >
                 <MetricValue
-                  value={aiPercent}
+                  value={heroAIPct}
                   unit="%"
-                  precision={0}
+                  precision={1}
                   colorClass="text-cyan"
                   sizeClass="text-4xl"
                 />
@@ -273,6 +280,7 @@ export default function AIScreen() {
               width={coneDims.width}
               height={240}
               size="full"
+              onScrubChange={setScrubPoint}
             />
           </View>
         ) : null}
