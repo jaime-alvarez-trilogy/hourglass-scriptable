@@ -32,6 +32,9 @@ export const colors = {
   textPrimary:   '#FFFFFF', // Hero numbers, headings, primary labels
   textSecondary: '#8B949E', // Supporting labels, metadata, secondary values
   textMuted:     '#484F58', // Placeholder text, disabled states, fine print
+
+  // Special states
+  overtimeWhiteGold: '#FFF8E7', // Overtime achievement — warm white-gold, near-white (01-overtime-display)
 } as const;
 
 export type ColorKey = keyof typeof colors;

@@ -50,6 +50,7 @@ const STATE_LABELS: Record<PanelState, string> = {
   critical: 'CRITICAL',
   crushedIt: 'CRUSHED IT',
   idle: 'GETTING STARTED',
+  overtime: 'OVERTIME',
 };
 
 const STATE_COLORS: Record<PanelState, string> = {
@@ -58,6 +59,7 @@ const STATE_COLORS: Record<PanelState, string> = {
   critical: 'text-critical',
   crushedIt: 'text-gold',
   idle: 'text-textSecondary',
+  overtime: 'text-overtimeWhiteGold',
 };
 
 function StateBadge({ state }: { state: PanelState }) {
@@ -194,7 +196,22 @@ export default function HoursDashboard() {
                 <SkeletonLoader height={20} width="60%" />
                 <SkeletonLoader height={36} />
               </View>
+            ) : panelState === 'overtime' ? (
+              /* ── Overtime hero: celebrate going beyond the limit ── */
+              <>
+                <MetricValue
+                  value={data?.overtimeHours ?? 0}
+                  unit="h OT"
+                  sizeClass="text-5xl"
+                  colorClass="text-overtimeWhiteGold"
+                />
+                <Text className="text-overtimeWhiteGold text-sm font-sans mb-4 opacity-70">
+                  overtime this week
+                </Text>
+                <StateBadge state={panelState} />
+              </>
             ) : (
+              /* ── Normal hero: total hours toward goal ── */
               <>
                 <MetricValue
                   value={data?.total ?? 0}
@@ -256,6 +273,8 @@ export default function HoursDashboard() {
                 width={chartDims.width}
                 height={120}
                 maxHours={Math.max(8, weeklyLimit / 5)}
+                watermarkLabel={data ? `${data.total.toFixed(1)}h` : undefined}
+                weeklyLimit={weeklyLimit}
               />
             </View>
           )}
@@ -331,6 +350,11 @@ export default function HoursDashboard() {
                   color={colors.gold}
                   maxValue={(config?.hourlyRate ?? 0) * (config?.weeklyLimit ?? 40)}
                   showGuide
+                  capLabel={
+                    config?.hourlyRate && config?.weeklyLimit
+                      ? `$${Math.round(config.hourlyRate * config.weeklyLimit).toLocaleString()}`
+                      : undefined
+                  }
                 />
               </View>
             </>
