@@ -11,7 +11,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Canvas, Rect, Line, vec } from '@shopify/react-native-skia';
+import { Canvas, Rect, Line, vec, matchFont, Text } from '@shopify/react-native-skia';
 import {
   useSharedValue,
   withTiming,
@@ -33,11 +33,18 @@ export interface WeeklyBarChartProps {
   maxHours?: number;
   width: number;
   height: number;
+  /** Faint centered watermark text overlaid on the chart body (e.g. "38.5h") */
+  watermarkLabel?: string;
+  /** When provided, bars whose running cumulative total exceeds this value shift to OVERTIME_WHITE_GOLD */
+  weeklyLimit?: number;
 }
 
 const TRACK_COLOR = colors.border;
+const WATERMARK_FONT_SIZE = 52;
+/** Warm white-gold used for bars that push the running total beyond weeklyLimit */
+const OVERTIME_WHITE_GOLD = '#FFF8E7';
 
-export default function WeeklyBarChart({ data, maxHours, width, height }: WeeklyBarChartProps) {
+export default function WeeklyBarChart({ data, maxHours, width, height, watermarkLabel, weeklyLimit }: WeeklyBarChartProps) {
   const [animProgress, setAnimProgress] = useState(0);
   const progress = useSharedValue(0);
 
@@ -64,6 +71,18 @@ export default function WeeklyBarChart({ data, maxHours, width, height }: Weekly
   const trackHeight = h - trackY;
   const chartHeight = h - 4;
 
+  // Watermark font — loaded once per render (matchFont is synchronous)
+  const font = watermarkLabel ? matchFont({ fontFamily: 'System', fontSize: WATERMARK_FONT_SIZE }) : null;
+
+  // Center the watermark text horizontally and vertically
+  const watermarkX = font && watermarkLabel
+    ? (width - font.measureText(watermarkLabel).width) / 2
+    : width / 2;
+  const watermarkY = h / 2 + WATERMARK_FONT_SIZE / 3;
+
+  // Running total for overtime color detection — accumulated before JSX map
+  let runningTotal = 0;
+
   return (
     <Canvas style={{ width, height: h }}>
       {/* Max hours guide line */}
@@ -77,11 +96,22 @@ export default function WeeklyBarChart({ data, maxHours, width, height }: Weekly
       {data.map((entry, index) => {
         const x = index * slotWidth + barOffset;
 
-        const barColor = entry.isToday
-          ? colors.gold
-          : entry.isFuture
-            ? colors.textMuted
-            : colors.success;
+        // Accumulate running total for non-future bars (left to right)
+        if (!entry.isFuture) {
+          runningTotal += entry.hours;
+        }
+
+        // Overtime color: running total strictly exceeds weeklyLimit
+        let barColor: string;
+        if (entry.isFuture) {
+          barColor = colors.textMuted;
+        } else if (weeklyLimit !== undefined && runningTotal > weeklyLimit) {
+          barColor = OVERTIME_WHITE_GOLD;
+        } else if (entry.isToday) {
+          barColor = colors.gold;
+        } else {
+          barColor = colors.success;
+        }
 
         const fullBarHeight = resolvedMax > 0
           ? Math.max(2, (entry.hours / resolvedMax) * chartHeight)
@@ -100,6 +130,18 @@ export default function WeeklyBarChart({ data, maxHours, width, height }: Weekly
           </React.Fragment>
         );
       })}
+
+      {/* ── WATERMARK: faint total hours centered on chart ─────────────── */}
+      {watermarkLabel && font && (
+        <Text
+          x={watermarkX}
+          y={watermarkY}
+          text={watermarkLabel}
+          font={font}
+          color={colors.textPrimary}
+          opacity={0.07}
+        />
+      )}
     </Canvas>
   );
 }
