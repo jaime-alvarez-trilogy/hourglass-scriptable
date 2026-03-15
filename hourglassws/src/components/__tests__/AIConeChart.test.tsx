@@ -520,12 +520,13 @@ describe('AIConeChart — FR6: Chart Rendering', () => {
     expect(() => renderChart({ data: MOCK_CONE_DATA, width: 300, height: 240 })).not.toThrow();
   });
 
-  it('SC6.2 — returns a Canvas element (not null) with valid props', () => {
+  it('SC6.2 — returns a non-null element with valid props', () => {
     const tree = renderChart({ data: MOCK_CONE_DATA, width: 300, height: 240 });
     const json = tree.toJSON();
     expect(json).not.toBeNull();
-    // Canvas is the root element
-    expect(json?.type).toBe('Canvas');
+    // Root element is a View (wrapping Canvas + legend row for full variant)
+    // or Canvas directly for compact. Either way, non-null.
+    expect(json?.type === 'Canvas' || json?.type === 'View').toBe(true);
   });
 
   it('SC6.3 — source imports Canvas from @shopify/react-native-skia', () => {
@@ -766,14 +767,13 @@ describe('AIConeChart — FR9 (02-watermarks): Legend Row', () => {
 
   it('SC9.5 — legend is guarded by size === "full"', () => {
     const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
-    // Legend should only render for full variant
-    // Existing check: size === 'full' already used for axis labels
-    // The legend guard must also use this condition
-    const legendSection = source.indexOf('AI%');
-    expect(legendSection).toBeGreaterThan(-1);
-    // The legend string must be in a region guarded by size check
-    const beforeLegend = source.slice(0, legendSection);
-    expect(beforeLegend).toMatch(/size\s*===\s*['"]full['"]/);
+    // Find the LEGEND ROW comment block (unique marker in legend implementation)
+    const legendMarker = 'LEGEND ROW';
+    const legendIdx = source.indexOf(legendMarker);
+    expect(legendIdx).toBeGreaterThan(-1);
+    // Within the next 120 characters after the legend marker, expect the size guard
+    const legendBlock = source.slice(legendIdx, legendIdx + 120);
+    expect(legendBlock).toMatch(/size\s*===\s*['"]full['"]/);
   });
 
   it('SC9.6 — AIConeChartProps does NOT add new props (legend is internal)', () => {
@@ -805,5 +805,179 @@ describe('AIConeChart — FR9 (02-watermarks): Legend Row', () => {
     expect(() =>
       renderChart({ size: 'compact', width: 300, height: 100 }),
     ).not.toThrow();
+  });
+});
+
+// ─── FR10 (04-ai-scrub): AIConeChart Scrub Gesture Integration ────────────────
+//
+// SC1.1 — AIConeChartProps includes onScrubChange prop
+// SC1.2 — AIScrubPoint interface exported with 4 fields
+// SC1.3 — gesture fires onScrubChange with AIScrubPoint when full
+// SC1.4 — gesture fires onScrubChange(null) on end
+// SC1.5 — size="compact": gesture disabled (source analysis)
+// SC1.6 — no crash when onScrubChange not provided
+// SC1.7 — empty hourlyPoints: no crash
+// SC1.8 — hourlyPoints.length === 1: source handles index 0
+// SC1.9 — imports useScrubGesture
+// SC1.10 — wraps Canvas in GestureDetector
+
+describe('AIConeChart — FR10 (04-ai-scrub): Scrub Gesture Integration', () => {
+  it('SC1.1 — AIConeChartProps interface includes onScrubChange optional prop', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    expect(source).toMatch(/onScrubChange\s*\?\s*:/);
+    expect(source).toMatch(/AIScrubPoint\s*\|\s*null/);
+  });
+
+  it('SC1.2a — AIScrubPoint is exported from AIConeChart.tsx', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    expect(source).toMatch(/export\s+interface\s+AIScrubPoint/);
+  });
+
+  it('SC1.2b — AIScrubPoint has pctY field', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    expect(source).toMatch(/pctY\s*:\s*number/);
+  });
+
+  it('SC1.2c — AIScrubPoint has hoursX field', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // hoursX is in ConePoint too — look for it inside AIScrubPoint block
+    expect(source).toMatch(/AIScrubPoint[\s\S]{0,200}hoursX\s*:\s*number/);
+  });
+
+  it('SC1.2d — AIScrubPoint has upperPct field', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    expect(source).toMatch(/upperPct\s*:\s*number/);
+  });
+
+  it('SC1.2e — AIScrubPoint has lowerPct field', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    expect(source).toMatch(/lowerPct\s*:\s*number/);
+  });
+
+  it('SC1.3 — source wires onScrubChange callback via useAnimatedReaction on scrubIndex', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // Bridge pattern: useAnimatedReaction → runOnJS(onScrubChange)
+    expect(source).toMatch(/runOnJS\s*\(\s*onScrubChange\s*\)/);
+  });
+
+  it('SC1.4 — source fires onScrubChange(null) when scrubbing ends (isScrubbing false)', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // onScrubChange called with null on gesture end
+    expect(source).toMatch(/onScrubChange\s*\)\s*\(\s*null\s*\)/);
+  });
+
+  it('SC1.5 — source: useScrubGesture enabled tied to size === "full"', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // enabled: size === 'full'
+    expect(source).toMatch(/enabled\s*:\s*size\s*===\s*['"]full['"]/);
+  });
+
+  it('SC1.6 — no crash when onScrubChange not provided (renders without prop)', () => {
+    expect(() => renderChart({ data: MOCK_CONE_DATA, width: 300, height: 240 })).not.toThrow();
+  });
+
+  it('SC1.7 — renders without crash when hourlyPoints is empty', () => {
+    const emptyData: ConeData = {
+      ...MOCK_CONE_DATA,
+      hourlyPoints: [],
+      coneSnapshots: [],
+    };
+    expect(() => renderChart({ data: emptyData, width: 300, height: 240 })).not.toThrow();
+  });
+
+  it('SC1.8 — source guards scrubIndex bounds before accessing hourlyPoints array', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // Guard: idx < 0 or idx >= N
+    expect(source).toMatch(/idx\s*[<>]=?\s*[0N]|scrubIndex[\s\S]{0,100}< 0/);
+  });
+
+  it('SC1.9 — source imports useScrubGesture from @/src/hooks/useScrubGesture', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    expect(source).toMatch(/from\s+['"]@\/src\/hooks\/useScrubGesture['"]/);
+  });
+
+  it('SC1.10 — source imports GestureDetector from react-native-gesture-handler', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    expect(source).toMatch(/GestureDetector/);
+    expect(source).toMatch(/from\s+['"]react-native-gesture-handler['"]/);
+  });
+
+  it('SC1.10b — source wraps Canvas in GestureDetector', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // GestureDetector appears before Canvas in the JSX
+    const gesturePos = source.indexOf('GestureDetector');
+    const canvasPos = source.indexOf('<Canvas');
+    expect(gesturePos).toBeGreaterThan(-1);
+    expect(canvasPos).toBeGreaterThan(gesturePos);
+  });
+});
+
+// ─── FR11 (04-ai-scrub): ScrubCursor Rendering ────────────────────────────────
+//
+// SC2.1 — imports buildScrubCursor
+// SC2.2 — Path with colors.textMuted at opacity 0.5 when isScrubActive
+// SC2.3 — Circle at snapped dot position when isScrubActive
+// SC2.4 — cursor guarded by isScrubActive condition
+// SC2.5 — cursor rendered after all other chart layers
+// SC2.6 — linePath produced by buildScrubCursor
+// SC2.7 — size="compact": no cursor
+
+describe('AIConeChart — FR11 (04-ai-scrub): ScrubCursor Rendering', () => {
+  it('SC2.1 — source imports buildScrubCursor from @/src/components/ScrubCursor', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    expect(source).toMatch(/buildScrubCursor/);
+    expect(source).toMatch(/from\s+['"]@\/src\/components\/ScrubCursor['"]/);
+  });
+
+  it('SC2.2 — source renders a Path with colors.textMuted and opacity 0.5 for cursor line', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // cursor line uses colors.textMuted and opacity={0.5}
+    expect(source).toMatch(/colors\.textMuted/);
+    expect(source).toMatch(/opacity=\{0\.5\}/);
+  });
+
+  it('SC2.3 — source renders a Circle for the cursor dot at snapped position', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // Circle for cursor dot — uses scrubCursor.dotX / dotY
+    expect(source).toMatch(/scrubCursor\.dotX/);
+    expect(source).toMatch(/scrubCursor\.dotY/);
+  });
+
+  it('SC2.4 — cursor layers are guarded by isScrubActive condition', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // Conditional rendering: isScrubActive && scrubCursor
+    expect(source).toMatch(/isScrubActive/);
+    expect(source).toMatch(/isScrubActive\s*&&\s*scrubCursor|scrubCursor\s*&&\s*isScrubActive/);
+  });
+
+  it('SC2.5 — cursor layers appear after existing chart path layers in source (rendered on top)', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // ACTUAL TRAJECTORY section comes before scrubCursor rendering
+    const trajectoryPos = source.indexOf('ACTUAL TRAJECTORY');
+    const cursorPos = source.indexOf('isScrubActive');
+    expect(trajectoryPos).toBeGreaterThan(-1);
+    expect(cursorPos).toBeGreaterThan(trajectoryPos);
+  });
+
+  it('SC2.6 — source uses buildScrubCursor to produce linePath for cursor', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    expect(source).toMatch(/buildScrubCursor\s*\(/);
+    // Result stored in scrubCursor state
+    expect(source).toMatch(/setScrubCursor/);
+  });
+
+  it('SC2.7 — source: isScrubActive bridged from isScrubbing SharedValue (setIsScrubActive)', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    expect(source).toMatch(/setIsScrubActive/);
+    // Bridge uses runOnJS
+    expect(source).toMatch(/runOnJS\s*\(\s*setIsScrubActive\s*\)/);
+  });
+
+  it('SC2.8 — full chart renders without crash after scrub integration', () => {
+    expect(() => renderChart({ size: 'full', width: 300, height: 240 })).not.toThrow();
+  });
+
+  it('SC2.9 — compact chart renders without crash after scrub integration', () => {
+    expect(() => renderChart({ size: 'compact', width: 300, height: 100 })).not.toThrow();
   });
 });
