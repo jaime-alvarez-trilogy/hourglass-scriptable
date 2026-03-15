@@ -40,7 +40,7 @@ The Hourglass app has rich chart visualizations but they are static — you can 
 | Spec | Description | Blocks | Blocked By | Complexity |
 |------|-------------|--------|------------|------------|
 | 01-overtime-display | Hero panel overtime mode + bar chart color shift | — | — | S |
-| 02-watermarks | Faint hours watermark + chart edge labels / legend | — | — | S |
+| [02-watermarks](specs/02-watermarks/spec.md) | Faint hours watermark + chart edge labels / legend | — | — | S |
 | 03-scrub-engine | `useScrubGesture` hook + shared Skia cursor pattern | 04, 05, 07 | — | M |
 | 04-ai-scrub | AIConeChart scrub + AI tab hero value sync | — | 03 | M |
 | 05-earnings-scrub | TrendSparkline scrub + home earnings hero sync | — | 03 | M |
