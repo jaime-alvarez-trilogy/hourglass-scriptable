@@ -16,7 +16,7 @@
  */
 
 import React, { useEffect, useMemo } from 'react';
-import { Canvas, Path, Circle, Line, vec } from '@shopify/react-native-skia';
+import { Canvas, Path, Circle, Line, vec, matchFont, Text } from '@shopify/react-native-skia';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import { colors } from '@/src/lib/colors';
 import { timingChartFill } from '@/src/lib/reanimated-presets';
@@ -40,9 +40,15 @@ export interface TrendSparklineProps {
    * representing the maxValue reference. Default: false.
    */
   showGuide?: boolean;
+  /**
+   * Optional label rendered at the right edge of the guide line.
+   * Only shown when showGuide is true. e.g. "$2,000"
+   */
+  capLabel?: string;
 }
 
 const PADDING_FRACTION = 0.1; // 10% top/bottom margin
+const CAP_LABEL_FONT_SIZE = 10;
 
 /** Map a data value to a canvas Y coordinate (inverted — Skia Y grows downward) */
 function toY(value: number, min: number, max: number, height: number): number {
@@ -93,6 +99,7 @@ export default function TrendSparkline({
   strokeWidth = 2,
   maxValue,
   showGuide = false,
+  capLabel,
 }: TrendSparklineProps) {
   const clipProgress = useSharedValue(0);
   // Resolve effective height — never 0 (avoids invisible canvas before onLayout fires)
@@ -129,6 +136,17 @@ export default function TrendSparkline({
 
   const guideY = 2;
 
+  // Cap label font — only loaded when needed
+  const capFont = (showGuide && capLabel)
+    ? matchFont({ fontFamily: 'System', fontSize: CAP_LABEL_FONT_SIZE })
+    : null;
+
+  // Right-align the cap label: measure text width, position at right edge
+  const capLabelX = capFont && capLabel
+    ? width - capFont.measureText(capLabel).width - 4
+    : 0;
+  const capLabelY = guideY + CAP_LABEL_FONT_SIZE;
+
   if (isSinglePoint) {
     const cx = width / 2;
     const cy = toY(data[0], min, max, h);
@@ -136,6 +154,16 @@ export default function TrendSparkline({
       <Canvas style={{ width, height: h }}>
         {showGuide && (
           <Line p1={vec(0, guideY)} p2={vec(width, guideY)} color={colors.border} strokeWidth={1} />
+        )}
+        {showGuide && capLabel && capFont && (
+          <Text
+            x={capLabelX}
+            y={capLabelY}
+            text={capLabel}
+            font={capFont}
+            color={colors.textMuted}
+            opacity={0.35}
+          />
         )}
         <Circle cx={cx} cy={cy} r={strokeWidth * 2} color={color} />
       </Canvas>
@@ -146,6 +174,16 @@ export default function TrendSparkline({
     <Canvas style={{ width, height: h }}>
       {showGuide && (
         <Line p1={vec(0, guideY)} p2={vec(width, guideY)} color={colors.border} strokeWidth={1} />
+      )}
+      {showGuide && capLabel && capFont && (
+        <Text
+          x={capLabelX}
+          y={capLabelY}
+          text={capLabel}
+          font={capFont}
+          color={colors.textMuted}
+          opacity={0.35}
+        />
       )}
       <Path
         path={pathStr}
