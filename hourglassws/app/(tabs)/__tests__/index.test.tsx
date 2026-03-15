@@ -297,3 +297,51 @@ describe('HoursDashboard — render: stale cache state (FR6)', () => {
     expect(JSON.stringify(tree.toJSON())).toContain('Cached:');
   });
 });
+
+// ─── FR4 (02-watermarks): Home tab prop wiring ────────────────────────────────
+//
+// FR4 of 02-watermarks spec:
+//   SC10.1 — WeeklyBarChart receives watermarkLabel prop
+//   SC10.2 — watermarkLabel value derived from hoursData.total
+//   SC10.3 — TrendSparkline receives showGuide prop
+//   SC10.4 — TrendSparkline receives maxValue prop
+//   SC10.5 — TrendSparkline receives capLabel prop
+//   SC10.6 — graceful when data is loading (no crash, no undefined error)
+
+describe('HoursDashboard — FR4 (02-watermarks): prop wiring', () => {
+  it('SC10.1 — source passes watermarkLabel to WeeklyBarChart', () => {
+    const source = fs.readFileSync(INDEX_FILE, 'utf8');
+    // Should find watermarkLabel prop on WeeklyBarChart JSX element
+    expect(source).toMatch(/WeeklyBarChart[\s\S]{0,400}watermarkLabel/);
+  });
+
+  it('SC10.2 — watermarkLabel value is derived from hoursData.total (toFixed)', () => {
+    const source = fs.readFileSync(INDEX_FILE, 'utf8');
+    // Value: `${hoursData.total.toFixed(1)}h` or similar
+    expect(source).toMatch(/watermarkLabel[\s\S]{0,200}total[\s\S]{0,100}toFixed/);
+  });
+
+  it('SC10.3 — source passes showGuide to earnings TrendSparkline', () => {
+    const source = fs.readFileSync(INDEX_FILE, 'utf8');
+    // TrendSparkline should have showGuide prop
+    expect(source).toMatch(/TrendSparkline[\s\S]{0,400}showGuide/);
+  });
+
+  it('SC10.4 — source passes maxValue to earnings TrendSparkline', () => {
+    const source = fs.readFileSync(INDEX_FILE, 'utf8');
+    // Already existing but verify maxValue is still present
+    expect(source).toMatch(/TrendSparkline[\s\S]{0,400}maxValue/);
+  });
+
+  it('SC10.5 — source passes capLabel to earnings TrendSparkline', () => {
+    const source = fs.readFileSync(INDEX_FILE, 'utf8');
+    // New prop for 02-watermarks
+    expect(source).toMatch(/TrendSparkline[\s\S]{0,400}capLabel/);
+  });
+
+  it('SC10.6 — watermarkLabel uses optional chaining for loading safety', () => {
+    const source = fs.readFileSync(INDEX_FILE, 'utf8');
+    // Pattern: data?.total or conditional expression
+    expect(source).toMatch(/data\?\.total|data\s*&&\s*.*total/);
+  });
+});
