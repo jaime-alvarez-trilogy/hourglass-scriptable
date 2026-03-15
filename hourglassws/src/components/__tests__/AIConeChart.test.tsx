@@ -952,11 +952,12 @@ describe('AIConeChart — FR11 (04-ai-scrub): ScrubCursor Rendering', () => {
 
   it('SC2.5 — cursor layers appear after existing chart path layers in source (rendered on top)', () => {
     const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
-    // ACTUAL TRAJECTORY section comes before scrubCursor rendering
+    // ACTUAL TRAJECTORY section comes before the SCRUB CURSOR render block
     const trajectoryPos = source.indexOf('ACTUAL TRAJECTORY');
-    const cursorPos = source.indexOf('isScrubActive');
+    const cursorRenderPos = source.indexOf('SCRUB CURSOR');
     expect(trajectoryPos).toBeGreaterThan(-1);
-    expect(cursorPos).toBeGreaterThan(trajectoryPos);
+    expect(cursorRenderPos).toBeGreaterThan(-1);
+    expect(cursorRenderPos).toBeGreaterThan(trajectoryPos);
   });
 
   it('SC2.6 — source uses buildScrubCursor to produce linePath for cursor', () => {
