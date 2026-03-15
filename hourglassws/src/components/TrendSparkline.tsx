@@ -66,6 +66,14 @@ export interface TrendSparklineProps {
    * Not rendered inside the canvas.
    */
   weekLabels?: string[];
+  /**
+   * External cursor index driven by a parent component for synchronized scrubbing.
+   * When non-null, renders a cursor at that data index regardless of internal gesture state.
+   * Takes priority over the internal gesture cursor.
+   * Out-of-range values are clamped to [0, data.length - 1].
+   * Used by OverviewScreen (07-overview-sync) to sync all 4 charts.
+   */
+  externalCursorIndex?: number | null;
 }
 
 const PADDING_FRACTION = 0.1; // 10% top/bottom margin
@@ -131,6 +139,7 @@ export default function TrendSparkline({
   capLabel,
   onScrubChange,
   weekLabels: _weekLabels, // accepted prop — used by parent for sub-label, not rendered in canvas
+  externalCursorIndex = null,
 }: TrendSparklineProps) {
   const clipProgress = useSharedValue(0);
   // Resolve effective height — never 0 (avoids invisible canvas before onLayout fires)
@@ -221,9 +230,21 @@ export default function TrendSparkline({
     : 0;
   const capLabelY = guideY + CAP_LABEL_FONT_SIZE;
 
-  // Cursor geometry (only when actively scrubbing)
-  const cursor = cursorPos
-    ? buildScrubCursor(cursorPos.x, cursorPos.y, h, h * PADDING_FRACTION)
+  // Cursor geometry — external index takes priority over internal gesture state
+  // externalCursorIndex: set by parent (overview sync); cursorPos: set by own gesture
+  const activeCursorPos: { x: number; y: number } | null = (() => {
+    if (externalCursorIndex != null && data.length > 0) {
+      // Clamp to valid range
+      const clampedIdx = Math.max(0, Math.min(externalCursorIndex, data.length - 1));
+      const x = pixelXs[clampedIdx] ?? 0;
+      const y = toY(data[clampedIdx] ?? 0, min, max, h);
+      return { x, y };
+    }
+    return cursorPos;
+  })();
+
+  const cursor = activeCursorPos
+    ? buildScrubCursor(activeCursorPos.x, activeCursorPos.y, h, h * PADDING_FRACTION)
     : null;
 
   if (isSinglePoint) {
