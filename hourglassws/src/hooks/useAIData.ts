@@ -19,6 +19,7 @@ import {
 } from '../lib/ai';
 import { AuthError, NetworkError } from '../api/errors';
 import type { TagData, AIWeekData } from '../lib/ai';
+import { loadWeeklyHistory, mergeWeeklySnapshot, saveWeeklyHistory } from '../lib/weeklyHistory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -208,6 +209,34 @@ export function useAIData(): UseAIDataResult {
         const midpoint = (freshData.aiPctLow + freshData.aiPctHigh) / 2;
         AsyncStorage.setItem(PREV_WEEK_KEY, String(midpoint)).catch(() => {});
         setPreviousWeekPercent(midpoint);
+
+        // FR4 (06-overview-history): flush AI%+BrainLift snapshot for the week just ended.
+        // prevWeekStart = Monday 7 days before today (the week we are finishing).
+        // Silent failure — does not affect AI data return value.
+        try {
+          const currentMonday = getMondayOfWeek(today);
+          const d = new Date(currentMonday + 'T00:00:00');
+          d.setDate(d.getDate() - 7);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          const prevWeekStart = `${y}-${m}-${dd}`;
+
+          loadWeeklyHistory()
+            .then(history => {
+              const updated = mergeWeeklySnapshot(history, {
+                weekStart: prevWeekStart,
+                aiPct: midpoint,
+                brainliftHours: freshData.brainliftHours,
+              });
+              return saveWeeklyHistory(updated);
+            })
+            .catch(() => {
+              // Silent failure
+            });
+        } catch {
+          // Silent failure — synchronous date computation guard
+        }
       }
     } catch (err) {
       setIsLoading(false);
