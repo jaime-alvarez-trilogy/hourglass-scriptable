@@ -167,7 +167,7 @@ export const timingInstant: WithTimingConfig = {
  * Panel state types matching the design system's five states.
  * Reference: BRAND_GUIDELINES.md → Panel Gradient States
  */
-export type PanelState = "onTrack" | "behind" | "critical" | "crushedIt" | "idle";
+export type PanelState = "onTrack" | "behind" | "critical" | "crushedIt" | "idle" | "overtime";
 
 /**
  * Transition type — describes what kind of change is happening.

@@ -8,11 +8,12 @@ export const PACING_ON_TRACK_THRESHOLD = 0.85;
 export const PACING_BEHIND_THRESHOLD = 0.60;
 
 /**
- * Computes which of the 5 Hourglass panel states applies to the current week.
+ * Computes which of the 6 Hourglass panel states applies to the current week.
  *
  * Panel states (in evaluation priority):
  *   idle      — No work started yet, or contractual limit is zero.
- *   crushedIt — Hours worked already meet or exceed the weekly limit.
+ *   overtime  — Hours worked strictly exceed the weekly limit (hours > limit).
+ *   crushedIt — Hours worked exactly meet the weekly limit (hours === limit).
  *   onTrack   — Pacing at ≥ 85% of expected hours for the days elapsed.
  *   behind    — Pacing at 60–84% of expected hours (recoverable).
  *   critical  — Pacing below 60% of expected hours (severe deficit).
@@ -23,7 +24,7 @@ export const PACING_BEHIND_THRESHOLD = 0.60;
  *                     any work; 5 = Friday EOD or later. Values outside [0, 5]
  *                     are clamped.
  *
- * @returns One of: "onTrack" | "behind" | "critical" | "crushedIt" | "idle"
+ * @returns One of: "onTrack" | "behind" | "critical" | "crushedIt" | "idle" | "overtime"
  */
 export function computePanelState(
   hoursWorked: number,
@@ -37,7 +38,10 @@ export function computePanelState(
   const days = Math.max(0, Math.min(5, daysElapsed));
   const hours = Math.max(0, hoursWorked);
 
-  // Goal reached or exceeded — celebrate.
+  // Strictly exceeded — overtime celebration (higher priority than crushedIt).
+  if (hours > weeklyLimit) return 'overtime';
+
+  // Goal exactly met — crushed it.
   if (hours >= weeklyLimit) return 'crushedIt';
 
   // Monday morning with nothing logged — fresh week.
