@@ -91,6 +91,12 @@ Layer 3 — Glass Cards (scroll over Layer 1)
 | 03-overview-hero | Dual-metric hero card + earnings pace signal + ambient wiring | — | 01 | M |
 | 04-ai-hero-arc | AIArcHero component (bold % + arc) + ambient wiring | — | 01 | M |
 
+## Changelog
+
+| Date | Spec | Description |
+|------|------|-------------|
+| 2026-03-16 | [01-ambient-layer](specs/01-ambient-layer/spec.md) | AmbientBackground component, getAmbientColor mapping, Card opacity/intensity update |
+
 ## Reference Files
 
 - Design tokens: `hourglassws/src/lib/colors.ts`, `tailwind.config.js`
