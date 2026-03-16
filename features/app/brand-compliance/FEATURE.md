@@ -39,6 +39,7 @@ All four specs are independent and can run in parallel.
 | Date | Spec | Description |
 |------|------|-------------|
 | 2026-03-16 | [01-color-semantics](specs/01-color-semantics/spec.md) | Spec and checklist created — 5 colour violations, FR1–FR5 |
+| 2026-03-16 | [04-chart-polish](specs/04-chart-polish/spec.md) | Spec and checklist created — TrendSparkline 3px glow stack, WeeklyBarChart todayColor, FR1–FR4 |
 
 ## Reference Files
 
