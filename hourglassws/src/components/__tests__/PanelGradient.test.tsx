@@ -1,16 +1,28 @@
-// Tests: PanelGradient component (03-base-components + 05-panel-glass-surfaces)
-// FR4: 5-state gradient hero panel with springPremium transition
-// FR1: Radial panel gradient via SVG RadialGradient (cx=50%, cy=30%)
-// FR2: Coloured glows — getGlowStyle export
+// Tests: PanelGradient component (03-base-components + 05-panel-glass-surfaces + 02-dark-glass)
+// FR4 (03-base-components): 5-state gradient hero panel with springPremium transition
+// FR1 (05-panel-glass-surfaces): Radial panel gradient via SVG RadialGradient (cx=50%, cy=30%)
+// FR2 (05-panel-glass-surfaces): Coloured glows — getGlowStyle export
+// FR4 (02-dark-glass): BlurView glass base layer at intensity 30
 //
 // Mock strategy:
 // - react-native-svg: passthrough Fragment components (no resetModules)
+// - expo-blur: BlurView passthrough with props forwarded
 // - Platform.OS: Android branch verified via source analysis
 
 import React from 'react';
 import { create, act } from 'react-test-renderer';
 import * as fs from 'fs';
 import * as path from 'path';
+
+// Mock expo-blur — BlurView renders as passthrough in tests
+jest.mock('expo-blur', () => {
+  const mockReact = require('react');
+  return {
+    __esModule: true,
+    BlurView: ({ children, intensity, tint, style }: any) =>
+      mockReact.createElement('BlurView', { intensity, tint, style }, children ?? null),
+  };
+});
 
 // Mock react-native-svg — passthrough components
 jest.mock('react-native-svg', () => {
@@ -36,6 +48,7 @@ let PanelGradient: any;
 let PANEL_GRADIENT_COLORS: any;
 let PANEL_GRADIENTS: any;
 let getGlowStyle: any;
+let BLUR_INTENSITY_PANEL: number;
 
 beforeAll(() => {
   const mod = require('../PanelGradient');
@@ -43,6 +56,7 @@ beforeAll(() => {
   PANEL_GRADIENT_COLORS = mod.PANEL_GRADIENT_COLORS;
   PANEL_GRADIENTS = mod.PANEL_GRADIENTS;
   getGlowStyle = mod.getGlowStyle;
+  BLUR_INTENSITY_PANEL = mod.BLUR_INTENSITY_PANEL;
 });
 
 // ─── FR1: Runtime render ──────────────────────────────────────────────────────
@@ -237,5 +251,89 @@ describe('PanelGradient — SC4: PANEL_GRADIENTS export (backward compat)', () =
   it('SC4.5 — critical colors contain F43F5E', () => {
     const colorStr = PANEL_GRADIENTS.critical.colors.join('').toUpperCase();
     expect(colorStr).toContain('F43F5E');
+  });
+});
+
+// ─── FR4 (02-dark-glass): PanelGradient glass base layer ─────────────────────
+
+describe('PanelGradient — FR4 (02-dark-glass): BlurView glass base layer', () => {
+  function findBlurViews(node: any): any[] {
+    if (!node) return [];
+    const results: any[] = [];
+    if (node.type === 'BlurView') results.push(node);
+    if (node.children) {
+      for (const child of node.children) {
+        results.push(...findBlurViews(child));
+      }
+    }
+    return results;
+  }
+
+  it('FR4.1 — BLUR_INTENSITY_PANEL is exported and equals 30', () => {
+    expect(BLUR_INTENSITY_PANEL).toBe(30);
+  });
+
+  it('FR4.2 — PanelGradient renders a BlurView', () => {
+    let tree: any;
+    act(() => {
+      tree = create(
+        React.createElement(PanelGradient, { state: 'onTrack' },
+          React.createElement('View' as any, null)
+        )
+      );
+    });
+    const blurViews = findBlurViews(tree.toJSON());
+    expect(blurViews.length).toBeGreaterThan(0);
+  });
+
+  it('FR4.3 — BlurView has intensity 30', () => {
+    let tree: any;
+    act(() => {
+      tree = create(
+        React.createElement(PanelGradient, { state: 'onTrack' },
+          React.createElement('View' as any, null)
+        )
+      );
+    });
+    const blurViews = findBlurViews(tree.toJSON());
+    expect(blurViews[0].props.intensity).toBe(30);
+  });
+
+  it('FR4.4 — BlurView present in idle state (no gradient)', () => {
+    let tree: any;
+    act(() => {
+      tree = create(
+        React.createElement(PanelGradient, { state: 'idle' },
+          React.createElement('View' as any, null)
+        )
+      );
+    });
+    const blurViews = findBlurViews(tree.toJSON());
+    expect(blurViews.length).toBeGreaterThan(0);
+  });
+
+  it('FR4.5 — children still render alongside BlurView', () => {
+    let tree: any;
+    act(() => {
+      tree = create(
+        React.createElement(PanelGradient, { state: 'onTrack' }, 'panel child')
+      );
+    });
+    expect(JSON.stringify(tree.toJSON())).toContain('panel child');
+  });
+
+  it('FR4.6 — source imports BlurView from expo-blur', () => {
+    const source = fs.readFileSync(
+      path.resolve(__dirname, '../PanelGradient.tsx'), 'utf8'
+    );
+    expect(source).toContain('expo-blur');
+    expect(source).toContain('BlurView');
+  });
+
+  it('FR4.7 — source exports BLUR_INTENSITY_PANEL', () => {
+    const source = fs.readFileSync(
+      path.resolve(__dirname, '../PanelGradient.tsx'), 'utf8'
+    );
+    expect(source).toContain('BLUR_INTENSITY_PANEL');
   });
 });
