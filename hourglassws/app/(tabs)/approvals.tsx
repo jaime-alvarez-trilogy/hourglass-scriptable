@@ -15,7 +15,6 @@ import {
   Text,
   ScrollView,
   FlatList,
-  Pressable,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native'
@@ -31,6 +30,8 @@ import SectionLabel from '@/src/components/SectionLabel'
 import SkeletonLoader from '@/src/components/SkeletonLoader'
 import FadeInScreen from '@/src/components/FadeInScreen'
 import { useStaggeredEntry } from '@/src/hooks/useStaggeredEntry'
+import { AnimatedPressable } from '@/src/components/AnimatedPressable'
+import { colors } from '@/src/lib/colors'
 import type { ApprovalItem } from '@/src/lib/approvals'
 
 export default function ApprovalsScreen() {
@@ -122,7 +123,7 @@ export default function ApprovalsScreen() {
 
           {/* Approve All — manager only, when team items present */}
           {isManager && items.length > 0 && (
-            <Pressable
+            <AnimatedPressable
               className={`rounded-xl px-4 py-2 ${isApprovingAll ? 'bg-success/50' : 'bg-success'}`}
               onPress={handleApproveAll}
               disabled={isApprovingAll}
@@ -133,7 +134,7 @@ export default function ApprovalsScreen() {
               ) : (
                 <Text className="text-white font-sans-semibold text-sm">Approve All</Text>
               )}
-            </Pressable>
+            </AnimatedPressable>
           )}
         </View>
 
@@ -141,9 +142,9 @@ export default function ApprovalsScreen() {
         {teamError && isManager && (
           <View className="flex-row items-center bg-critical/10 px-4 py-2.5 gap-3">
             <Text className="text-critical text-sm flex-1">{teamError}</Text>
-            <Pressable onPress={teamRefetch}>
+            <AnimatedPressable onPress={teamRefetch}>
               <Text className="text-violet font-sans-semibold text-sm">Retry</Text>
-            </Pressable>
+            </AnimatedPressable>
           </View>
         )}
 
@@ -153,7 +154,7 @@ export default function ApprovalsScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              tintColor="#10B981"
+              tintColor={colors.success}
             />
           }
         >
@@ -204,9 +205,9 @@ export default function ApprovalsScreen() {
                     ? 'Authentication error. Please re-open the app.'
                     : 'Could not load requests.'}
                 </Text>
-                <Pressable onPress={myRefetch}>
+                <AnimatedPressable onPress={myRefetch}>
                   <Text className="text-violet font-sans-semibold text-sm">Retry</Text>
-                </Pressable>
+                </AnimatedPressable>
               </View>
             )}
 
