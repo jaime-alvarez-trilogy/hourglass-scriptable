@@ -205,7 +205,7 @@ export default function OverviewScreen() {
                 style={toggle4Active ? activePillStyle : inactivePillStyle}
               >
                 <Text style={{
-                  color: toggle4Active ? colors.gold : colors.textMuted ?? '#888',
+                  color: toggle4Active ? colors.violet : colors.textMuted ?? '#888',
                   fontWeight: toggle4Active ? '600' : '400',
                   fontSize: 13,
                 }}>
@@ -217,7 +217,7 @@ export default function OverviewScreen() {
                 style={!toggle4Active ? activePillStyle : inactivePillStyle}
               >
                 <Text style={{
-                  color: !toggle4Active ? colors.gold : colors.textMuted ?? '#888',
+                  color: !toggle4Active ? colors.violet : colors.textMuted ?? '#888',
                   fontWeight: !toggle4Active ? '600' : '400',
                   fontSize: 13,
                 }}>
@@ -329,8 +329,8 @@ export default function OverviewScreen() {
             subtitle="Target: 5h / week"
             data={overviewData.brainliftHours}
             color={colors.violet}
-            maxValue={5}
             showGuide
+            targetValue={5}
             weekLabels={overviewData.weekLabels}
             onScrubChange={setScrubWeekIndex}
             externalCursorIndex={scrubWeekIndex}

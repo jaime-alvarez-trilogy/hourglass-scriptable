@@ -2,6 +2,7 @@ import '../global.css';
 
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { colors } from '@/src/lib/colors';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
@@ -73,8 +74,8 @@ function RootLayout() {
   // SC1.3: overlay while config or fonts load
   if (isLoading || !fontsLoaded) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0D1117' }}>
-        <ActivityIndicator size="large" color="#00FF88" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.violet} />
       </View>
     );
   }

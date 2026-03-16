@@ -1,8 +1,9 @@
 // MetricValue.tsx
 // FR2: Hero number with Reanimated count-up animation from 0 (03-base-components)
+// FR4 (06-wiring-and-tokens): Inter 800 weight (font-display-extrabold), letterSpacing: -0.5
 //
 // Design system rule (BRAND_GUIDELINES.md):
-//   Numeric values always use Space Grotesk (font-display).
+//   Numeric values always use Inter (font-display-extrabold = Inter_800ExtraBold).
 //   Use tabular-nums for all animated counters.
 //   Count-up uses timingChartFill — data settling on truth, not spring.
 //
@@ -62,8 +63,8 @@ export default function MetricValue({
 
   return (
     <Text
-      className={`font-display ${sizeClass} ${colorClass}`}
-      style={{ fontVariant: ['tabular-nums'] }}
+      className={`font-display-extrabold ${sizeClass} ${colorClass}`}
+      style={{ fontVariant: ['tabular-nums'], letterSpacing: -0.5 }}
     >
       {text}
     </Text>
