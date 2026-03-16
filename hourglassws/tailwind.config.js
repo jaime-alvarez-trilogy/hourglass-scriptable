@@ -20,15 +20,16 @@ module.exports = {
       // Reference: BRAND_GUIDELINES.md → Colour System
       // -----------------------------------------------------------------------
       colors: {
-        // Base surfaces
-        background:      "#0A0A0F", // App background / screen fill
-        surface:         "#13131A", // Default card background
-        surfaceElevated: "#1C1C28", // Modals, bottom sheets, popovers, active card
-        border:          "#2A2A3D", // Card borders, dividers, input outlines
+        // Base surfaces — v1.1 eggplant palette
+        background:      "#0D0C14", // App background / screen fill (was #0A0A0F)
+        surface:         "#16151F", // Default card background (was #13131A)
+        surfaceElevated: "#1F1E29", // Modals, bottom sheets, popovers, active card (was #1C1C28)
+        border:          "#2F2E41", // Card borders, dividers, input outlines (was #2A2A3D)
 
         // Accent — each colour carries a single semantic meaning (see guidelines)
         gold:        "#E8C97A", // Earnings, salary, money values. Primary brand accent.
-        cyan:        "#00D4FF", // AI usage percentage and AI-related metrics
+        goldBright:  "#FFDF89", // Gradient endpoint for Crushed It hero state (v1.1 new)
+        cyan:        "#00C2FF", // AI usage percentage and AI-related metrics (was #00D4FF)
         violet:      "#A78BFA", // BrainLift hours and deep-work metrics
         success:     "#10B981", // On-track status, positive deltas, completed items
         warning:     "#F59E0B", // Behind-pace status, caution states, soft alerts
