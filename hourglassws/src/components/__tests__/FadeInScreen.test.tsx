@@ -74,20 +74,38 @@ describe('FadeInScreen — FR2: source file checks', () => {
     expect(source).toMatch(/withSpring\s*\(\s*0/);
   });
 
-  it('SC2.3 — resets translateY to 8 on blur (direct assignment)', () => {
-    // translateY.value = 8 (no animation on blur)
-    expect(source).toMatch(/translateY[\s\S]{0,10}=[\s\S]{0,10}8|\.value\s*=\s*8/);
+  it('SC2.3 — resets translateY to 8 on blur (direct assignment, no animation)', () => {
+    // translateY.value = 8 (no withSpring/withTiming wrapper on blur)
+    expect(source).toMatch(/translateY[\s\S]{0,10}\.value\s*=\s*8/);
+    // Must NOT wrap the blur reset in withSpring/withTiming
+    // (i.e. the assignment to 8 should NOT be: translateY.value = withSpring(8))
+    expect(source).not.toMatch(/withSpring\s*\(\s*8/);
+  });
+
+  it('SC2.3 — resets opacity to 0 on blur (direct assignment, no animation)', () => {
+    // opacity.value = 0 on blur — must be direct, not animated
+    expect(source).toMatch(/opacity[\s\S]{0,10}\.value\s*=\s*0/);
+    expect(source).not.toMatch(/withTiming\s*\(\s*0/);
   });
 
   it('SC2.4 — uses useReducedMotion for accessibility', () => {
     expect(source).toContain('useReducedMotion');
   });
 
-  it('SC2.4 — reduced motion path sets opacity=1 directly', () => {
-    // When reduced motion: opacity.value = 1 (no withTiming wrapper)
-    // Check that both useReducedMotion and a direct assignment to 1 are present
+  it('SC2.4 — reduced motion path sets opacity=1 AND translateY=0 directly (no animation)', () => {
+    // Both values set directly in the reducedMotion branch — no withTiming/withSpring wrappers
     expect(source).toContain('useReducedMotion');
-    expect(source).toMatch(/\.value\s*=\s*1/);
+    // opacity.value = 1 (direct)
+    expect(source).toMatch(/opacity[\s\S]{0,10}\.value\s*=\s*1/);
+    // translateY.value = 0 (direct)
+    expect(source).toMatch(/translateY[\s\S]{0,10}\.value\s*=\s*0/);
+    // The reducedMotion check (if reducedMotion) must appear before the withTiming calls
+    // — use positions of the conditional guard vs the withTiming animation call
+    const reducedMotionGuardIdx = source.indexOf('if (reducedMotion)');
+    const withTimingCallIdx = source.indexOf('withTiming(');
+    expect(reducedMotionGuardIdx).not.toBe(-1); // guard must exist
+    expect(withTimingCallIdx).not.toBe(-1);     // withTiming must exist
+    expect(reducedMotionGuardIdx).toBeLessThan(withTimingCallIdx);
   });
 
   it('SC2.6 — wraps children in Animated.View with flex:1', () => {
