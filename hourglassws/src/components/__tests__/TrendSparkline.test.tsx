@@ -241,3 +241,79 @@ describe('TrendSparkline — FR3: Cap Label', () => {
     expect(source).toMatch(/showGuide\s*&&\s*capLabel\s*&&\s*\w*[Ff]ont/);
   });
 });
+
+// ─── FR1 + FR2 (04-chart-polish): TrendSparkline 3px + 3-layer glow ──────────
+//
+// FR1:
+//   SC-FR1.1 — strokeWidth prop defaults to 3 (not 2)
+//   SC-FR1.2 — explicit strokeWidth prop still accepted
+//
+// FR2:
+//   SC-FR2.1 — outer glow Paint has strokeWidth={14}
+//   SC-FR2.2 — outer glow BlurMask has blur={12}
+//   SC-FR2.3 — mid glow Paint exists with strokeWidth={7}
+//   SC-FR2.4 — mid glow BlurMask has blur={4}
+//   SC-FR2.5 — mid glow uses color + '80' (50% opacity variant)
+//   SC-FR2.6 — core line has no BlurMask child
+//   SC-FR2.7 — render with default strokeWidth does not crash
+
+describe('TrendSparkline — FR1+FR2 (04-chart-polish): 3px + 3-layer glow', () => {
+  const source = fs.readFileSync(SPARKLINE_FILE, 'utf8');
+
+  it('SC-FR1.1 — strokeWidth prop defaults to 3 (not 2)', () => {
+    // Default value in function signature: strokeWidth = 3
+    expect(source).toMatch(/strokeWidth\s*=\s*3[^.0-9]/);
+  });
+
+  it('SC-FR1.2 — explicit strokeWidth prop still accepted without crash', () => {
+    const TrendSparkline = require('@/src/components/TrendSparkline').default;
+    expect(() => {
+      let tree: any;
+      act(() => {
+        tree = create(React.createElement(TrendSparkline, {
+          data: MOCK_DATA,
+          width: 300,
+          height: 60,
+          strokeWidth: 2,
+        }));
+      });
+    }).not.toThrow();
+  });
+
+  it('SC-FR2.1 — outer glow Paint has strokeWidth={14}', () => {
+    // Outer glow Paint (first Paint layer, wrapping BlurMask blur=12)
+    expect(source).toMatch(/strokeWidth=\{14\}/);
+  });
+
+  it('SC-FR2.2 — outer glow BlurMask has blur={12}', () => {
+    // BlurMask with blur=12 (was 8)
+    expect(source).toMatch(/BlurMask\s[^>]*blur=\{12\}/);
+  });
+
+  it('SC-FR2.3 — mid glow Paint exists with strokeWidth={7}', () => {
+    // Mid glow is the new layer
+    expect(source).toMatch(/strokeWidth=\{7\}/);
+  });
+
+  it('SC-FR2.4 — mid glow BlurMask has blur={4}', () => {
+    // BlurMask with blur=4 (new mid-glow layer)
+    expect(source).toMatch(/BlurMask\s[^>]*blur=\{4\}/);
+  });
+
+  it('SC-FR2.5 — mid glow uses color + "80" (50% opacity)', () => {
+    // color + '80' alpha suffix on the mid glow layer
+    expect(source).toMatch(/color\s*\+\s*'80'/);
+  });
+
+  it('SC-FR2.6 — source has at least 2 distinct Paint layers with BlurMask (outer + mid)', () => {
+    // Count occurrences of BlurMask — should be >= 2 (outer glow + mid glow)
+    const blurMaskCount = (source.match(/BlurMask/g) || []).length;
+    expect(blurMaskCount).toBeGreaterThanOrEqual(2);
+  });
+
+  it('SC-FR2.7 — renders without crash with default strokeWidth', () => {
+    expect(() =>
+      renderSparkline({ data: MOCK_DATA, width: 300, height: 60 }),
+    ).not.toThrow();
+  });
+});

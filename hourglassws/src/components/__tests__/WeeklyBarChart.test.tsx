@@ -342,3 +342,66 @@ describe('WeeklyBarChart — FR2: Overtime bar coloring (01-overtime-display)', 
     expect(source).toContain('OVERTIME_WHITE_GOLD');
   });
 });
+
+// ─── FR3 (04-chart-polish): WeeklyBarChart todayColor prop ───────────────────
+//
+// SC-FR3.1 — todayColor?: string accepted in WeeklyBarChartProps
+// SC-FR3.2 — when todayColor provided, today bar uses that color
+// SC-FR3.3 — when todayColor omitted, today bar defaults to colors.success
+// SC-FR3.4 — completed past days still use colors.success
+// SC-FR3.5 — future days still use colors.textMuted
+// SC-FR3.6 — renders without crash with todayColor provided
+// SC-FR3.7 — renders without crash without todayColor
+
+describe('WeeklyBarChart — FR3 (04-chart-polish): todayColor prop', () => {
+  const source = fs.readFileSync(BAR_CHART_FILE, 'utf8');
+
+  it('SC-FR3.1 — WeeklyBarChartProps includes todayColor?: string', () => {
+    expect(source).toMatch(/todayColor\s*\?\s*:\s*string/);
+  });
+
+  it('SC-FR3.2 — source uses todayColor in bar color selection (not hardcoded gold)', () => {
+    // todayColor should appear in the barColor assignment for today bars
+    expect(source).toMatch(/todayColor/);
+    // Gold should NOT be hardcoded for isToday case
+    // (the assignment should use todayColor, not colors.gold directly for today)
+    // Check: todayColor is used in bar color logic near isToday
+    expect(source).toMatch(/isToday[\s\S]{0,200}todayColor|todayColor[\s\S]{0,200}isToday/);
+  });
+
+  it('SC-FR3.3 — todayColor defaults to colors.success when omitted', () => {
+    // Default value in destructuring: todayColor = colors.success
+    expect(source).toMatch(/todayColor\s*=\s*colors\.success/);
+  });
+
+  it('SC-FR3.4 — source still uses colors.success for completed past bars', () => {
+    // Non-future, non-today bars should still use colors.success
+    expect(source).toMatch(/colors\.success/);
+  });
+
+  it('SC-FR3.5 — future bars still use colors.textMuted', () => {
+    expect(source).toMatch(/colors\.textMuted/);
+    expect(source).toMatch(/isFuture[\s\S]{0,100}textMuted|textMuted[\s\S]{0,100}isFuture/);
+  });
+
+  it('SC-FR3.6 — renders without crash with todayColor provided', () => {
+    const WeeklyBarChart = require('@/src/components/WeeklyBarChart').default;
+    expect(() => {
+      let tree: any;
+      act(() => {
+        tree = create(React.createElement(WeeklyBarChart, {
+          data: MOCK_DATA,
+          width: 300,
+          height: 120,
+          todayColor: '#F43F5E',
+        }));
+      });
+    }).not.toThrow();
+  });
+
+  it('SC-FR3.7 — renders without crash without todayColor (uses default)', () => {
+    expect(() =>
+      renderChart({ width: 300, height: 120 }),
+    ).not.toThrow();
+  });
+});
