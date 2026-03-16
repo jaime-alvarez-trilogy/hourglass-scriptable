@@ -2,7 +2,6 @@ import '../global.css';
 
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { colors } from '@/src/lib/colors';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
@@ -24,6 +23,7 @@ import {
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useConfig } from '@/src/hooks/useConfig';
 import { useRoleRefresh } from '@/src/hooks/useRoleRefresh';
+import { colors } from '@/src/lib/colors';
 
 // Prevent auto-hide so we can control it after config loads
 SplashScreen.preventAutoHideAsync();
