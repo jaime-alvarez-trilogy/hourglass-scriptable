@@ -1,33 +1,42 @@
 /**
  * Overview tab — synchronized multi-week trend dashboard (07-overview-sync)
+ * Updated: 03-overview-hero — hero card + ambient layer wiring
  *
  * Features:
- *   - 4W / 12W toggle — slices all metric arrays to last N weeks
+ *   - 4W / 12W toggle — slices all metric arrays to last N weeks (now in OverviewHeroCard)
  *   - Synchronized scrubbing — touching any chart shows cursor on all 4
  *   - Week snapshot panel — slides in during scrub, shows all 4 metrics for selected week
  *   - Real historical data from useWeeklyHistory + live current-week from useHoursData/useAIData
+ *   - AmbientBackground: full-screen colored gradient driven by earnings pace signal
+ *   - OverviewHeroCard: hero card with period totals (earnings + hours) + overtime badge
  *
  * Architecture:
  *   scrubWeekIndex (number | null) lives here. Any chart's onScrubChange sets it.
  *   All 4 TrendSparkline instances receive externalCursorIndex={scrubWeekIndex}.
+ *   AmbientBackground sits absolute inside SafeAreaView, outside ScrollView.
+ *   OverviewHeroCard is the first content item; replaces the old standalone toggle row.
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useConfig } from '@/src/hooks/useConfig';
 import { useOverviewData } from '@/src/hooks/useOverviewData';
+import { useHoursData } from '@/src/hooks/useHoursData';
 import { useFocusKey } from '@/src/hooks/useFocusKey';
 import { useHistoryBackfill } from '@/src/hooks/useHistoryBackfill';
 import { useEarningsHistory } from '@/src/hooks/useEarningsHistory';
 import { colors } from '@/src/lib/colors';
 import { springPremium } from '@/src/lib/reanimated-presets';
 import { useStaggeredEntry } from '@/src/hooks/useStaggeredEntry';
+import AmbientBackground, { getAmbientColor } from '@/src/components/AmbientBackground';
 import Card from '@/src/components/Card';
 import SectionLabel from '@/src/components/SectionLabel';
 import TrendSparkline from '@/src/components/TrendSparkline';
 import FadeInScreen from '@/src/components/FadeInScreen';
+import OverviewHeroCard from '@/src/components/OverviewHeroCard';
+import { computeEarningsPace } from '@/src/lib/overviewUtils';
 import type { ScrubChangeCallback } from '@/src/hooks/useScrubGesture';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -144,10 +153,27 @@ export default function OverviewScreen() {
 
   // ── Data ───────────────────────────────────────────────────────────────────
   const { data: overviewData } = useOverviewData(window, backfillSnapshots);
+  const { data: hoursData } = useHoursData();
 
   const weeklyLimit = config?.weeklyLimit ?? 40;
   const hourlyRate = config?.hourlyRate ?? 0;
   const maxEarnings = hourlyRate * weeklyLimit;
+
+  // ── Hero card props ─────────────────────────────────────────────────────────
+  // FR5: period totals for the selected window
+  const totalEarnings = overviewData.earnings.reduce((s, v) => s + v, 0);
+  const totalHours = overviewData.hours.reduce((s, v) => s + v, 0);
+  // FR2: current-week overtime only (historical not available in snapshots)
+  const overtimeHours = Math.max(0, (hoursData?.total ?? 0) - (config?.weeklyLimit ?? 0));
+
+  // ── Ambient color ───────────────────────────────────────────────────────────
+  // FR4: earnings pace ratio → ambient signal → color
+  const earningsPace = overviewData.earnings.length > 0
+    ? computeEarningsPace(overviewData.earnings)
+    : null;
+  const ambientColor = earningsPace !== null
+    ? getAmbientColor({ type: 'earningsPace', ratio: earningsPace })
+    : null;
 
   // ── Snapshot panel animation ───────────────────────────────────────────────
   const panelOpacity = useSharedValue(0);
@@ -192,63 +218,24 @@ export default function OverviewScreen() {
     ? `Week of ${overviewData.weekLabels[scrubWeekIndex] ?? ''}`
     : '';
 
-  // ── Toggle styles ──────────────────────────────────────────────────────────
-  const toggle4Active = window === 4;
-  const activePillStyle = {
-    backgroundColor: colors.surface,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  };
-  const inactivePillStyle = {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  };
-
   return (
     <FadeInScreen>
       <SafeAreaView className="flex-1 bg-background">
+        {/* Layer 1: ambient field — absolute, full-screen, behind all content */}
+        <AmbientBackground color={ambientColor} />
+
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 12 }}
         >
-          {/* Header row: title + 4W/12W toggle */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <Text className="text-textPrimary font-display-bold text-2xl">Overview</Text>
-            {/* 4W / 12W segmented control */}
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: colors.border,
-              borderRadius: 10,
-              padding: 2,
-            }}>
-              <TouchableOpacity
-                onPress={() => handleWindowChange(4)}
-                style={toggle4Active ? activePillStyle : inactivePillStyle}
-              >
-                <Text style={{
-                  color: toggle4Active ? colors.violet : colors.textMuted ?? '#888',
-                  fontWeight: toggle4Active ? '600' : '400',
-                  fontSize: 13,
-                }}>
-                  4W
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleWindowChange(12)}
-                style={!toggle4Active ? activePillStyle : inactivePillStyle}
-              >
-                <Text style={{
-                  color: !toggle4Active ? colors.violet : colors.textMuted ?? '#888',
-                  fontWeight: !toggle4Active ? '600' : '400',
-                  fontSize: 13,
-                }}>
-                  12W
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          {/* Hero card — period totals + window toggle (replaces standalone header) */}
+          <OverviewHeroCard
+            totalEarnings={totalEarnings}
+            totalHours={totalHours}
+            overtimeHours={overtimeHours}
+            window={window}
+            onWindowChange={handleWindowChange}
+          />
 
           {/* Week snapshot panel — always rendered, animated opacity/translateY */}
           <Animated.View
