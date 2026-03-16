@@ -1,6 +1,7 @@
 // PanelGradient.tsx
 // FR1 (05-panel-glass-surfaces): SVG-based radial gradient replacing LinearGradient
 // FR2 (05-panel-glass-surfaces): Coloured glows via getGlowStyle (iOS shadow / Android elevation)
+// FR4 (02-dark-glass): BlurView glass base layer at intensity 30
 //
 // Design system rule (BRAND_GUIDELINES.md v1.1):
 //   Panel gradient = radial from hero metric center (cx=50%, cy=30%, r=70%).
@@ -13,9 +14,11 @@
 //   - react-native-svg already installed (used by AIConeChart)
 //   - External API unchanged: <PanelGradient state={state}>{children}</PanelGradient>
 //   - getGlowStyle(state) exported for use by parent panel containers
+//   - BlurView (intensity 30) is first absolutely-positioned child, behind gradient
 
 import React, { useEffect } from 'react';
-import { Platform, ViewStyle } from 'react-native';
+import { Platform, StyleSheet, ViewStyle } from 'react-native';
+import { BlurView } from 'expo-blur';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import Animated, {
   useSharedValue,
@@ -26,6 +29,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { springPremium } from '@/src/lib/reanimated-presets';
 import type { PanelState } from '@/src/lib/panelState';
+
+// ─── Glass base layer constant (exported for test access) ─────────────────────
+
+export const BLUR_INTENSITY_PANEL = 30;
 
 // ─── Radial gradient colours per state ─────────────────────────────────────────
 // inner: the status colour at cx=50% cy=30% (hero number area)
@@ -143,6 +150,8 @@ export default function PanelGradient({
 
   return (
     <Animated.View className={combined} style={[{ flex: 1 }, animatedStyle]}>
+      {/* Glass base layer — absolutely fills panel, behind gradient */}
+      <BlurView intensity={BLUR_INTENSITY_PANEL} tint="dark" style={StyleSheet.absoluteFill} />
       {/* SVG radial gradient — absolutely positioned behind children */}
       {gradientColors !== null && (
         <Svg
