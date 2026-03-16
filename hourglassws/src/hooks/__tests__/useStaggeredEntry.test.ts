@@ -161,7 +161,9 @@ describe('FR1: useStaggeredEntry — focus trigger', () => {
 describe('FR1: useStaggeredEntry — reduceMotion safety', () => {
   it('imports useReducedMotion from react-native-reanimated', () => {
     const source = fs.readFileSync(HOOK_FILE, 'utf8');
-    expect(source).toMatch(/useReducedMotion.*from.*react-native-reanimated/);
+    // useReducedMotion is in a multi-line import block — check both the name and the from clause
+    expect(source).toMatch(/useReducedMotion/);
+    expect(source).toMatch(/from\s+['"]react-native-reanimated['"]/);
   });
 
   it('calls useReducedMotion() in the hook body', () => {
@@ -335,17 +337,19 @@ describe('FR4: Approvals screen — useStaggeredEntry integration', () => {
     expect(source).toMatch(/getEntryStyle\(0\)/);
   });
 
-  it('wraps My Requests section with getEntryStyle index (1 for manager, 0 for contributor)', () => {
+  it('wraps My Requests section with getEntryStyle using dynamic index (isManager ? 1 : 0)', () => {
     const source = fs.readFileSync(APPROVALS_FILE, 'utf8');
-    // Must have getEntryStyle(1) for the my-requests section (manager mode)
-    expect(source).toMatch(/getEntryStyle\(1\)/);
+    // Manager uses index 1, contributor uses index 0 — dynamic expression
+    expect(source).toMatch(/getEntryStyle\s*\(\s*isManager\s*\?\s*1\s*:\s*0\s*\)/);
   });
 
   it('does NOT wrap individual ApprovalCard renders with getEntryStyle', () => {
     const source = fs.readFileSync(APPROVALS_FILE, 'utf8');
-    // Total getEntryStyle calls must be exactly 2 (section containers only)
-    const calls = (source.match(/getEntryStyle\(\d+\)/g) || []).length;
-    expect(calls).toBe(2);
+    // There are exactly 2 Animated.View wrappers with getEntryStyle
+    // (one with literal 0 for team section, one with expression for my-requests)
+    const literalCalls = (source.match(/getEntryStyle\(\s*\d+\s*\)/g) || []).length;
+    const exprCalls = (source.match(/getEntryStyle\s*\(\s*isManager\s*\?/g) || []).length;
+    expect(literalCalls + exprCalls).toBe(2);
   });
 
   it('FlatList renderItem function does NOT reference getEntryStyle', () => {

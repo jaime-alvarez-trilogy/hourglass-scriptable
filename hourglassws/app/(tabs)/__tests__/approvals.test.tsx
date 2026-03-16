@@ -21,6 +21,14 @@ jest.mock('@/src/hooks/useConfig');
 jest.mock('@/src/hooks/useMyRequests');
 jest.mock('@/src/hooks/useApprovalItems');
 
+// useStaggeredEntry — return plain styles (no Reanimated shared values in tests)
+jest.mock('@/src/hooks/useStaggeredEntry', () => ({
+  useStaggeredEntry: () => ({
+    getEntryStyle: () => ({}),
+    isReady: true,
+  }),
+}));
+
 jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: jest.fn(), push: jest.fn() }),
 }));

@@ -21,6 +21,14 @@ import * as path from 'path';
 jest.mock('@/src/hooks/useHoursData');
 jest.mock('@/src/hooks/usePaymentHistory');
 jest.mock('@/src/hooks/useConfig');
+
+// useStaggeredEntry — return plain styles (no Reanimated shared values in tests)
+jest.mock('@/src/hooks/useStaggeredEntry', () => ({
+  useStaggeredEntry: () => ({
+    getEntryStyle: () => ({}),
+    isReady: true,
+  }),
+}));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
