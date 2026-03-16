@@ -124,8 +124,10 @@ describe('FR2: tailwind.config.js — mirrored palette values', () => {
 describe('FR3: modal.tsx — Switch toggles use violet, not gold', () => {
   const modalSource = fs.readFileSync(MODAL_FILE, 'utf8');
 
-  it('FR3.1 — modal.tsx does not contain hardcoded gold trackColor (E8C97A)', () => {
-    expect(modalSource).not.toMatch(/'#E8C97A'/);
+  it('FR3.1 — modal.tsx Switch trackColor props do not contain hardcoded gold (E8C97A)', () => {
+    // Only check trackColor context, not all occurrences in the file
+    // Other uses of gold in styles (e.g. devTitle text color) are out of scope for FR3
+    expect(modalSource).not.toMatch(/trackColor=\{\{[^}]*'#E8C97A'/);
   });
 
   it('FR3.2 — modal.tsx does not have trackColor true set to any gold hex inline', () => {
