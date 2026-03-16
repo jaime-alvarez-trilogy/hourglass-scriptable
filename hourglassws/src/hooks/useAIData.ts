@@ -33,13 +33,11 @@ const PREV_WEEK_KEY = 'previousWeekAIPercent';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Returns YYYY-MM-DD for today in local timezone. */
-function todayLocal(): string {
+/** Returns YYYY-MM-DD for today in UTC.
+ *  Must match week boundaries used by the Crossover API and useEarningsHistory. */
+function todayUTC(): string {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${dd}`;
+  return d.toISOString().slice(0, 10);
 }
 
 /** Returns YYYY-MM-DD for sunday 6 days after monday (same week). */
@@ -123,7 +121,7 @@ export function useAIData(): UseAIDataResult {
     isFetchingRef.current = true;
     setError(null);
 
-    const today = todayLocal();
+    const today = todayUTC();
 
     try {
       // Load credentials
@@ -204,7 +202,7 @@ export function useAIData(): UseAIDataResult {
       // previous week value so next week's delta badge has a reference point.
       // Guard: only write if there's real tagged data (taggedSlots > 0), so we don't
       // corrupt the previous week value with a zero from an empty Monday morning fetch.
-      const isMonday = new Date().getDay() === 1;
+      const isMonday = new Date().getUTCDay() === 1;
       if (isMonday && freshData.taggedSlots > 0) {
         const midpoint = (freshData.aiPctLow + freshData.aiPctHigh) / 2;
         AsyncStorage.setItem(PREV_WEEK_KEY, String(midpoint)).catch(() => {});
