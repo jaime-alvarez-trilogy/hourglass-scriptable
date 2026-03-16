@@ -62,7 +62,7 @@ export default function OverviewHeroCard({
     <Card elevated>
       {/* Header row: period label + 4W/12W toggle */}
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
-        <SectionLabel style={{ flex: 1 }}>{periodLabel}</SectionLabel>
+        <SectionLabel className="flex-1">{periodLabel}</SectionLabel>
 
         {/* 4W/12W segmented toggle */}
         <View style={{
