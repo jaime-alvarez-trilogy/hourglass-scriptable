@@ -108,6 +108,12 @@ Layer 3 — Glass Cards (scroll over Layer 1)
 - `hourglassws/src/components/Card.tsx` — **Modified** (FR3/FR4: opacity 0.12/0.18, intensity 60/80)
 - `hourglassws/src/components/__tests__/Card.test.tsx` — **Modified** (updated intensity/opacity assertions)
 
+### 02-home-hero-ambient
+- `hourglassws/app/(tabs)/index.tsx` — **Modified** (FR1: AmbientBackground import + render before ScrollView)
+- `hourglassws/src/components/PanelGradient.tsx` — **Modified** (FR2: inner stop opacity 0.35 → 0.50)
+- `hourglassws/app/(tabs)/__tests__/index.test.tsx` — **Modified** (FR1/FR3 ambient wiring tests)
+- `hourglassws/src/components/__tests__/PanelGradient.test.tsx` — **Modified** (FR2 gradient opacity test)
+
 ## Reference Files
 
 - Design tokens: `hourglassws/src/lib/colors.ts`, `tailwind.config.js`
