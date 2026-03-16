@@ -78,10 +78,10 @@ export function ApprovalCard({ item, onApprove, onReject }: Props) {
             {item.fullName}
           </Text>
 
-          {/* FR6: Gold pill badge for manual time */}
+          {/* Manual type badge — violet (interactive accent, not monetary) */}
           {isManual && (
-            <View className="bg-gold/20 rounded-full px-2 py-0.5 ml-2">
-              <Text className="text-gold text-xs font-sans-medium">Manual</Text>
+            <View className="bg-violet/20 rounded-full px-2 py-0.5 ml-2">
+              <Text className="text-violet text-xs font-sans-medium">Manual</Text>
             </View>
           )}
 
@@ -113,11 +113,11 @@ export function ApprovalCard({ item, onApprove, onReject }: Props) {
         {/* Quick action buttons (accessibility fallback for gesture) */}
         <View className="flex-row gap-2 mt-1">
           <AnimatedPressable
-            className="flex-1 py-1.5 rounded-xl bg-success/20 items-center"
+            className="flex-1 py-1.5 rounded-xl bg-violet/20 items-center"
             onPress={onApprove}
             accessibilityLabel={`Approve ${item.fullName}`}
           >
-            <Text className="text-success text-sm font-sans-medium">Approve</Text>
+            <Text className="text-violet text-sm font-sans-medium">Approve</Text>
           </AnimatedPressable>
           <AnimatedPressable
             className="flex-1 py-1.5 rounded-xl bg-destructive/20 items-center"
