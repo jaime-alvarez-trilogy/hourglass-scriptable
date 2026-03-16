@@ -40,7 +40,7 @@ All four specs are independent and can run in parallel.
 |------|------|-------------|
 | 2026-03-16 | [01-color-semantics](specs/01-color-semantics/spec.md) | Complete — Manual badge violet, Approve button violet, overview hours computed colour, Switch textPrimary thumbColor, Building Momentum warning, FR1–FR5 |
 | 2026-03-16 | [03-motion-universality](specs/03-motion-universality/spec.md) | Complete — AnimatedPressable on index/approvals/ai touchables, colors.success tint token, FR1–FR3 |
-| 2026-03-16 | [02-dark-glass](specs/02-dark-glass/spec.md) | Spec and checklist created — BlurView on Card (base/elevated) + PanelGradient, glass opt-out prop, FR1–FR4 |
+| 2026-03-16 | [02-dark-glass](specs/02-dark-glass/spec.md) | Complete — BlurView on Card (base/elevated) + PanelGradient, glass opt-out prop, GLASS_BASE/ELEVATED constants, FR1–FR4 |
 | 2026-03-16 | [04-chart-polish](specs/04-chart-polish/spec.md) | Complete — TrendSparkline 3px + 3-layer glow, WeeklyBarChart todayColor prop, index.tsx TODAY_BAR_COLORS, FR1–FR4 |
 
 ## Reference Files
