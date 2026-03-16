@@ -92,7 +92,7 @@ export default function ModalScreen() {
                       value={config.devManagerView ?? false}
                       onValueChange={toggleDevManagerView}
                       trackColor={{ false: colors.border, true: colors.violet }}
-                      thumbColor="#FFFFFF"
+                      thumbColor={colors.textPrimary}
                     />
                   </View>
                   <Text style={styles.toggleHint}>
@@ -106,7 +106,7 @@ export default function ModalScreen() {
                   value={config.devOvertimePreview ?? false}
                   onValueChange={toggleDevOvertimePreview}
                   trackColor={{ false: colors.border, true: colors.violet }}
-                  thumbColor="#FFFFFF"
+                  thumbColor={colors.textPrimary}
                 />
               </View>
               <Text style={styles.toggleHint}>
