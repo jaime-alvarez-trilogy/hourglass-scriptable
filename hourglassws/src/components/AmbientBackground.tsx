@@ -15,7 +15,7 @@
 //   - No StyleSheet.create — inline styles consistent with project convention
 //   - StyleSheet.absoluteFill is a read-only constant (not StyleSheet.create)
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import Animated, {
@@ -128,11 +128,16 @@ export default function AmbientBackground({ color, intensity = 1 }: AmbientBackg
   const { width } = useWindowDimensions();
   // FR5: start at 0 for mount animation
   const opacity = useSharedValue(0);
+  // Track mount state without reading opacity.value on the JS thread.
+  // Reading a SharedValue from useEffect (JS thread) triggers WorkletRuntime::executeSync
+  // which deadlocks when a concurrent worklet (e.g. useAnimatedProps) holds the mutex.
+  const mounted = useRef(false);
 
   // FR5: animate on color change — fade-through-opacity pattern (mirrors PanelGradient)
   useEffect(() => {
-    if (opacity.value === 0) {
+    if (!mounted.current) {
       // Mount or transition from null: fade in with springPremium
+      mounted.current = true;
       opacity.value = withSpring(1, springPremium);
     } else {
       // State change: brief dip to near-zero then spring back to 1

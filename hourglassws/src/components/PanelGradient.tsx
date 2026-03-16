@@ -16,7 +16,7 @@
 //   - getGlowStyle(state) exported for use by parent panel containers
 //   - BlurView (intensity 30) is first absolutely-positioned child, behind gradient
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Platform, StyleSheet, View, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
@@ -126,11 +126,16 @@ export default function PanelGradient({
   className,
 }: PanelGradientProps): JSX.Element {
   const opacity = useSharedValue(0);
+  // Track mount state without reading opacity.value on the JS thread.
+  // Reading a SharedValue from useEffect (JS thread) triggers WorkletRuntime::executeSync
+  // which deadlocks when a concurrent worklet (e.g. useAnimatedProps) holds the mutex.
+  const mounted = useRef(false);
 
   useEffect(() => {
     // On mount: fade in from 0 → 1 with springPremium (entrance animation).
     // On state change: brief dip to 0.75 → back to 1 so the gradient swap is visible.
-    if (opacity.value === 0) {
+    if (!mounted.current) {
+      mounted.current = true;
       opacity.value = withSpring(1, springPremium);
     } else {
       opacity.value = withSequence(
