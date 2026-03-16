@@ -21,8 +21,8 @@
  *   </View>
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { Canvas, Path, Circle, Line, vec, matchFont, Text } from '@shopify/react-native-skia';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, Path, Circle, Line, vec, matchFont, Text, Paint, BlurMaskFilter } from '@shopify/react-native-skia';
 import { useSharedValue, withTiming, useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { colors } from '@/src/lib/colors';
@@ -55,6 +55,12 @@ export interface TrendSparklineProps {
    * Only shown when showGuide is true. e.g. "$2,000"
    */
   capLabel?: string;
+  /**
+   * When provided, the guide line is drawn at this data value's Y position
+   * instead of at the top of the chart. Use when the target is below maxValue,
+   * e.g. targetValue={75} with maxValue={100} for the 75% AI usage guide.
+   */
+  targetValue?: number;
   /**
    * Called with the nearest data index (0..N-1) during a horizontal pan gesture,
    * and with null when the gesture ends. Enables parent to update a hero value.
@@ -137,6 +143,7 @@ export default function TrendSparkline({
   maxValue,
   showGuide = false,
   capLabel,
+  targetValue,
   onScrubChange,
   weekLabels: _weekLabels, // accepted prop — used by parent for sub-label, not rendered in canvas
   externalCursorIndex = null,
@@ -184,30 +191,35 @@ export default function TrendSparkline({
 
   // Cursor pixel position bridged from UI thread to React state
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+  // Guard: only emit onScrubChange(null) if THIS instance was actively scrubbing.
+  // Without this, re-renders cause idle charts (scrubIndex=-1) to call onScrubChange(null)
+  // and reset the shared scrubWeekIndex in the overview screen (flicker).
+  const wasScrubbingRef = useRef(false);
 
-  // Safe fallback for optional onScrubChange
-  const safeOnScrubChange: ScrubChangeCallback = onScrubChange ?? (() => {});
-
-  // Bridge scrubIndex → onScrubChange callback (JS thread)
-  useAnimatedReaction(
-    () => scrubIndex.value,
-    (index) => {
-      runOnJS(safeOnScrubChange)(index === -1 ? null : index);
-    },
-  );
-
-  // Bridge scrubIndex → cursor pixel position (JS thread, for canvas rendering)
-  useAnimatedReaction(
-    () => scrubIndex.value,
-    (index) => {
-      if (index === -1 || data.length === 0) {
-        runOnJS(setCursorPos)(null);
-        return;
+  // JS-thread handler: computes cursor position and fires onScrubChange.
+  // Must stay on JS thread — accesses data[], pixelXs[], and calls toY().
+  const handleScrubIndex = useCallback((index: number) => {
+    if (index === -1 || data.length === 0) {
+      setCursorPos(null);
+      if (wasScrubbingRef.current) {
+        wasScrubbingRef.current = false;
+        onScrubChange?.(null);
       }
-      const clampedIdx = Math.min(Math.max(index, 0), data.length - 1);
-      const x = pixelXs[clampedIdx] ?? 0;
-      const y = toY(data[clampedIdx] ?? 0, min, max, h);
-      runOnJS(setCursorPos)({ x, y });
+      return;
+    }
+    wasScrubbingRef.current = true;
+    const clampedIdx = Math.min(Math.max(index, 0), data.length - 1);
+    const x = pixelXs[clampedIdx] ?? 0;
+    const y = toY(data[clampedIdx] ?? 0, min, max, h);
+    setCursorPos({ x, y });
+    onScrubChange?.(index);
+  }, [data, pixelXs, min, max, h, onScrubChange]);
+
+  // Thin worklet: only reads scrubIndex then delegates to JS thread
+  useAnimatedReaction(
+    () => scrubIndex.value,
+    (index) => {
+      runOnJS(handleScrubIndex)(index);
     },
   );
 
@@ -217,7 +229,11 @@ export default function TrendSparkline({
     return null;
   }
 
-  const guideY = 2;
+  // When targetValue is provided, draw guide at that value's Y position.
+  // Otherwise fall back to y=2 (near top, represents the maxValue ceiling).
+  const guideY = (showGuide && targetValue !== undefined)
+    ? toY(targetValue, min, max, h)
+    : 2;
 
   // Cap label font — only loaded when needed
   const capFont = (showGuide && capLabel)
@@ -304,11 +320,15 @@ export default function TrendSparkline({
           path={pathStr}
           color={color}
           style="stroke"
-          strokeWidth={strokeWidth}
+          strokeWidth={2.5}
           strokeCap="round"
           strokeJoin="round"
           end={clipProgress}
-        />
+        >
+          <Paint color={color + '40'} style="stroke" strokeWidth={10} strokeCap="round">
+            <BlurMaskFilter blur={8} style="solid" />
+          </Paint>
+        </Path>
         {cursor && (
           <>
             <Path

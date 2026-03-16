@@ -11,7 +11,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Canvas, Rect, Line, vec, matchFont, Text } from '@shopify/react-native-skia';
+import { Canvas, Rect, Line, vec, matchFont, Text, Paint, BlurMaskFilter } from '@shopify/react-native-skia';
 import {
   useSharedValue,
   withTiming,
@@ -125,7 +125,13 @@ export default function WeeklyBarChart({ data, maxHours, width, height, watermar
             <Rect x={x} y={trackY} width={barWidth} height={trackHeight} color={TRACK_COLOR} />
             {/* Data bar (animates up from bottom) */}
             {entry.hours > 0 && animatedBarHeight >= 1 && (
-              <Rect x={x} y={dataBarY} width={barWidth} height={animatedBarHeight} color={barColor} />
+              <Rect x={x} y={dataBarY} width={barWidth} height={animatedBarHeight} color={barColor}>
+                {entry.isToday && (
+                  <Paint color={barColor + '30'} style="fill">
+                    <BlurMaskFilter blur={12} style="normal" />
+                  </Paint>
+                )}
+              </Rect>
             )}
           </React.Fragment>
         );
