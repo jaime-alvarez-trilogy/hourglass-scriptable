@@ -316,3 +316,128 @@ describe('OverviewScreen FR4+FR5 (07-overview-sync) — file contract', () => {
     expect(source).toMatch(/react-native-reanimated/);
   });
 });
+
+// ─── 03-overview-hero FR4: Ambient wiring ────────────────────────────────────
+//
+// SC4.1 — AmbientBackground is imported in overview.tsx
+// SC4.2 — AmbientBackground rendered outside ScrollView (sibling, not inside)
+// SC4.3 — getAmbientColor is imported from AmbientBackground
+// SC4.4 — computeEarningsPace is called with overviewData.earnings
+// SC4.5 — { type: 'earningsPace' } signal pattern present
+// SC4.6 — null fallback for ambient color when data unavailable
+
+describe('OverviewScreen FR4 (03-overview-hero) — source: ambient wiring', () => {
+  it('SC4.1 — imports AmbientBackground', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/import.*AmbientBackground/);
+  });
+
+  it('SC4.2 — AmbientBackground rendered in source (JSX element)', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/<AmbientBackground/);
+  });
+
+  it('SC4.2 — AmbientBackground appears before ScrollView in source (outside scroll)', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    const ambientIdx = source.indexOf('<AmbientBackground');
+    const scrollIdx = source.indexOf('<ScrollView');
+    expect(ambientIdx).toBeGreaterThan(-1);
+    expect(scrollIdx).toBeGreaterThan(-1);
+    expect(ambientIdx).toBeLessThan(scrollIdx);
+  });
+
+  it('SC4.3 — imports getAmbientColor', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/getAmbientColor/);
+  });
+
+  it('SC4.4 — computeEarningsPace is imported', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/computeEarningsPace/);
+  });
+
+  it('SC4.4 — computeEarningsPace called with overviewData.earnings', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/computeEarningsPace.*earnings|computeEarningsPace.*overviewData/);
+  });
+
+  it("SC4.5 — { type: 'earningsPace' } signal present in source", () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/type\s*:\s*['"]earningsPace['"]/);
+  });
+
+  it('SC4.6 — null fallback: AmbientBackground color has null guard (??null or ternary)', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    // Either ?? null or a ternary or optional chaining guarding the ambient color
+    expect(source).toMatch(/\?\?.*null|null.*\?\?|earningsPace.*\?|ambientColor/);
+  });
+});
+
+// ─── 03-overview-hero FR5: Hero card + toggle migration ──────────────────────
+//
+// SC5.1 — standalone header toggle row removed from overview.tsx
+// SC5.2 — OverviewHeroCard rendered as first item in ScrollView content
+// SC5.3 — OverviewHeroCard receives window prop
+// SC5.4 — OverviewHeroCard receives onWindowChange={handleWindowChange}
+// SC5.5 — totalEarnings uses sum/reduce of overviewData.earnings
+// SC5.6 — totalHours uses sum/reduce of overviewData.hours
+// SC5.7 — overtimeHours uses Math.max(0, ...) pattern
+
+describe('OverviewScreen FR5 (03-overview-hero) — source: hero card integration', () => {
+  it('SC5.1 — standalone toggle row removed: no "Overview" title text + toggle pill combination', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    // The old header had inline toggle pills with activePillStyle/inactivePillStyle
+    // After migration, these are gone (now in OverviewHeroCard component)
+    // We check that the old header pattern (Overview title + inline toggle row) is gone
+    expect(source).not.toMatch(/activePillStyle.*inactivePillStyle|inactivePillStyle.*activePillStyle/);
+  });
+
+  it('SC5.2 — OverviewHeroCard is imported', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/import.*OverviewHeroCard/);
+  });
+
+  it('SC5.2 — OverviewHeroCard rendered in JSX', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/<OverviewHeroCard/);
+  });
+
+  it('SC5.2 — OverviewHeroCard appears before scrub panel (Animated.View)', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    const heroIdx = source.indexOf('<OverviewHeroCard');
+    const scrubIdx = source.indexOf('snapLabel');  // scrub panel contains snapLabel
+    expect(heroIdx).toBeGreaterThan(-1);
+    expect(scrubIdx).toBeGreaterThan(-1);
+    expect(heroIdx).toBeLessThan(scrubIdx);
+  });
+
+  it('SC5.3 — OverviewHeroCard receives window prop', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/window\s*=\s*\{window\}|window=\{window\}/);
+  });
+
+  it('SC5.4 — OverviewHeroCard receives onWindowChange prop wired to handleWindowChange', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/onWindowChange.*handleWindowChange|onWindowChange=\{handleWindowChange\}/);
+  });
+
+  it('SC5.5 — totalEarnings computed via reduce/sum of overviewData.earnings', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/reduce.*earnings|earnings.*reduce/);
+  });
+
+  it('SC5.6 — totalHours computed via reduce/sum of overviewData.hours', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/reduce.*hours|hours.*reduce/);
+  });
+
+  it('SC5.7 — overtimeHours uses Math.max(0, ...) pattern', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/Math\.max\s*\(\s*0/);
+  });
+
+  it('SC5.7 — overtimeHours references hoursData.total', () => {
+    const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
+    expect(source).toMatch(/hoursData.*total|hoursData\?\.total/);
+  });
+});
