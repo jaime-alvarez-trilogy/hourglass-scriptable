@@ -71,6 +71,107 @@ function renderSparkline(props: {
   return tree;
 }
 
+// ─── FR1 (07-chart-line-polish): TrendSparkline line glow ────────────────────
+//
+// SC1.1 — BlurMaskFilter imported from @shopify/react-native-skia
+// SC1.2 — Data line Path has strokeWidth 2.5
+// SC1.3 — Data line Path has a child Paint with BlurMaskFilter child
+// SC1.4 — Glow Paint BlurMaskFilter blur >= 6
+// SC1.5 — Glow Paint strokeWidth > line strokeWidth
+// SC1.6 — Glow Paint color = lineColor + '40' alpha suffix
+// SC1.7 — Guide line (showGuide=true) has no BlurMaskFilter child
+// SC1.8 — Empty data renders without crash
+// SC1.9 — width=0 renders without crash (returns null before canvas)
+// SC1.10 — Scrub gesture (externalCursorIndex) unaffected by render changes
+
+describe('TrendSparkline — FR1 (07-chart-line-polish): Line Glow', () => {
+  it('SC1.1 — BlurMaskFilter is imported from @shopify/react-native-skia', () => {
+    const source = fs.readFileSync(SPARKLINE_FILE, 'utf8');
+    expect(source).toMatch(/BlurMaskFilter/);
+    expect(source).toMatch(/@shopify\/react-native-skia/);
+    // Both in same import statement
+    expect(source).toMatch(/BlurMaskFilter[\s\S]{0,200}@shopify\/react-native-skia|@shopify\/react-native-skia[\s\S]{0,200}BlurMaskFilter/);
+  });
+
+  it('SC1.2 — data line Path has strokeWidth 2.5 (hardcoded or as default prop)', () => {
+    const source = fs.readFileSync(SPARKLINE_FILE, 'utf8');
+    // strokeWidth={2.5} on the main line Path, or strokeWidth = 2.5 as default
+    expect(source).toMatch(/strokeWidth[=\s:]*\{?2\.5\}?|strokeWidth\s*=\s*2\.5/);
+  });
+
+  it('SC1.3 — source contains a BlurMaskFilter element inside a Paint child of the data line', () => {
+    const source = fs.readFileSync(SPARKLINE_FILE, 'utf8');
+    // Paint wrapping a BlurMaskFilter
+    expect(source).toMatch(/<Paint[\s\S]{0,300}<BlurMaskFilter/);
+  });
+
+  it('SC1.4 — BlurMaskFilter blur value is >= 6', () => {
+    const source = fs.readFileSync(SPARKLINE_FILE, 'utf8');
+    // blur={8} or blur={6} or higher
+    const match = source.match(/BlurMaskFilter[\s\S]{0,100}blur=\{(\d+(?:\.\d+)?)\}/);
+    expect(match).not.toBeNull();
+    const blurVal = parseFloat(match![1]);
+    expect(blurVal).toBeGreaterThanOrEqual(6);
+  });
+
+  it('SC1.5 — glow Paint strokeWidth is greater than the line strokeWidth (2.5)', () => {
+    const source = fs.readFileSync(SPARKLINE_FILE, 'utf8');
+    // The Paint child should have a strokeWidth > 2.5 (e.g. 10)
+    // Look for Paint with large strokeWidth near BlurMaskFilter
+    const match = source.match(/<Paint[\s\S]{0,200}strokeWidth=\{(\d+(?:\.\d+)?)\}[\s\S]{0,200}<BlurMaskFilter/);
+    if (match) {
+      const paintStrokeWidth = parseFloat(match[1]);
+      expect(paintStrokeWidth).toBeGreaterThan(2.5);
+    } else {
+      // Also accept strokeWidth before BlurMaskFilter within Paint block
+      const match2 = source.match(/strokeWidth=\{(\d+(?:\.\d+)?)\}[\s\S]{0,100}<BlurMaskFilter/);
+      expect(match2).not.toBeNull();
+      const paintStrokeWidth = parseFloat(match2![1]);
+      expect(paintStrokeWidth).toBeGreaterThan(2.5);
+    }
+  });
+
+  it('SC1.6 — glow Paint color uses lineColor/color prop with alpha suffix', () => {
+    const source = fs.readFileSync(SPARKLINE_FILE, 'utf8');
+    // Pattern: color={lineColor + '40'} or color={color + '40'}
+    expect(source).toMatch(/color=\{(?:lineColor|color)\s*\+\s*'[0-9a-fA-F]{2}'\}/);
+  });
+
+  it('SC1.7 — guide line (Line element) does NOT have a BlurMaskFilter child', () => {
+    const source = fs.readFileSync(SPARKLINE_FILE, 'utf8');
+    // The <Line> elements should not contain BlurMaskFilter
+    // Verify: no <Line ... <BlurMaskFilter> pattern
+    expect(source).not.toMatch(/<Line[\s\S]{0,300}<BlurMaskFilter/);
+  });
+
+  it('SC1.8 — empty data renders without crash', () => {
+    expect(() =>
+      renderSparkline({ data: [], width: 300, height: 60 }),
+    ).not.toThrow();
+  });
+
+  it('SC1.9 — width=0 renders without crash (returns null before canvas)', () => {
+    expect(() =>
+      renderSparkline({ data: MOCK_DATA, width: 0, height: 60 }),
+    ).not.toThrow();
+  });
+
+  it('SC1.10 — externalCursorIndex prop still accepted and renders without crash', () => {
+    const TrendSparkline = require('@/src/components/TrendSparkline').default;
+    expect(() => {
+      let tree: any;
+      act(() => {
+        tree = create(React.createElement(TrendSparkline, {
+          data: MOCK_DATA,
+          width: 300,
+          height: 60,
+          externalCursorIndex: 3,
+        }));
+      });
+    }).not.toThrow();
+  });
+});
+
 // ─── FR3: TrendSparkline cap label ───────────────────────────────────────────
 
 describe('TrendSparkline — FR3: Cap Label', () => {

@@ -100,6 +100,99 @@ function findNodes(node: any, predicate: (n: any) => boolean, found: any[] = [])
   return found;
 }
 
+// ─── FR3 (07-chart-line-polish): WeeklyBarChart today-bar glow ───────────────
+//
+// SC2.1 — BlurMaskFilter imported from @shopify/react-native-skia
+// SC2.2 — isToday bar Rect has child Paint with BlurMaskFilter
+// SC2.3 — BlurMaskFilter blur >= 8
+// SC2.4 — Glow Paint uses style="fill" and BlurMaskFilter style="normal"
+// SC2.5 — Glow Paint color = barColor + '30' alpha suffix
+// SC2.6 — Non-today bar Rect has no BlurMaskFilter child (conditional pattern)
+// SC2.7 — Chart renders without crash when no bar is isToday
+// SC2.8 — Overflow bar (isToday) renders glow correctly (no crash)
+// SC2.9 — All existing tests still pass (enforced by running the full suite)
+// SC2.10 — Bar height animation not affected (animatedBarHeight still used)
+
+describe('WeeklyBarChart — FR3 (07-chart-line-polish): Today Bar Glow', () => {
+  it('SC2.1 — BlurMaskFilter is imported from @shopify/react-native-skia', () => {
+    const source = fs.readFileSync(BAR_CHART_FILE, 'utf8');
+    expect(source).toMatch(/BlurMaskFilter/);
+    expect(source).toMatch(/@shopify\/react-native-skia/);
+    expect(source).toMatch(/BlurMaskFilter[\s\S]{0,200}@shopify\/react-native-skia|@shopify\/react-native-skia[\s\S]{0,200}BlurMaskFilter/);
+  });
+
+  it('SC2.2 — source contains a BlurMaskFilter element inside a Paint child of a Rect', () => {
+    const source = fs.readFileSync(BAR_CHART_FILE, 'utf8');
+    expect(source).toMatch(/<Paint[\s\S]{0,300}<BlurMaskFilter/);
+  });
+
+  it('SC2.3 — BlurMaskFilter blur value is >= 8', () => {
+    const source = fs.readFileSync(BAR_CHART_FILE, 'utf8');
+    const match = source.match(/BlurMaskFilter[\s\S]{0,100}blur=\{(\d+(?:\.\d+)?)\}/);
+    expect(match).not.toBeNull();
+    const blurVal = parseFloat(match![1]);
+    expect(blurVal).toBeGreaterThanOrEqual(8);
+  });
+
+  it('SC2.4 — glow Paint uses style="fill" and BlurMaskFilter uses style="normal"', () => {
+    const source = fs.readFileSync(BAR_CHART_FILE, 'utf8');
+    // Paint with style="fill"
+    expect(source).toMatch(/style="fill"/);
+    // BlurMaskFilter with style="normal"
+    expect(source).toMatch(/BlurMaskFilter[\s\S]{0,100}style="normal"/);
+  });
+
+  it('SC2.5 — glow Paint color uses barColor with alpha suffix', () => {
+    const source = fs.readFileSync(BAR_CHART_FILE, 'utf8');
+    // Pattern: color={barColor + '30'} — approx 19% alpha
+    expect(source).toMatch(/color=\{barColor\s*\+\s*'[0-9a-fA-F]{2}'\}/);
+  });
+
+  it('SC2.6 — glow Paint is guarded by isToday condition (not rendered for all bars)', () => {
+    const source = fs.readFileSync(BAR_CHART_FILE, 'utf8');
+    // The Paint/BlurMaskFilter is inside an isToday conditional
+    expect(source).toMatch(/isToday[\s\S]{0,200}<Paint[\s\S]{0,200}BlurMaskFilter|isToday[\s\S]{0,200}BlurMaskFilter/);
+  });
+
+  it('SC2.7 — chart renders without crash when no bar has isToday=true', () => {
+    const noTodayData = [
+      { day: 'Mon', hours: 7.5, isToday: false, isFuture: false },
+      { day: 'Tue', hours: 8,   isToday: false, isFuture: false },
+      { day: 'Wed', hours: 6.5, isToday: false, isFuture: false },
+      { day: 'Thu', hours: 0,   isToday: false, isFuture: true  },
+      { day: 'Fri', hours: 0,   isToday: false, isFuture: true  },
+      { day: 'Sat', hours: 0,   isToday: false, isFuture: true  },
+      { day: 'Sun', hours: 0,   isToday: false, isFuture: true  },
+    ];
+    expect(() =>
+      renderChart({ data: noTodayData, width: 300, height: 120 }),
+    ).not.toThrow();
+  });
+
+  it('SC2.8 — overflow isToday bar renders without crash', () => {
+    const overtimeTodayData = [
+      { day: 'Mon', hours: 8, isToday: false, isFuture: false },
+      { day: 'Tue', hours: 8, isToday: false, isFuture: false },
+      { day: 'Wed', hours: 8, isToday: true,  isFuture: false },
+      { day: 'Thu', hours: 0, isToday: false, isFuture: true  },
+      { day: 'Fri', hours: 0, isToday: false, isFuture: true  },
+      { day: 'Sat', hours: 0, isToday: false, isFuture: true  },
+      { day: 'Sun', hours: 0, isToday: false, isFuture: true  },
+    ];
+    // weeklyLimit=15 means Wed bar is overtime (runningTotal=24 > 15)
+    expect(() =>
+      renderChart({ data: overtimeTodayData, weeklyLimit: 15, width: 300, height: 120 }),
+    ).not.toThrow();
+  });
+
+  it('SC2.10 — source still references animatedBarHeight for bar Rect height', () => {
+    const source = fs.readFileSync(BAR_CHART_FILE, 'utf8');
+    // Animation must not be removed
+    expect(source).toMatch(/animatedBarHeight/);
+    expect(source).toMatch(/height=\{animatedBarHeight\}/);
+  });
+});
+
 // ─── FR1: WeeklyBarChart watermark label ─────────────────────────────────────
 
 describe('WeeklyBarChart — FR1: Watermark Label', () => {
