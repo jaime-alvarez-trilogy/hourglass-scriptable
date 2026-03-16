@@ -142,6 +142,38 @@ export function useAIData(): UseAIDataResult {
         rawCache = {};
       }
 
+      // Week-transition flush: if cache has data from the PREVIOUS week, save it to
+      // weekly_history_v2 before pruning it away. Fires once when week boundary is crossed.
+      const currentMonday = getMondayOfWeek(today);
+      const prevWeekMonday = addDays(currentMonday, -7);
+      const prevWeekSunday = addDays(currentMonday, -1);
+      const prevEntries = Object.entries(rawCache).filter(
+        ([k]) => k !== '_lastFetchedAt' && k >= prevWeekMonday && k <= prevWeekSunday,
+      );
+      if (prevEntries.length > 0) {
+        let totalSlots = 0, aiSlots = 0, sbSlots = 0, noTagSlots = 0;
+        for (const [, v] of prevEntries) {
+          const td = v as TagData;
+          totalSlots += td.total;
+          aiSlots += td.aiUsage;
+          sbSlots += td.secondBrain;
+          noTagSlots += td.noTags;
+        }
+        if (totalSlots > 0) {
+          const tagged = totalSlots - noTagSlots;
+          const aiPct = tagged > 0 ? Math.round((aiSlots / tagged) * 100) : 0;
+          const brainliftHours = sbSlots * 10 / 60;
+          loadWeeklyHistory().then(history => {
+            const existing = history.find(s => s.weekStart === prevWeekMonday);
+            if (!existing || existing.aiPct === 0) {
+              return saveWeeklyHistory(
+                mergeWeeklySnapshot(history, { weekStart: prevWeekMonday, aiPct, brainliftHours }),
+              );
+            }
+          }).catch(() => {});
+        }
+      }
+
       // Prune to current week
       const lastFetchedAtVal = (rawCache._lastFetchedAt as string | undefined) ?? null;
       const weekCache: Record<string, TagData> = pruneToCurrentWeek(rawCache, today);
