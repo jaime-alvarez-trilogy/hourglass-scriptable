@@ -19,8 +19,11 @@ import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-na
 import { useConfig } from '@/src/hooks/useConfig';
 import { useOverviewData } from '@/src/hooks/useOverviewData';
 import { useFocusKey } from '@/src/hooks/useFocusKey';
+import { useHistoryBackfill } from '@/src/hooks/useHistoryBackfill';
+import { useEarningsHistory } from '@/src/hooks/useEarningsHistory';
 import { colors } from '@/src/lib/colors';
 import { springPremium } from '@/src/lib/reanimated-presets';
+import { useStaggeredEntry } from '@/src/hooks/useStaggeredEntry';
 import Card from '@/src/components/Card';
 import SectionLabel from '@/src/components/SectionLabel';
 import TrendSparkline from '@/src/components/TrendSparkline';
@@ -36,6 +39,7 @@ interface ChartSectionProps {
   data: number[];
   color: string;
   maxValue?: number;
+  targetValue?: number;
   showGuide?: boolean;
   weekLabels?: string[];
   onScrubChange: ScrubChangeCallback;
@@ -50,6 +54,7 @@ function ChartSection({
   data,
   color,
   maxValue,
+  targetValue,
   showGuide,
   weekLabels,
   onScrubChange,
@@ -79,6 +84,7 @@ function ChartSection({
           height={dims.height}
           color={color}
           maxValue={maxValue}
+          targetValue={targetValue}
           showGuide={showGuide}
           weekLabels={weekLabels}
           onScrubChange={onScrubChange}
@@ -94,6 +100,12 @@ function ChartSection({
 export default function OverviewScreen() {
   const chartKey = useFocusKey();
   const { config } = useConfig();
+  const { getEntryStyle } = useStaggeredEntry({ count: 4 });
+
+  // Ensure earnings/hours history is populated even if home tab hasn't run yet
+  useEarningsHistory(12);
+  // Backfill AI%/BrainLift for past weeks — returns updated snapshots when done
+  const backfillSnapshots = useHistoryBackfill();
 
   // ── Time window ────────────────────────────────────────────────────────────
   const [window, setWindow] = useState<4 | 12>(4);
@@ -108,7 +120,7 @@ export default function OverviewScreen() {
   };
 
   // ── Data ───────────────────────────────────────────────────────────────────
-  const { data: overviewData } = useOverviewData(window);
+  const { data: overviewData } = useOverviewData(window, backfillSnapshots);
 
   const weeklyLimit = config?.weeklyLimit ?? 40;
   const hourlyRate = config?.hourlyRate ?? 0;
@@ -257,7 +269,8 @@ export default function OverviewScreen() {
             </View>
           </Animated.View>
 
-          {/* Earnings chart */}
+          {/* Earnings chart — target = max weekly earnings (hourlyRate × weeklyLimit) */}
+          <Animated.View style={getEntryStyle(0)}>
           <ChartSection
             label="WEEKLY EARNINGS"
             heroValue={`$${Math.round(heroEarnings).toLocaleString()}`}
@@ -271,8 +284,10 @@ export default function OverviewScreen() {
             externalCursorIndex={scrubWeekIndex}
             chartKey={`earnings-${chartKey}-${window}`}
           />
+          </Animated.View>
 
-          {/* Hours chart */}
+          {/* Hours chart — target = weeklyLimit */}
+          <Animated.View style={getEntryStyle(1)}>
           <ChartSection
             label="WEEKLY HOURS"
             heroValue={`${heroHours.toFixed(1)}h`}
@@ -286,8 +301,10 @@ export default function OverviewScreen() {
             externalCursorIndex={scrubWeekIndex}
             chartKey={`hours-${chartKey}-${window}`}
           />
+          </Animated.View>
 
-          {/* AI% chart */}
+          {/* AI% chart — target = 75% (scale to 100, guide at 75) */}
+          <Animated.View style={getEntryStyle(2)}>
           <ChartSection
             label="AI USAGE %"
             heroValue={`${Math.round(heroAiPct)}%`}
@@ -295,14 +312,17 @@ export default function OverviewScreen() {
             data={overviewData.aiPct}
             color={colors.cyan}
             maxValue={100}
+            targetValue={75}
             showGuide
             weekLabels={overviewData.weekLabels}
             onScrubChange={setScrubWeekIndex}
             externalCursorIndex={scrubWeekIndex}
             chartKey={`ai-${chartKey}-${window}`}
           />
+          </Animated.View>
 
-          {/* BrainLift chart */}
+          {/* BrainLift chart — target = 5h (scale ceiling = target) */}
+          <Animated.View style={getEntryStyle(3)}>
           <ChartSection
             label="BRAINLIFT HOURS"
             heroValue={`${heroBrainlift.toFixed(1)}h`}
@@ -316,6 +336,7 @@ export default function OverviewScreen() {
             externalCursorIndex={scrubWeekIndex}
             chartKey={`brainlift-${chartKey}-${window}`}
           />
+          </Animated.View>
         </ScrollView>
       </SafeAreaView>
     </FadeInScreen>

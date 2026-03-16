@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useConfig } from '@/src/hooks/useConfig';
@@ -24,6 +25,7 @@ import { useHoursData } from '@/src/hooks/useHoursData';
 import { useEarningsHistory } from '@/src/hooks/useEarningsHistory';
 import { useAIData } from '@/src/hooks/useAIData';
 import { useFocusKey } from '@/src/hooks/useFocusKey';
+import { useStaggeredEntry } from '@/src/hooks/useStaggeredEntry';
 import { computePanelState, computeDaysElapsed } from '@/src/lib/panelState';
 import { computeAICone } from '@/src/lib/aiCone';
 import { getUrgencyLevel, getWeekLabels } from '@/src/lib/hours';
@@ -133,6 +135,7 @@ export default function HoursDashboard() {
   const [compactConeDims, setCompactConeDims] = useState({ width: 0, height: 100 });
 
   const chartKey = useFocusKey();
+  const { getEntryStyle } = useStaggeredEntry({ count: 4 });
 
   const weeklyLimit = config?.weeklyLimit ?? 40;
 
@@ -203,6 +206,7 @@ export default function HoursDashboard() {
         </View>
 
         {/* ── Zone 1: Hero Panel ────────────────────────────────────────── */}
+        <Animated.View style={getEntryStyle(0)}>
         <PanelGradient state={panelState} className="rounded-2xl">
           <View className="p-6">
             <SectionLabel className="mb-1">THIS WEEK</SectionLabel>
@@ -251,6 +255,7 @@ export default function HoursDashboard() {
             )}
           </View>
         </PanelGradient>
+        </Animated.View>
 
         {/* ── Error banner (no data + error) ───────────────────────────── */}
         {error && !data && (
@@ -275,6 +280,7 @@ export default function HoursDashboard() {
         )}
 
         {/* ── Zone 2: Weekly Chart ──────────────────────────────────────── */}
+        <Animated.View style={getEntryStyle(1)}>
         <Card>
           <SectionLabel className="mb-3">THIS WEEK</SectionLabel>
 
@@ -309,9 +315,11 @@ export default function HoursDashboard() {
             ))}
           </View>
         </Card>
+        </Animated.View>
 
         {/* ── Zone 2.5: AI Trajectory compact card (FR2 03-ai-tab-integration) ── */}
         {coneData && (
+          <Animated.View style={getEntryStyle(2)}>
           <Card>
             <SectionLabel className="mb-2">AI TRAJECTORY</SectionLabel>
             <View
@@ -327,9 +335,11 @@ export default function HoursDashboard() {
               />
             </View>
           </Card>
+          </Animated.View>
         )}
 
         {/* ── Zone 3: Earnings ─────────────────────────────────────────── */}
+        <Animated.View style={getEntryStyle(3)}>
         <Card>
           <SectionLabel className="mb-2">EARNINGS</SectionLabel>
 
@@ -390,6 +400,7 @@ export default function HoursDashboard() {
             </>
           )}
         </Card>
+        </Animated.View>
 
         {/* ── Footer: UrgencyBanner ─────────────────────────────────────── */}
         {urgencyLevel !== 'none' && data && (

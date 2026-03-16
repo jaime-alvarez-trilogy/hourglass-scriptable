@@ -19,6 +19,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native'
+import Animated from 'react-native-reanimated'
 import { useConfig } from '@/src/hooks/useConfig'
 import { useApprovalItems } from '@/src/hooks/useApprovalItems'
 import { useMyRequests } from '@/src/hooks/useMyRequests'
@@ -29,11 +30,12 @@ import Card from '@/src/components/Card'
 import SectionLabel from '@/src/components/SectionLabel'
 import SkeletonLoader from '@/src/components/SkeletonLoader'
 import FadeInScreen from '@/src/components/FadeInScreen'
+import { useStaggeredEntry } from '@/src/hooks/useStaggeredEntry'
 import type { ApprovalItem } from '@/src/lib/approvals'
 
 export default function ApprovalsScreen() {
   const { config } = useConfig()
-  const isManager = config?.isManager === true
+  const isManager = config?.isManager === true || config?.devManagerView === true
 
   // My requests — all users
   const { entries, isLoading: myLoading, error: myError, refetch: myRefetch } = useMyRequests()
@@ -51,6 +53,8 @@ export default function ApprovalsScreen() {
 
   const [rejectTarget, setRejectTarget] = useState<ApprovalItem | null>(null)
   const [isApprovingAll, setIsApprovingAll] = useState(false)
+
+  const { getEntryStyle } = useStaggeredEntry({ count: 2 })
 
   // ─── Pull-to-refresh ────────────────────────────────────────────────────────
 
@@ -155,7 +159,7 @@ export default function ApprovalsScreen() {
         >
           {/* ── TEAM REQUESTS section (manager only) ───────────────────────── */}
           {isManager && (
-            <View className="pt-4">
+            <Animated.View style={getEntryStyle(0)} className="pt-4">
               <SectionLabel className="px-4 mb-2">Team Requests</SectionLabel>
 
               {showTeamSkeletons ? (
@@ -185,11 +189,11 @@ export default function ApprovalsScreen() {
                   contentContainerStyle={{ paddingBottom: 8 }}
                 />
               )}
-            </View>
+            </Animated.View>
           )}
 
           {/* ── MY REQUESTS section (all users) ────────────────────────────── */}
-          <View className="pt-4">
+          <Animated.View style={getEntryStyle(isManager ? 1 : 0)} className="pt-4">
             <SectionLabel className="px-4 mb-2">My Requests</SectionLabel>
 
             {/* My requests error banner */}
@@ -225,7 +229,7 @@ export default function ApprovalsScreen() {
                 <MyRequestCard key={entry.id} entry={entry} />
               ))
             )}
-          </View>
+          </Animated.View>
         </ScrollView>
 
         {/* Rejection bottom sheet */}

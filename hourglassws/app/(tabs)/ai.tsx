@@ -15,10 +15,12 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useAIData } from '@/src/hooks/useAIData';
 import { useConfig } from '@/src/hooks/useConfig';
 import { useFocusKey } from '@/src/hooks/useFocusKey';
+import { useStaggeredEntry } from '@/src/hooks/useStaggeredEntry';
 import { useHistoryBackfill } from '@/src/hooks/useHistoryBackfill';
 import { useOverviewData } from '@/src/hooks/useOverviewData';
 import AIRingChart from '@/src/components/AIRingChart';
@@ -77,6 +79,7 @@ export default function AIScreen() {
   const { data, isLoading, lastFetchedAt, error, refetch, previousWeekPercent } = useAIData();
   const { config } = useConfig();
   const chartKey = useFocusKey();
+  const { getEntryStyle } = useStaggeredEntry({ count: 6 });
 
   // 12-week AI trajectory — backfill + history
   const backfillSnapshots = useHistoryBackfill();
@@ -191,6 +194,7 @@ export default function AIScreen() {
       <Text className="text-3xl font-bold text-textPrimary mb-1">AI &amp; BrainLift</Text>
 
       {/* AI Usage Card — FR1, FR2, FR4 */}
+      <Animated.View style={getEntryStyle(0)}>
       <Card>
         <SectionLabel>AI USAGE</SectionLabel>
 
@@ -280,8 +284,10 @@ export default function AIScreen() {
           <Text className="text-xs text-textMuted text-center mt-2">75% target</Text>
         )}
       </Card>
+      </Animated.View>
 
       {/* BrainLift Card — FR2, FR3 */}
+      <Animated.View style={getEntryStyle(1)}>
       <Card>
         <SectionLabel>BRAINLIFT</SectionLabel>
 
@@ -319,8 +325,10 @@ export default function AIScreen() {
           </>
         )}
       </Card>
+      </Animated.View>
 
       {/* Prime Radiant Card — FR1 (03-ai-tab-integration) */}
+      <Animated.View style={getEntryStyle(2)}>
       <Card>
         <SectionLabel className="mb-3">PRIME RADIANT</SectionLabel>
         {showSkeleton ? (
@@ -341,9 +349,11 @@ export default function AIScreen() {
           </View>
         ) : null}
       </Card>
+      </Animated.View>
 
       {/* Daily Breakdown Card — FR5 */}
       {(data && data.dailyBreakdown.length > 0) && (
+        <Animated.View style={getEntryStyle(3)}>
         <Card testID="daily-breakdown">
           {/* Column headers */}
           <View className="flex-row pb-1.5 border-b border-border mb-1">
@@ -355,6 +365,7 @@ export default function AIScreen() {
             <DailyAIRow key={day.date} item={day} />
           ))}
         </Card>
+        </Animated.View>
       )}
 
       {/* Skeleton for daily breakdown — FR6 */}
@@ -370,6 +381,7 @@ export default function AIScreen() {
 
       {/* 12-Week AI Trajectory Card */}
       {hasTrajectory && (
+        <Animated.View style={getEntryStyle(4)}>
         <Card>
           <SectionLabel className="mb-2">12-WEEK TRAJECTORY</SectionLabel>
 
@@ -426,9 +438,11 @@ export default function AIScreen() {
             })}
           </View>
         </Card>
+        </Animated.View>
       )}
 
       {/* Legend Card */}
+      <Animated.View style={getEntryStyle(5)}>
       <Card>
         <Text className="text-sm font-semibold text-textPrimary mb-1">How it&apos;s calculated</Text>
         <Text className="text-sm text-textSecondary leading-5">
@@ -443,6 +457,7 @@ export default function AIScreen() {
           ±2% display range accounts for measurement variation.
         </Text>
       </Card>
+      </Animated.View>
 
       {/* Last fetched timestamp */}
       {lastFetchedAt && (
