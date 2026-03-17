@@ -92,9 +92,11 @@ User opens app
 | `hourglassws/src/__tests__/lib/crossoverData.test.ts` | New tests |
 | `hourglassws/src/__tests__/lib/widgetBridge.test.ts` | New tests |
 | `hourglassws/src/__tests__/hooks/useWidgetSync.test.ts` | New tests |
+| `hourglassws/src/notifications/handler.ts` | Update field refs to new CrossoverSnapshot shape |
+| `hourglassws/src/__tests__/notifications/handler.test.ts` | Update test fixture to new CrossoverSnapshot shape |
 
 ## Changelog
 
 | Date | Spec | Description |
 |------|------|-------------|
-| 2026-03-17 | [01-widget-activation](specs/01-widget-activation/spec.md) | Install packages, implement fetchFreshData, fix stubs, add useWidgetSync |
+| 2026-03-17 | [01-widget-activation](specs/01-widget-activation/spec.md) | Install packages, implement fetchFreshData, fix stubs, add useWidgetSync — **Complete** |
