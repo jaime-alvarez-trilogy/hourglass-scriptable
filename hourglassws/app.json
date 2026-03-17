@@ -40,6 +40,33 @@
     "plugins": [
       "expo-router",
       [
+        "expo-widgets",
+        {
+          "groupIdentifier": "group.com.jalvarez0907.hourglass.widgets",
+          "widgets": [
+            {
+              "name": "HourglassWidget",
+              "displayName": "Hourglass",
+              "description": "Track your weekly hours and earnings",
+              "supportedFamilies": ["systemSmall", "systemMedium", "systemLarge"],
+              "contentMarginsDisabled": false
+            }
+          ]
+        }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "HourglassWidget",
+              "label": "Hourglass"
+            }
+          ],
+          "widgetTaskHandler": "./src/widgets/android/widgetTaskHandler"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
