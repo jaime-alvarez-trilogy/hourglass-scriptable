@@ -100,7 +100,7 @@ describe('FR5: useWidgetSync', () => {
   });
 
   it('calls updateWidgetData again when hoursData changes (new reference)', () => {
-    const { rerender } = renderHook(
+    const { rerender } = renderHook<void, { hoursData: typeof MOCK_HOURS_DATA }>(
       ({ hoursData }) => useWidgetSync(hoursData, MOCK_AI_DATA, 0, MOCK_CONFIG),
       { initialProps: { hoursData: MOCK_HOURS_DATA } }
     );
@@ -114,7 +114,7 @@ describe('FR5: useWidgetSync', () => {
   });
 
   it('calls updateWidgetData again when pendingCount changes', () => {
-    const { rerender } = renderHook(
+    const { rerender } = renderHook<void, { pendingCount: number }>(
       ({ pendingCount }) =>
         useWidgetSync(MOCK_HOURS_DATA, MOCK_AI_DATA, pendingCount, MOCK_CONFIG),
       { initialProps: { pendingCount: 0 } }

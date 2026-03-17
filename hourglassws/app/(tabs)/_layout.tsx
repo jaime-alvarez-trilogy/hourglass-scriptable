@@ -4,6 +4,9 @@
 //
 // FR1 (06-wiring-and-tokens): NoiseOverlay wired — wraps Tabs in View, overlay after.
 // FR2 (06-wiring-and-tokens): Tab bar uses color tokens (colors.surface / colors.border).
+//
+// FR6 (01-widget-activation): useWidgetSync wired — updates home screen widget on each
+// app open when fresh hours + config data is available.
 
 import { Tabs } from 'expo-router';
 import React from 'react';
@@ -14,9 +17,21 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import NoiseOverlay from '@/src/components/NoiseOverlay';
 import { colors } from '@/src/lib/colors';
 import { useHistoryBackfill } from '@/src/hooks/useHistoryBackfill';
+import { useHoursData } from '@/src/hooks/useHoursData';
+import { useAIData } from '@/src/hooks/useAIData';
+import { useApprovalItems } from '@/src/hooks/useApprovalItems';
+import { useConfig } from '@/src/hooks/useConfig';
+import { useWidgetSync } from '@/src/hooks/useWidgetSync';
 
 export default function TabLayout() {
   useHistoryBackfill(); // fire-and-forget — runs once per session, writes AsyncStorage
+
+  // Widget sync: keep home screen widget up-to-date on every app open
+  const { data: hoursData } = useHoursData();
+  const { data: aiData } = useAIData();
+  const { items } = useApprovalItems();
+  const { config } = useConfig();
+  useWidgetSync(hoursData, aiData, items.length, config);
   return (
     <View style={{ flex: 1 }}>
       <Tabs
