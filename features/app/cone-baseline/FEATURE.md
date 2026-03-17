@@ -23,6 +23,7 @@
 
 ### Tests
 - `hourglassws/src/lib/__tests__/aiCone.test.ts` (modify — add baseline tests)
+- `hourglassws/app/(tabs)/__tests__/indexConeIntegration.test.tsx` (modify — update SC2.16/SC2.23 to assert 3-arg call signature)
 
 ## Feature Overview
 
@@ -58,6 +59,6 @@ When complete, on Monday morning after a week ending at 81%:
 
 ## Changelog of Feature Specs
 
-| Date | Spec | Description |
-|------|------|-------------|
-| 2026-03-17 | [01-baseline-start](specs/01-baseline-start/spec.md) | Add `baselinePct` param to `computeAICone`; thread from call sites |
+| Date | Spec | Description | Status |
+|------|------|-------------|--------|
+| 2026-03-17 | [01-baseline-start](specs/01-baseline-start/spec.md) | Add `baselinePct` param to `computeAICone`; thread from call sites | Complete |
