@@ -17,7 +17,8 @@ import { useMemo } from 'react';
 import { useWeeklyHistory } from './useWeeklyHistory';
 import { useHoursData } from './useHoursData';
 import { useAIData } from './useAIData';
-import { getWeekLabels } from '../lib/hours';
+import { getWeekLabels, getWeekStartDate } from '../lib/hours';
+import type { WeeklySnapshot } from '../lib/weeklyHistory';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,7 +42,9 @@ export interface UseOverviewDataResult {
  *
  * @param window - Number of weeks to display: 4 or 12
  */
-export function useOverviewData(window: 4 | 12): UseOverviewDataResult {
+export function useOverviewData(
+  window: 4 | 12,
+): UseOverviewDataResult {
   const { snapshots, isLoading: historyLoading } = useWeeklyHistory();
   const { data: hoursData, isLoading: hoursLoading } = useHoursData();
   const { data: aiData, isLoading: aiLoading } = useAIData();
@@ -57,8 +60,14 @@ export function useOverviewData(window: 4 | 12): UseOverviewDataResult {
       : 0;
     const currentBrainlift = aiData?.brainliftHours ?? 0;
 
+    // Exclude the current UTC week from past snapshots — useEarningsHistory writes
+    // the current week to storage (ai:0), which would otherwise duplicate the live
+    // current-week entry we append below and shift all labels by 1 week.
+    const currentMonday = getWeekStartDate(true); // UTC Monday
+    const pastSnapshots = snapshots.filter(s => s.weekStart < currentMonday);
+
     // Take up to (window - 1) past snapshots, then append current week
-    const pastSlice = snapshots.slice(-(window - 1));
+    const pastSlice = pastSnapshots.slice(-(window - 1));
 
     const earnings = [...pastSlice.map(s => s.earnings), currentEarnings];
     const hours = [...pastSlice.map(s => s.hours), currentHours];

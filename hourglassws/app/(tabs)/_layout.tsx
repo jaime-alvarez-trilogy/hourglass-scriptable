@@ -13,15 +13,17 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import NoiseOverlay from '@/src/components/NoiseOverlay';
 import { colors } from '@/src/lib/colors';
+import { useHistoryBackfill } from '@/src/hooks/useHistoryBackfill';
 
 export default function TabLayout() {
+  useHistoryBackfill(); // fire-and-forget — runs once per session, writes AsyncStorage
   return (
     <View style={{ flex: 1 }}>
       <Tabs
         screenOptions={{
           headerShown: false,
           tabBarButton: HapticTab,
-          tabBarActiveTintColor: '#E8C97A',   // gold — active tab
+          tabBarActiveTintColor: colors.violet, // violet — interactive accent per brand guidelines
           tabBarInactiveTintColor: '#484F58', // textMuted — inactive tab
           tabBarStyle: {
             backgroundColor: colors.surface,
