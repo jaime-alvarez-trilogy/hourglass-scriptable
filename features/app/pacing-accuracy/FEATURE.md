@@ -91,4 +91,4 @@ When complete:
 
 | Date | Spec | Description |
 |------|------|-------------|
-| 2026-03-17 | [01-fractional-days](specs/01-fractional-days/spec-research.md) | Make computeDaysElapsed return fractional 0.0–5.0; update idle guard |
+| 2026-03-17 | [01-fractional-days](specs/01-fractional-days/spec.md) | Make computeDaysElapsed return fractional 0.0–5.0; update idle guard |
