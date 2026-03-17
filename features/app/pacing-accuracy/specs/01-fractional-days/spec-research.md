@@ -8,6 +8,19 @@
 
 `computeDaysElapsed` returns integers (0–5). Tuesday at 7am = `2`, making the pacing denominator a full two work days (16h) instead of the ~1.3 days actually elapsed (10.33h). Workers ahead of pace see BEHIND.
 
+## Timezone Design Decision
+
+**Hours total** and **days elapsed** intentionally use different time references:
+
+| | Timezone | Why |
+|--|----------|-----|
+| `hoursWorked` (from API) | UTC | Crossover pays by UTC week. Working Sunday night locally can count for the current week's hours. |
+| `computeDaysElapsed` | **Local** | Users experience their work week Mon–Fri in local time. Pacing should reflect how far into *their* local workweek they are. |
+
+This means a small mismatch is possible and correct: if a user in EST works Sunday 9pm (Monday 2am UTC), those hours appear in the current week's total, but `daysElapsed` on Monday 8am local = 0.33. The pacing ratio will be elevated — which is accurate, the work happened.
+
+**The implementer must not change `computeDaysElapsed` to use UTC.** It must stay on local timezone.
+
 ## Exploration Findings
 
 ### Files
