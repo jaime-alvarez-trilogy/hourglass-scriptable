@@ -38,15 +38,38 @@ const mockScheduleNotification = Notifications.scheduleNotificationAsync as jest
 const mockFetchFreshData = fetchFreshData as jest.Mock;
 const mockUpdateWidgetData = updateWidgetData as jest.Mock;
 
-// Realistic CrossoverSnapshot shape matching spec boundary contract
-const makeFreshData = (pendingApprovalCount = 0, isManager = false) => ({
-  pendingApprovals: Array.from({ length: pendingApprovalCount }, (_, i) => ({
-    id: `approval-${i}`,
-    type: 'manual',
-  })),
-  isManager,
-  hoursThisWeek: 32.5,
-  earnings: 1234.56,
+// Realistic CrossoverSnapshot shape matching spec 01-widget-activation boundary contract
+const makeFreshData = (pendingCount = 0, isManager = false) => ({
+  pendingCount,
+  config: {
+    userId: '2362707',
+    assignmentId: '79996',
+    managerId: '2372227',
+    primaryTeamId: '4584',
+    hourlyRate: 25,
+    weeklyLimit: 40,
+    useQA: false,
+    isManager,
+    fullName: 'Test User',
+    teams: [],
+    lastRoleCheck: '2026-03-17T00:00:00.000Z',
+    debugMode: false,
+    setupComplete: true,
+    setupDate: '2026-03-01T00:00:00.000Z',
+  },
+  hoursData: {
+    total: 32.5,
+    average: 6.5,
+    today: 6.5,
+    daily: [],
+    weeklyEarnings: 812.5,
+    todayEarnings: 162.5,
+    hoursRemaining: 7.5,
+    overtimeHours: 0,
+    timeRemaining: 86400000,
+    deadline: new Date('2026-03-22T23:59:59.000Z'),
+  },
+  aiData: null,
 });
 
 const makePush = (dataType: string) => ({

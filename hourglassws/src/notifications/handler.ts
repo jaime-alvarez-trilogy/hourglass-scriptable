@@ -29,10 +29,10 @@ export async function handleBackgroundPush(
     await updateWidgetData(freshData);
 
     // Schedule local notification if manager has new approvals
-    if (freshData.isManager) {
+    if (freshData.config.isManager) {
       const prevRaw = await AsyncStorage.getItem(PREV_APPROVAL_COUNT_KEY);
       const previousCount = prevRaw !== null ? parseInt(prevRaw, 10) : 0;
-      const newCount = freshData.pendingApprovals.length;
+      const newCount = freshData.pendingCount;
 
       if (newCount > previousCount) {
         await scheduleLocalNotification(newCount);
