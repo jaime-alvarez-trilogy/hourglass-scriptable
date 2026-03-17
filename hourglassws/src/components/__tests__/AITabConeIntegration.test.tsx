@@ -71,6 +71,15 @@ jest.mock('react-native-web/dist/exports/TextInput/index.js', () => {
   };
 });
 
+jest.mock('react-native-web/dist/exports/ActivityIndicator/index.js', () => {
+  const R = require('react');
+  return {
+    __esModule: true,
+    default: ({ color, size, ...props }: any) =>
+      R.createElement('ActivityIndicator', { color, size, ...props }),
+  };
+});
+
 jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: jest.fn() }),
 }));

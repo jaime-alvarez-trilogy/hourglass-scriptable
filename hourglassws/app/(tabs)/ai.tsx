@@ -1,9 +1,9 @@
 // FR9 (04-ai-brainlift): AI & BrainLift screen — rebuilt for 06-ai-tab design system
 // FR5: DailyAIRow (className-only styling)
-// FR6: Loading/skeleton states (SkeletonLoader for ring, metrics, breakdown)
 // FR1 (03-ai-tab-integration): Prime Radiant card — AIConeChart full-size with re-animation
 // FR4 (04-ai-hero-arc): AmbientBackground wiring — full-screen ambient behind ScrollView
 // FR5 (04-ai-hero-arc): AIArcHero replaces two-card ring hero + standalone BrainLift card
+// FR1 (04-ai-tab-screen): Data-gated loading — ActivityIndicator while data=null, no stagger
 
 import React, { useMemo, useState } from 'react';
 import {
@@ -11,21 +11,20 @@ import {
   Text,
   ScrollView,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
-import Animated from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useAIData } from '@/src/hooks/useAIData';
 import { useConfig } from '@/src/hooks/useConfig';
 import { useFocusKey } from '@/src/hooks/useFocusKey';
-import { useStaggeredEntry } from '@/src/hooks/useStaggeredEntry';
-import { useOverviewData } from '@/src/hooks/useOverviewData';
+import { useWeeklyHistory } from '@/src/hooks/useWeeklyHistory';
+import { getWeekStartDate } from '@/src/lib/hours';
 import AIConeChart from '@/src/components/AIConeChart';
 import type { AIScrubPoint } from '@/src/components/AIConeChart';
 import FadeInScreen from '@/src/components/FadeInScreen';
 import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 import Card from '@/src/components/Card';
 import SectionLabel from '@/src/components/SectionLabel';
-import SkeletonLoader from '@/src/components/SkeletonLoader';
 import AIArcHero from '@/src/components/AIArcHero';
 import AmbientBackground, { getAmbientColor } from '@/src/components/AmbientBackground';
 import TrendSparkline from '@/src/components/TrendSparkline';
@@ -70,23 +69,12 @@ export default function AIScreen() {
   const { data, isLoading, lastFetchedAt, error, refetch, previousWeekPercent } = useAIData();
   const { config } = useConfig();
   const chartKey = useFocusKey();
-  const { getEntryStyle } = useStaggeredEntry({ count: 5 });
 
-  // 12-week AI trajectory — reads persisted history (backfill runs only in overview.tsx)
-  const { data: overviewData } = useOverviewData(12);
+  // 12-week AI trajectory — reads persisted history only (no API calls).
+  // Deliberately avoids useOverviewData which spins up a second useAIData instance,
+  // doubling the parallel work diary fetches during the animation window (OOM pressure).
+  const { snapshots } = useWeeklyHistory();
   const [trajectoryDims, setTrajectoryDims] = useState({ width: 0, height: 52 });
-
-  // Compute trajectory: use all 12 weeks but only average weeks with real data (> 0)
-  // Include current week (last entry) in sparkline, exclude from average (partial week)
-  const aiPctSeries = overviewData.aiPct; // full 12-week array including current week
-  const completedAIPct = aiPctSeries.slice(0, -1); // past completed weeks only
-  const nonZeroCompleted = completedAIPct.filter(v => v > 0);
-  const hasTrajectory = nonZeroCompleted.length >= 2;
-  const avgAIPct = nonZeroCompleted.length > 0
-    ? nonZeroCompleted.reduce((a, b) => a + b, 0) / nonZeroCompleted.length
-    : 0;
-  const tier = classifyAIPct(avgAIPct);
-  const trend = trendDirection(completedAIPct);
 
   // Prime Radiant cone dims — measured via onLayout; chart renders null until width > 0
   const [coneDims, setConeDims] = useState({ width: 0, height: 240 });
@@ -96,12 +84,6 @@ export default function AIScreen() {
 
   // Config-derived weekly limit (FR1 03-ai-tab-integration)
   const weeklyLimit = config?.weeklyLimit ?? 40;
-
-  // Cone data — recomputed when data or weeklyLimit changes
-  const coneData = useMemo(
-    () => (data ? computeAICone(data.dailyBreakdown, weeklyLimit) : null),
-    [data, weeklyLimit],
-  );
 
   // Auth error state
   if (error === 'auth') {
@@ -137,6 +119,17 @@ export default function AIScreen() {
     );
   }
 
+  // FR1 (04-ai-tab-screen): Data-gated loading — no Reanimated until data arrives.
+  // isLoading=true AND data=null means no cache and fetch in-flight.
+  // ActivityIndicator is a native component (zero Reanimated worklet pressure).
+  if (!data && isLoading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.success} />
+      </View>
+    );
+  }
+
   // Empty state
   if (!data && !isLoading) {
     return (
@@ -153,198 +146,186 @@ export default function AIScreen() {
     );
   }
 
-  // Derive display values from data (or 0 while loading)
-  const aiPercent = data ? (data.aiPctLow + data.aiPctHigh) / 2 : 0;
+  // data !== null guaranteed below this point.
+
+  // Compute trajectory: use all 12 weeks but only average weeks with real data (> 0)
+  // Include current week (last entry) in sparkline, exclude from average (partial week)
+  const currentMonday = getWeekStartDate(true); // UTC Monday — matches storage keys
+  const pastSnaps = snapshots.filter(s => s.weekStart < currentMonday).slice(-11);
+  const currentAiPct = Math.round((data.aiPctLow + data.aiPctHigh) / 2);
+  const aiPctSeries = [...pastSnaps.map(s => s.aiPct), currentAiPct];
+  const completedAIPct = aiPctSeries.slice(0, -1); // past completed weeks only
+  const nonZeroCompleted = completedAIPct.filter(v => v > 0);
+  const hasTrajectory = nonZeroCompleted.length >= 2;
+  const avgAIPct = nonZeroCompleted.length > 0
+    ? nonZeroCompleted.reduce((a, b) => a + b, 0) / nonZeroCompleted.length
+    : 0;
+  const tier = classifyAIPct(avgAIPct);
+  const trend = trendDirection(completedAIPct);
+
+  // Cone data — computed once data is guaranteed non-null
+  const coneData = computeAICone(data.dailyBreakdown, weeklyLimit);
+
+  // Derive display values
+  const aiPercent = (data.aiPctLow + data.aiPctHigh) / 2;
 
   // Hero AI% — overridden by scrubPoint during scrub, otherwise live value
   const heroAIPct = scrubPoint !== null ? scrubPoint.pctY : aiPercent;
-  const brainliftHours = data?.brainliftHours ?? 0;
+  const brainliftHours = data.brainliftHours;
 
   // Week-over-week delta (FR4) — only computed when we have real data and a prior week reference
-  const delta = (data && previousWeekPercent !== undefined) ? aiPercent - previousWeekPercent : null;
+  const delta = previousWeekPercent !== undefined ? aiPercent - previousWeekPercent : null;
 
   // Ambient color — drives AmbientBackground halo + AIArcHero fill arc
   // getAmbientColor({ type: 'aiPct' }) always returns a non-null string (no idle case for aiPct)
   const ambientColor = getAmbientColor({ type: 'aiPct', pct: Math.round(heroAIPct) }) as string;
 
-  // Skeleton layout: shown only when isLoading=true AND no data yet
-  const showSkeleton = isLoading && !data;
-
   return (
     <View style={{ flex: 1 }}>
       {/* FR4 (04-ai-hero-arc): Ambient layer — full-screen behind all content */}
       <AmbientBackground color={ambientColor} />
-    <FadeInScreen>
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerStyle={CONTENT_STYLE}
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={refetch}
-          tintColor={colors.success}
-        />
-      }
-    >
-      {/* Header */}
-      <Text className="text-3xl font-bold text-textPrimary mb-1">AI &amp; BrainLift</Text>
+      <FadeInScreen>
+        <ScrollView
+          className="flex-1 bg-background"
+          contentContainerStyle={CONTENT_STYLE}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={refetch}
+              tintColor={colors.success}
+            />
+          }
+        >
+          {/* Header */}
+          <Text className="text-3xl font-bold text-textPrimary mb-1">AI &amp; BrainLift</Text>
 
-      {/* FR5 (04-ai-hero-arc): AIArcHero — replaces AIRingChart + standalone BrainLift card */}
-      <Animated.View style={getEntryStyle(0)}>
-        {showSkeleton ? (
-          <SkeletonLoader width={180} height={180} rounded />
-        ) : (
+          {/* FR5 (04-ai-hero-arc): AIArcHero — replaces AIRingChart + standalone BrainLift card */}
           <AIArcHero
             aiPct={Math.round(heroAIPct)}
             brainliftHours={brainliftHours}
             deltaPercent={delta}
             ambientColor={ambientColor}
           />
-        )}
-      </Animated.View>
 
-      {/* Prime Radiant Card — FR1 (03-ai-tab-integration) */}
-      <Animated.View style={getEntryStyle(1)}>
-      <Card>
-        <SectionLabel className="mb-3">PRIME RADIANT</SectionLabel>
-        {showSkeleton ? (
-          <SkeletonLoader height={240} />
-        ) : coneData ? (
-          <View
-            style={{ height: 240 }}
-            onLayout={e => setConeDims({ width: e.nativeEvent.layout.width, height: 240 })}
-          >
-            <AIConeChart
-              key={chartKey}
-              data={coneData}
-              width={coneDims.width}
-              height={240}
-              size="full"
-              onScrubChange={setScrubPoint}
-            />
-          </View>
-        ) : null}
-      </Card>
-      </Animated.View>
+          {/* Prime Radiant Card — FR1 (03-ai-tab-integration) */}
+          <Card>
+            <SectionLabel className="mb-3">PRIME RADIANT</SectionLabel>
+            {coneData ? (
+              <View
+                style={{ height: 240 }}
+                onLayout={e => setConeDims({ width: e.nativeEvent.layout.width, height: 240 })}
+              >
+                <AIConeChart
+                  key={chartKey}
+                  data={coneData}
+                  width={coneDims.width}
+                  height={240}
+                  size="full"
+                  onScrubChange={setScrubPoint}
+                />
+              </View>
+            ) : null}
+          </Card>
 
-      {/* Daily Breakdown Card — FR5 */}
-      {(data && data.dailyBreakdown.length > 0) && (
-        <Animated.View style={getEntryStyle(2)}>
-        <Card testID="daily-breakdown">
-          {/* Column headers */}
-          <View className="flex-row pb-1.5 border-b border-border mb-1">
-            <Text className="flex-1 text-xs text-textMuted uppercase tracking-wider">Day</Text>
-            <Text className="w-[70px] text-right text-xs text-textMuted uppercase tracking-wider">AI%</Text>
-            <Text className="w-[70px] text-right text-xs text-textMuted uppercase tracking-wider">BrainLift</Text>
-          </View>
-          {data.dailyBreakdown.map((day) => (
-            <DailyAIRow key={day.date} item={day} />
-          ))}
-        </Card>
-        </Animated.View>
-      )}
+          {/* Daily Breakdown Card — FR5 */}
+          {data.dailyBreakdown.length > 0 && (
+            <Card testID="daily-breakdown">
+              {/* Column headers */}
+              <View className="flex-row pb-1.5 border-b border-border mb-1">
+                <Text className="flex-1 text-xs text-textMuted uppercase tracking-wider">Day</Text>
+                <Text className="w-[70px] text-right text-xs text-textMuted uppercase tracking-wider">AI%</Text>
+                <Text className="w-[70px] text-right text-xs text-textMuted uppercase tracking-wider">BrainLift</Text>
+              </View>
+              {data.dailyBreakdown.map((day) => (
+                <DailyAIRow key={day.date} item={day} />
+              ))}
+            </Card>
+          )}
 
-      {/* Skeleton for daily breakdown — FR6 */}
-      {showSkeleton && (
-        <Card>
-          <View testID="skeleton-breakdown" className="gap-2">
-            <SkeletonLoader height={20} />
-            <SkeletonLoader height={20} />
-            <SkeletonLoader height={20} />
-          </View>
-        </Card>
-      )}
+          {/* 12-Week AI Trajectory Card */}
+          {hasTrajectory && (
+            <Card>
+              <SectionLabel className="mb-2">12-WEEK TRAJECTORY</SectionLabel>
 
-      {/* 12-Week AI Trajectory Card */}
-      {hasTrajectory && (
-        <Animated.View style={getEntryStyle(3)}>
-        <Card>
-          <SectionLabel className="mb-2">12-WEEK TRAJECTORY</SectionLabel>
+              {/* Hero average + trend row */}
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                <Text style={{ color: tier.color, fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'] }}>
+                  {Math.round(avgAIPct)}% avg
+                </Text>
+                <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+                  {trend === 'up' ? '↑ Trending up' : trend === 'down' ? '↓ Trending down' : '→ Stable'}
+                </Text>
+              </View>
 
-          {/* Hero average + trend row */}
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
-            <Text style={{ color: tier.color, fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'] }}>
-              {Math.round(avgAIPct)}% avg
+              {/* Tier label */}
+              <Text style={{ color: tier.color, fontSize: 13, fontWeight: '600', marginTop: 2 }}>
+                {tier.label}
+              </Text>
+
+              {/* Sparkline */}
+              <View
+                style={{ height: 52 }}
+                onLayout={e => setTrajectoryDims({ width: e.nativeEvent.layout.width, height: 52 })}
+                className="mt-3"
+              >
+                <TrendSparkline
+                  key={`trajectory-${chartKey}`}
+                  data={aiPctSeries}
+                  width={trajectoryDims.width}
+                  height={trajectoryDims.height}
+                  color={tier.color}
+                  maxValue={100}
+                  targetValue={75}
+                  showGuide
+                />
+              </View>
+
+              {/* Tier legend */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                {[
+                  { label: 'AI Leader', range: '75%+', color: colors.cyan as string },
+                  { label: 'Consistent Progress', range: '50–74%', color: colors.success as string },
+                  { label: 'Building Momentum', range: '30–49%', color: colors.warning as string },
+                  { label: 'Getting Started', range: '<30%', color: colors.textMuted as string },
+                ].map(t => {
+                  const isActive = tier.label === t.label;
+                  return (
+                    <View key={t.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isActive ? t.color : colors.border }} />
+                      <Text style={{ color: isActive ? t.color : colors.textMuted, fontSize: 10, fontWeight: isActive ? '600' : '400' }}>
+                        {t.label} {t.range}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </Card>
+          )}
+
+          {/* Legend Card */}
+          <Card>
+            <Text className="text-sm font-semibold text-textPrimary mb-1">How it&apos;s calculated</Text>
+            <Text className="text-sm text-textSecondary leading-5">
+              <Text className="text-cyan font-semibold">AI%</Text>
+              {'  '}Slots tagged ai_usage or second_brain ÷ tagged slots × 100
             </Text>
-            <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-              {trend === 'up' ? '↑ Trending up' : trend === 'down' ? '↓ Trending down' : '→ Stable'}
+            <Text className="text-sm text-textSecondary leading-5 mt-1">
+              <Text className="text-violet font-semibold">BrainLift</Text>
+              {'  '}Slots tagged second_brain × 10 min
             </Text>
-          </View>
+            <Text className="text-xs text-textMuted mt-2">
+              ±2% display range accounts for measurement variation.
+            </Text>
+          </Card>
 
-          {/* Tier label */}
-          <Text style={{ color: tier.color, fontSize: 13, fontWeight: '600', marginTop: 2 }}>
-            {tier.label}
-          </Text>
-
-          {/* Sparkline */}
-          <View
-            style={{ height: 52 }}
-            onLayout={e => setTrajectoryDims({ width: e.nativeEvent.layout.width, height: 52 })}
-            className="mt-3"
-          >
-            <TrendSparkline
-              key={`trajectory-${chartKey}`}
-              data={aiPctSeries}
-              width={trajectoryDims.width}
-              height={trajectoryDims.height}
-              color={tier.color}
-              maxValue={100}
-              targetValue={75}
-              showGuide
-            />
-          </View>
-
-          {/* Tier legend */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-            {[
-              { label: 'AI Leader', range: '75%+', color: colors.cyan as string },
-              { label: 'Consistent Progress', range: '50–74%', color: colors.success as string },
-              { label: 'Building Momentum', range: '30–49%', color: colors.warning as string },
-              { label: 'Getting Started', range: '<30%', color: colors.textMuted as string },
-            ].map(t => {
-              const isActive = tier.label === t.label;
-              return (
-                <View key={t.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isActive ? t.color : colors.border }} />
-                  <Text style={{ color: isActive ? t.color : colors.textMuted, fontSize: 10, fontWeight: isActive ? '600' : '400' }}>
-                    {t.label} {t.range}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        </Card>
-        </Animated.View>
-      )}
-
-      {/* Legend Card */}
-      <Animated.View style={getEntryStyle(4)}>
-      <Card>
-        <Text className="text-sm font-semibold text-textPrimary mb-1">How it&apos;s calculated</Text>
-        <Text className="text-sm text-textSecondary leading-5">
-          <Text className="text-cyan font-semibold">AI%</Text>
-          {'  '}Slots tagged ai_usage or second_brain ÷ tagged slots × 100
-        </Text>
-        <Text className="text-sm text-textSecondary leading-5 mt-1">
-          <Text className="text-violet font-semibold">BrainLift</Text>
-          {'  '}Slots tagged second_brain × 10 min
-        </Text>
-        <Text className="text-xs text-textMuted mt-2">
-          ±2% display range accounts for measurement variation.
-        </Text>
-      </Card>
-      </Animated.View>
-
-      {/* Last fetched timestamp */}
-      {lastFetchedAt && (
-        <Text className="text-xs text-textMuted text-center mt-1" testID="last-fetched">
-          Updated {new Date(lastFetchedAt).toLocaleTimeString()}
-        </Text>
-      )}
-
-      {/* TODO: TrendSparkline — deferred to future analytics spec (weeklyHistory not yet in useAIData) */}
-    </ScrollView>
-    </FadeInScreen>
+          {/* Last fetched timestamp */}
+          {lastFetchedAt && (
+            <Text className="text-xs text-textMuted text-center mt-1" testID="last-fetched">
+              Updated {new Date(lastFetchedAt).toLocaleTimeString()}
+            </Text>
+          )}
+        </ScrollView>
+      </FadeInScreen>
     </View>
   );
 }
