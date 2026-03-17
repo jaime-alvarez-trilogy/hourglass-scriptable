@@ -165,6 +165,33 @@ jest.mock('@/src/hooks/useAIData', () => ({
   useAIData: (...args: any[]) => mockUseAIData(...args),
 }));
 
+// useHistoryBackfill + useOverviewData — stub for AI trajectory card
+jest.mock('@/src/hooks/useHistoryBackfill', () => ({
+  useHistoryBackfill: () => null,
+}));
+
+jest.mock('@/src/hooks/useOverviewData', () => ({
+  useOverviewData: () => ({
+    data: {
+      earnings: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      hours: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      aiPct: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      brainliftHours: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      weekLabels: [],
+    },
+    isLoading: false,
+  }),
+}));
+
+jest.mock('@/src/components/TrendSparkline', () => {
+  const mockR = require('react');
+  return {
+    __esModule: true,
+    default: ({ data, width, height, color, ...props }: any) =>
+      mockR.createElement('TrendSparkline', { data, width, height, color, ...props }),
+  };
+});
+
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 const DAILY_BREAKDOWN = [
@@ -542,5 +569,74 @@ describe('AITab FR1 — render order: Prime Radiant between BrainLift and breakd
     expect(brainliftIdx).toBeGreaterThanOrEqual(0);
     expect(primeIdx).toBeGreaterThanOrEqual(0);
     expect(brainliftIdx).toBeLessThan(primeIdx);
+  });
+});
+
+// ─── FR12 (02-safe-cone-scrub): Animation gate — integration surface ──────────
+//
+// Verifies that the scrub gate in AIConeChart does not break the integration:
+// - ai.tsx still passes onScrubChange to AIConeChart
+// - AIConeChart still accepts onScrubChange (no prop API change)
+// - No crashes when AIConeChart receives animDone gate internally
+//
+// NOTE: GestureDetector mock and useAnimatedReaction NOOP mean we cannot
+// test the gate timing behaviourally here. Source-level structural checks
+// are used per the same strategy as all existing integration tests.
+
+const CONE_CHART_FILE_INTEGRATION = path.join(
+  path.resolve(__dirname, '../../..'),
+  'src',
+  'components',
+  'AIConeChart.tsx',
+);
+
+describe('AITab × AIConeChart — FR12 (02-safe-cone-scrub): animation gate integration', () => {
+  beforeEach(() => {
+    mockComputeAICone.mockReturnValue(MOCK_CONE_DATA);
+    mockUseFocusKey.mockReturnValue(0);
+    defaultHookResults();
+  });
+
+  it('SC12.I1 — AIConeChart still receives onScrubChange from ai.tsx after gate addition', () => {
+    // Source check: ai.tsx must still pass onScrubChange to AIConeChart
+    const aiTabSource = fs.readFileSync(AI_TAB_PATH, 'utf8');
+    expect(aiTabSource).toMatch(/onScrubChange/);
+  });
+
+  it('SC12.I2 — AIConeChartProps interface still has onScrubChange (no prop removal)', () => {
+    const coneSource = fs.readFileSync(CONE_CHART_FILE_INTEGRATION, 'utf8');
+    // onScrubChange must still be in AIConeChartProps
+    expect(coneSource).toMatch(/onScrubChange\s*\?\s*:/);
+  });
+
+  it('SC12.I3 — AIConeChart renders without crash after gate addition (full integration)', () => {
+    expect(() => { renderAIScreen(); }).not.toThrow();
+  });
+
+  it('SC12.I4 — PRIME RADIANT section still renders after gate addition', () => {
+    const tree = renderAIScreen();
+    const text = allText(tree);
+    expect(text).toContain('PRIME RADIANT');
+  });
+
+  it('SC12.I5 — animDone state is purely internal (no new props on AIConeChartProps)', () => {
+    const coneSource = fs.readFileSync(CONE_CHART_FILE_INTEGRATION, 'utf8');
+    // AIConeChartProps interface must NOT contain animDone as a prop
+    const interfaceMatch = coneSource.match(/interface\s+AIConeChartProps\s*\{[\s\S]*?\}/);
+    expect(interfaceMatch).not.toBeNull();
+    expect(interfaceMatch![0]).not.toMatch(/animDone/);
+  });
+
+  it('SC12.I6 — source: GestureDetector in AIConeChart has enabled prop (gate present)', () => {
+    const coneSource = fs.readFileSync(CONE_CHART_FILE_INTEGRATION, 'utf8');
+    // Gate must be on GestureDetector — enabled={animDone && size === 'full'}
+    expect(coneSource).toMatch(/GestureDetector[\s\S]{0,200}enabled\s*=\s*\{/);
+  });
+
+  it('SC12.I7 — source: both useAnimatedReaction callbacks have !animDone guard', () => {
+    const coneSource = fs.readFileSync(CONE_CHART_FILE_INTEGRATION, 'utf8');
+    // At least 2 occurrences of !animDone guard in reactions
+    const guards = [...coneSource.matchAll(/!\s*animDone/g)];
+    expect(guards.length).toBeGreaterThanOrEqual(2);
   });
 });

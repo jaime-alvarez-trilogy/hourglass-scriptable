@@ -854,16 +854,16 @@ describe('AIConeChart — FR10 (04-ai-scrub): Scrub Gesture Integration', () => 
     expect(source).toMatch(/lowerPct\s*:\s*number/);
   });
 
-  it('SC1.3 — source wires onScrubChange callback via useAnimatedReaction on scrubIndex', () => {
+  it('SC1.3 — source wires onScrubChange callback via handleScrubIndex useCallback', () => {
     const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
-    // Bridge pattern: useAnimatedReaction → runOnJS(onScrubChange)
-    expect(source).toMatch(/runOnJS\s*\(\s*onScrubChange\s*\)/);
+    // Bridge pattern: useAnimatedReaction → runOnJS(handleScrubIndex)
+    expect(source).toMatch(/runOnJS\s*\(\s*handleScrubIndex\s*\)/);
   });
 
   it('SC1.4 — source fires onScrubChange(null) when scrubbing ends (isScrubbing false)', () => {
     const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
-    // onScrubChange called with null on gesture end
-    expect(source).toMatch(/onScrubChange\s*\)\s*\(\s*null\s*\)/);
+    // onScrubChange(null) called inside handleScrubbing (JS thread, not worklet)
+    expect(source).toMatch(/onScrubChange\s*\(\s*null\s*\)/);
   });
 
   it('SC1.5 — source: useScrubGesture enabled tied to size === "full"', () => {
@@ -967,11 +967,11 @@ describe('AIConeChart — FR11 (04-ai-scrub): ScrubCursor Rendering', () => {
     expect(source).toMatch(/setScrubCursor/);
   });
 
-  it('SC2.7 — source: isScrubActive bridged from isScrubbing SharedValue (setIsScrubActive)', () => {
+  it('SC2.7 — source: isScrubActive bridged from isScrubbing SharedValue via handleScrubbing', () => {
     const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
     expect(source).toMatch(/setIsScrubActive/);
-    // Bridge uses runOnJS
-    expect(source).toMatch(/runOnJS\s*\(\s*setIsScrubActive\s*\)/);
+    // Bridge uses runOnJS with a useCallback handler (not direct setIsScrubActive)
+    expect(source).toMatch(/runOnJS\s*\(\s*handleScrubbing\s*\)/);
   });
 
   it('SC2.8 — full chart renders without crash after scrub integration', () => {
@@ -980,5 +980,187 @@ describe('AIConeChart — FR11 (04-ai-scrub): ScrubCursor Rendering', () => {
 
   it('SC2.9 — compact chart renders without crash after scrub integration', () => {
     expect(() => renderChart({ size: 'compact', width: 300, height: 100 })).not.toThrow();
+  });
+});
+
+// ─── FR12 (02-safe-cone-scrub): Animation-Complete Gate ──────────────────────
+//
+// FR1: animDone state — starts false, becomes true after animation completes
+// FR2: Gesture gate — GestureDetector disabled until animDone && size==='full'
+// FR3: Reaction guards — useAnimatedReaction callbacks guard runOnJS behind animDone
+// FR4: Completion callback — withTiming receives 3rd argument (callback)
+//
+// Testing strategy:
+// - Source-level static analysis for structural checks (same approach as FR1-FR11)
+//   because: GestureDetector mock ignores enabled prop; useAnimatedReaction is NOOP;
+//   withTiming mock calls callback synchronously (so behavioral timer tests are not
+//   meaningful in this environment)
+// - Behavioral render tests for animDone state initialisation and remount reset
+
+describe('AIConeChart — FR12 (02-safe-cone-scrub): Animation-Complete Gate', () => {
+
+  // ── FR1: animDone state ───────────────────────────────────────────────────
+
+  it('SC12.1 — FR1: source declares animDone state with useState(false)', () => {
+    // animDone must start as false — initial state must be explicitly false
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    expect(source).toMatch(/const\s*\[\s*animDone\s*,\s*setAnimDone\s*\]\s*=\s*useState\s*\(\s*false\s*\)/);
+  });
+
+  it('SC12.2 — FR1: source imports useState from react', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    expect(source).toMatch(/useState/);
+    // useState already used — also used for isScrubActive, scrubCursor
+  });
+
+  it('SC12.3 — FR1: source declares isMountedRef for unmount guard', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    expect(source).toMatch(/isMountedRef/);
+    // Must be a useRef with initial true
+    expect(source).toMatch(/useRef\s*\(\s*true\s*\)/);
+  });
+
+  it('SC12.4 — FR1: source sets isMountedRef.current = false in a cleanup effect', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // Cleanup: return () => { isMountedRef.current = false; }
+    expect(source).toMatch(/isMountedRef\.current\s*=\s*false/);
+  });
+
+  it('SC12.5 — FR1: source calls setAnimDone(true) inside withTiming callback', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // setAnimDone(true) must be called via runOnJS bridge in completion callback
+    expect(source).toMatch(/setAnimDone\s*\)\s*\(\s*true\s*\)/);
+  });
+
+  it('SC12.6 — FR1: source calls setAnimDone(true) in the reduceMotion branch', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // reduceMotion branch sets animDone synchronously
+    expect(source).toMatch(/reducedMotion|reduceMotion/);
+    // setAnimDone(true) called directly (not via runOnJS) in this branch
+    expect(source).toMatch(/setAnimDone\s*\(\s*true\s*\)/);
+  });
+
+  it('SC12.7 — FR1: source uses useRef (imported from react) for isMountedRef', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // useRef must be in the import from 'react'
+    expect(source).toMatch(/useRef/);
+    expect(source).toMatch(/from\s+['"]react['"]/);
+  });
+
+  it('SC12.8 — FR1: component renders without crash (animDone state is internal, no prop change)', () => {
+    expect(() => renderChart({ data: MOCK_CONE_DATA, width: 300, height: 240 })).not.toThrow();
+  });
+
+  // ── FR2: Gesture Gate ─────────────────────────────────────────────────────
+
+  it('SC12.9 — FR2: source adds enabled prop to GestureDetector', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // GestureDetector must have enabled= prop
+    expect(source).toMatch(/GestureDetector[\s\S]{0,200}enabled\s*=/);
+  });
+
+  it('SC12.10 — FR2: GestureDetector enabled prop references animDone', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // enabled={animDone && ...} or enabled={animDone} or logically equivalent
+    expect(source).toMatch(/enabled\s*=\s*\{[^}]*animDone[^}]*\}/);
+  });
+
+  it('SC12.11 — FR2: GestureDetector enabled prop also guards on size==="full"', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // enabled must include size guard: animDone && size === 'full'
+    const enabledMatch = source.match(/enabled\s*=\s*\{([^}]+)\}/);
+    expect(enabledMatch).not.toBeNull();
+    const enabledExpr = enabledMatch![1];
+    // The enabled expression must reference both animDone and size
+    expect(enabledExpr).toMatch(/animDone/);
+    expect(enabledExpr).toMatch(/size|['"]full['"]/);
+  });
+
+  it('SC12.12 — FR2: compact chart renders without crash (gesture gate compact guard)', () => {
+    expect(() => renderChart({ size: 'compact', width: 300, height: 100 })).not.toThrow();
+  });
+
+  it('SC12.13 — FR2: full chart renders without crash (gesture gate full path)', () => {
+    expect(() => renderChart({ size: 'full', width: 300, height: 240 })).not.toThrow();
+  });
+
+  // ── FR3: Reaction Guards ──────────────────────────────────────────────────
+
+  it('SC12.14 — FR3: scrubIndex useAnimatedReaction callback contains animDone guard', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // Both reaction callbacks must check !animDone before runOnJS
+    // Strategy: find useAnimatedReaction blocks and verify animDone guard appears
+    // Pattern: useAnimatedReaction(...) with !animDone or animDone guard inside
+    expect(source).toMatch(/useAnimatedReaction[\s\S]{0,300}animDone/);
+  });
+
+  it('SC12.15 — FR3: isScrubbing useAnimatedReaction callback contains animDone guard', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // Both reaction callbacks must have the guard — count occurrences of animDone
+    // near useAnimatedReaction (two distinct reactions, each needs the guard)
+    const reactionMatches = [...source.matchAll(/useAnimatedReaction\s*\(/g)];
+    expect(reactionMatches.length).toBeGreaterThanOrEqual(2);
+    // Count how many times animDone guard pattern appears in reactions context
+    const guardOccurrences = [...source.matchAll(/!\s*animDone/g)];
+    // Must have at least 2 guard occurrences (one per reaction)
+    expect(guardOccurrences.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('SC12.16 — FR3: guard uses if (!animDone) return pattern', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // Canonical form: if (!animDone) return;
+    expect(source).toMatch(/if\s*\(\s*!\s*animDone\s*\)\s*return/);
+  });
+
+  it('SC12.17 — FR3: onScrubChange still wired via runOnJS after guard (not removed)', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // runOnJS(handleScrubIndex) and runOnJS(handleScrubbing) must still be present
+    expect(source).toMatch(/runOnJS\s*\(\s*handleScrubIndex\s*\)/);
+    expect(source).toMatch(/runOnJS\s*\(\s*handleScrubbing\s*\)/);
+  });
+
+  // ── FR4: Completion Callback ──────────────────────────────────────────────
+
+  it('SC12.18 — FR4: withTiming for clipProgress receives a completion callback (3rd argument)', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // withTiming(1, CONE_ANIMATION, callback) — 3 arguments
+    // Detect: withTiming(1, CONE_ANIMATION followed by a comma and callback body
+    expect(source).toMatch(/withTiming\s*\(\s*1\s*,\s*CONE_ANIMATION\s*,/);
+  });
+
+  it('SC12.19 — FR4: completion callback uses runOnJS to call setAnimDone on JS thread', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // runOnJS(setAnimDone)(true) must appear in the completion callback context
+    expect(source).toMatch(/runOnJS\s*\(\s*setAnimDone\s*\)\s*\(\s*true\s*\)/);
+  });
+
+  it('SC12.20 — FR4: completion callback checks isMountedRef.current before calling setAnimDone', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // Guard against calling setState on unmounted component
+    expect(source).toMatch(/isMountedRef\.current/);
+    // The check must appear in context with runOnJS(setAnimDone)
+    const callbackBlock = source.match(/withTiming\s*\(\s*1\s*,\s*CONE_ANIMATION[\s\S]{0,500}/);
+    expect(callbackBlock).not.toBeNull();
+    expect(callbackBlock![0]).toMatch(/isMountedRef\.current/);
+  });
+
+  it('SC12.21 — FR4: reduceMotion path does NOT use withTiming (synchronous state set)', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // The existing pattern: if (reducedMotion) { ...; setAnimDone(true); return; }
+    // Verify reduceMotion guard appears BEFORE withTiming call (early return)
+    const clipEffect = source.match(/useEffect\s*\(\s*\(\s*\)\s*=>\s*\{[\s\S]{0,800}CONE_ANIMATION[\s\S]{0,200}\}/);
+    expect(clipEffect).not.toBeNull();
+    const effectBody = clipEffect![0];
+    const reducedIdx = effectBody.search(/reducedMotion|reduceMotion/);
+    const withTimingIdx = effectBody.search(/withTiming/);
+    // reducedMotion check must appear before withTiming
+    expect(reducedIdx).toBeGreaterThanOrEqual(0);
+    expect(withTimingIdx).toBeGreaterThan(reducedIdx);
+  });
+
+  it('SC12.22 — FR4: no regression — clipProgress still uses withTiming (animation preserved)', () => {
+    const source = fs.readFileSync(CONE_CHART_FILE, 'utf8');
+    // clipProgress.value = withTiming(1, CONE_ANIMATION, ...) must still be present
+    expect(source).toMatch(/clipProgress\.value\s*=\s*withTiming/);
   });
 });
