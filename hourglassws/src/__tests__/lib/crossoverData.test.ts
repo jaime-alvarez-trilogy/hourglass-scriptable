@@ -241,7 +241,8 @@ describe('FR2: fetchFreshData — happy path', () => {
     // aggregateAICache called with merged cache (existing + today)
     const aggregateCall = mockAggregateAICache.mock.calls[0];
     expect(aggregateCall[0]).toHaveProperty('2026-03-16');
-    expect(aggregateCall[0]).toHaveProperty(expect.any(String)); // today key merged in
+    // merged cache should contain at least 2 keys: the existing date + today
+    expect(Object.keys(aggregateCall[0]).length).toBeGreaterThanOrEqual(2);
   });
 
   it('calls aggregateAICache with merged cache and today date string', async () => {
