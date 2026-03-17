@@ -41,9 +41,10 @@ export const AMBIENT_COLORS = {
     onTrack:   colors.success,           // #10B981 — green
     behind:    colors.warning,           // #F59E0B — amber
     critical:  colors.critical,          // #F43F5E — rose
-    crushedIt: colors.gold,              // #E8C97A — gold
-    overtime:  colors.overtimeWhiteGold, // #FFF8E7 — warm white-gold
-    idle:      null,                     // no ambient in idle state
+    crushedIt:   colors.gold,              // #E8C97A — gold
+    aheadOfPace: colors.gold,              // #E8C97A — gold, same family as crushedIt
+    overtime:    colors.overtimeWhiteGold, // #FFF8E7 — warm white-gold
+    idle:        null,                     // no ambient in idle state
   } as Record<PanelState, string | null>,
 
   // earningsPace — Overview tab signal (earnings pace vs prior period avg)

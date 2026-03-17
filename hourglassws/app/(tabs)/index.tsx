@@ -50,32 +50,35 @@ import type { DailyEntry } from '@/src/lib/hours';
 // Gold is reserved for money/earnings — today's hours bar uses status colours.
 
 const TODAY_BAR_COLORS: Record<PanelState, string> = {
-  onTrack:   colors.success,
-  behind:    colors.warning,
-  critical:  colors.critical,
-  crushedIt: colors.overtimeWhiteGold,
-  overtime:  colors.overtimeWhiteGold,
-  idle:      colors.textMuted,
+  onTrack:      colors.success,
+  behind:       colors.warning,
+  critical:     colors.critical,
+  crushedIt:    colors.overtimeWhiteGold,
+  overtime:     colors.overtimeWhiteGold,
+  idle:         colors.textMuted,
+  aheadOfPace:  colors.gold,
 };
 
 // ─── State badge ─────────────────────────────────────────────────────────────
 
 const STATE_LABELS: Record<PanelState, string> = {
-  onTrack: 'ON TRACK',
-  behind: 'BEHIND',
-  critical: 'CRITICAL',
-  crushedIt: 'CRUSHED IT',
-  idle: 'GETTING STARTED',
-  overtime: 'OVERTIME',
+  onTrack:     'ON TRACK',
+  behind:      'BEHIND',
+  critical:    'CRITICAL',
+  crushedIt:   'CRUSHED IT',
+  idle:        'GETTING STARTED',
+  overtime:    'OVERTIME',
+  aheadOfPace: 'CRUSHING IT',
 };
 
 const STATE_COLORS: Record<PanelState, string> = {
-  onTrack: 'text-success',
-  behind: 'text-warning',
-  critical: 'text-critical',
-  crushedIt: 'text-gold',
-  idle: 'text-textSecondary',
-  overtime: 'text-overtimeWhiteGold',
+  onTrack:     'text-success',
+  behind:      'text-warning',
+  critical:    'text-critical',
+  crushedIt:   'text-gold',
+  idle:        'text-textSecondary',
+  overtime:    'text-overtimeWhiteGold',
+  aheadOfPace: 'text-gold',
 };
 
 function StateBadge({ state }: { state: PanelState }) {

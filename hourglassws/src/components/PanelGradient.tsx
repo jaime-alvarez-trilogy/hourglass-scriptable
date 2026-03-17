@@ -47,9 +47,11 @@ export const PANEL_GRADIENT_COLORS: Record<PanelState, { inner: string; outer: s
   // rose critical
   critical:  { inner: '#F43F5E', outer: 'transparent' },
   // gold achievement
-  crushedIt: { inner: '#E8C97A', outer: 'transparent' },
+  crushedIt:   { inner: '#E8C97A', outer: 'transparent' },
+  // gold — ahead of pace mid-week (same family as crushedIt)
+  aheadOfPace: { inner: '#E8C97A', outer: 'transparent' },
   // idle = flat surface, no radial gradient
-  idle:      null,
+  idle:        null,
   // warm white-gold overtime
   overtime:  { inner: '#FFF8E7', outer: 'transparent' },
 };
@@ -63,8 +65,9 @@ export const PANEL_GRADIENTS: Record<
   onTrack:   { colors: ['#10B98159', 'transparent'], start: { x: 0, y: 0 }, end: { x: 0, y: 1 } },
   behind:    { colors: ['#F59E0B59', 'transparent'], start: { x: 0, y: 0 }, end: { x: 0, y: 1 } },
   critical:  { colors: ['#F43F5E59', 'transparent'], start: { x: 0, y: 0 }, end: { x: 0, y: 1 } },
-  crushedIt: { colors: ['#E8C97A59', 'transparent'], start: { x: 0, y: 0 }, end: { x: 0, y: 1 } },
-  idle:      { colors: ['#13131A', '#13131A'],        start: { x: 0, y: 0 }, end: { x: 0, y: 1 } },
+  crushedIt:   { colors: ['#E8C97A59', 'transparent'], start: { x: 0, y: 0 }, end: { x: 0, y: 1 } },
+  aheadOfPace: { colors: ['#E8C97A59', 'transparent'], start: { x: 0, y: 0 }, end: { x: 0, y: 1 } },
+  idle:        { colors: ['#13131A', '#13131A'],        start: { x: 0, y: 0 }, end: { x: 0, y: 1 } },
   overtime:  { colors: ['#FFF8E759', 'transparent'], start: { x: 0, y: 0 }, end: { x: 0, y: 1 } },
 };
 
@@ -99,6 +102,8 @@ export function getGlowStyle(state: PanelState): ViewStyle {
     case 'critical':
       return { shadowColor: '#F43F5E', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset };
     case 'crushedIt':
+      return { shadowColor: '#E8C97A', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset };
+    case 'aheadOfPace':
       return { shadowColor: '#E8C97A', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset };
     case 'overtime':
       return { shadowColor: '#FFF8E7', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset };
