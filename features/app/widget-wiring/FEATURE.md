@@ -97,4 +97,4 @@ User opens app
 
 | Date | Spec | Description |
 |------|------|-------------|
-| 2026-03-17 | [01-widget-activation](specs/01-widget-activation/spec-research.md) | Install packages, implement fetchFreshData, fix stubs, add useWidgetSync |
+| 2026-03-17 | [01-widget-activation](specs/01-widget-activation/spec.md) | Install packages, implement fetchFreshData, fix stubs, add useWidgetSync |
