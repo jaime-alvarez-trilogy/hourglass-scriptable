@@ -1,19 +1,19 @@
 /**
  * AIConeChart — Prime Radiant visualization
  *
- * Animation: an index sweeps from 0 → N-1 across hourlyPoints.
- * At each frame the chart renders:
- *   - Actual line: all points up to the current index
- *   - Cone: from hourlyPoints[idx] → weeklyLimit, narrowing as the line advances
- *   - 75% target dashed line: always visible
- *   - Dot: pulses when the line reaches its final position
+ * Animation: a clip reveal sweeps left-to-right over the final-state chart.
+ * Previously: an index swept 0→N-1 via animIdxSV, bridged to React state via
+ * useAnimatedReaction+runOnJS at 60fps × 2800ms ≈ 168 JS microtask allocations.
+ * That flooded the Hermes young-gen allocator and triggered GC heap corruption
+ * (SIGABRT via throwPendingError ← scheduleOnUI).
+ * Now: clipProgress 0→1 drives an Animated.View clip on the UI thread — zero JS/frame.
  *
  * Two variants:
  *   - full:    AI tab, ~240px tall, with X/Y axis labels
  *   - compact: home tab card, ~100px tall, no labels
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text as RNText, StyleSheet } from 'react-native';
 import {
   Canvas,
@@ -22,10 +22,11 @@ import {
   Text,
   matchFont,
 } from '@shopify/react-native-skia';
-import {
+import Animated, {
   useSharedValue,
   withTiming,
   useAnimatedReaction,
+  useAnimatedStyle,
   runOnJS,
   useReducedMotion,
   Easing,
@@ -80,7 +81,6 @@ const Y_TICKS = [
 const X_TICKS = [0, 10, 20, 30, 40];
 
 const DOT_RADIUS_BASE  = 3;
-const DOT_RADIUS_PULSE = 5;
 
 // ─── Sci-fi "Prime Radiant" palette ──────────────────────────────────────────
 // Inspired by Foundation holographic displays and Marvel sacred timeline visuals.
@@ -286,89 +286,97 @@ export function AIConeChart({
     enabled: size === 'full',
   });
 
+  // Animation-complete gate — prevents scrub reactions from firing during clip animation
+  const [animDone, setAnimDone] = useState(false);
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => { isMountedRef.current = false; };
+  }, []);
+
   // Bridge isScrubbing → React state for cursor visibility + legend fade
   const [isScrubActive, setIsScrubActive] = useState(false);
   // Bridge scrubIndex → cursor geometry
   const [scrubCursor, setScrubCursor] = useState<ScrubCursorResult | null>(null);
 
+  // JS-thread handler for isScrubbing changes — called via runOnJS from the worklet
+  const handleScrubbing = useCallback((scrubbing: boolean) => {
+    setIsScrubActive(scrubbing);
+    if (!scrubbing && onScrubChange) onScrubChange(null);
+  }, [onScrubChange]);
+
   // Bridge isScrubbing SharedValue → isScrubActive React state
+  // Guard: skip runOnJS during the 2800ms clip animation window (belt-and-suspenders)
   useAnimatedReaction(
     () => isScrubbing.value,
     (scrubbing) => {
-      runOnJS(setIsScrubActive)(scrubbing);
-      // Fire null callback when scrubbing ends
-      if (!scrubbing && onScrubChange) runOnJS(onScrubChange)(null);
+      if (!animDone) return;
+      runOnJS(handleScrubbing)(scrubbing);
     },
   );
 
+  // JS-thread handler for scrubIndex changes — called via runOnJS from the worklet.
+  // All JS-thread work (array access, pixel calculation) stays on JS thread.
+  const handleScrubIndex = useCallback((idx: number) => {
+    if (idx < 0 || idx >= N) return;
+    const pt = data.hourlyPoints[idx];
+    const snap = data.coneSnapshots[idx];
+    if (!pt || !snap) return;
+    const { x, y } = toPixelFn(pt.hoursX, pt.pctY);
+    const padding = size === 'full' ? PADDING_FULL : PADDING_COMPACT;
+    setScrubCursor(buildScrubCursor(x, y, height, padding.top));
+    if (onScrubChange) {
+      onScrubChange({ pctY: pt.pctY, hoursX: pt.hoursX, upperPct: snap.upperPct, lowerPct: snap.lowerPct });
+    }
+  }, [data, toPixelFn, size, height, onScrubChange, N]);
+
   // Bridge scrubIndex SharedValue → cursor geometry + onScrubChange callback
+  // Guard: skip runOnJS during the 2800ms clip animation window (belt-and-suspenders)
   useAnimatedReaction(
     () => scrubIndex.value,
     (idx) => {
-      if (idx < 0 || idx >= N) return;
-      const pt = data.hourlyPoints[idx];
-      const snap = data.coneSnapshots[idx];
-      if (!pt || !snap) return;
-      const { x, y } = toPixelFn(pt.hoursX, pt.pctY);
-      const padding = size === 'full' ? PADDING_FULL : PADDING_COMPACT;
-      runOnJS(setScrubCursor)(buildScrubCursor(x, y, height, padding.top));
-      if (onScrubChange) {
-        runOnJS(onScrubChange)({ pctY: pt.pctY, hoursX: pt.hoursX, upperPct: snap.upperPct, lowerPct: snap.lowerPct });
-      }
+      if (!animDone) return;
+      runOnJS(handleScrubIndex)(idx);
     },
   );
 
-  // ── Animation: sweep index 0 → N-1 ──────────────────────────────────────
-  const animIdxSV = useSharedValue(reducedMotion ? N - 1 : 0);
-  const dotScale  = useSharedValue(DOT_RADIUS_BASE);
-  const pulsed    = useRef(false);
-
-  const [animState, setAnimState] = useState({
-    idx:        reducedMotion ? N - 1 : 0,
-    dotOpacity: reducedMotion ? 1     : 0,
-  });
-  const [dotRadius, setDotRadius] = useState(DOT_RADIUS_BASE);
+  // ── Animation: clip 0→1 reveals chart left-to-right on UI thread ────────
+  // Previously: animIdxSV swept 0→N-1 and bridged to React state via
+  // useAnimatedReaction+runOnJS at 60fps × 2800ms ≈ 168 JS microtask allocations,
+  // flooding the Hermes young-gen allocator and triggering GC heap corruption.
+  // Now: clipProgress drives an Animated.View clip on the UI thread — zero JS/frame.
+  const clipProgress = useSharedValue(reducedMotion ? 1 : 0);
 
   useEffect(() => {
-    if (!reducedMotion && N > 1) {
-      animIdxSV.value = withTiming(N - 1, CONE_ANIMATION);
+    if (reducedMotion) {
+      // Reduced motion: skip animation, enable scrub immediately
+      clipProgress.value = 1;
+      setAnimDone(true);
+      return;
+    }
+    if (N > 1) {
+      clipProgress.value = withTiming(1, CONE_ANIMATION, () => {
+        'worklet';
+        if (isMountedRef.current) {
+          runOnJS(setAnimDone)(true);
+        }
+      });
+    } else {
+      // No data to animate (N <= 1) — enable scrub immediately
+      setAnimDone(true);
     }
   }, [N]);
 
-  // Bridge idx → React state
-  useAnimatedReaction(
-    () => animIdxSV.value,
-    (v) => {
-      const idx = Math.min(Math.max(Math.floor(v), 0), N - 1);
-      // Dot fades in over the last 1.5 index-units of the animation
-      const dotOpacity = N <= 1
-        ? 1
-        : Math.min(1, Math.max(0, (v - (N - 1.5)) / 1.5));
-      runOnJS(setAnimState)({ idx, dotOpacity });
-    },
-  );
+  const clipStyle = useAnimatedStyle(() => ({
+    width: clipProgress.value * width,
+  }));
 
-  useAnimatedReaction(
-    () => dotScale.value,
-    (v) => { runOnJS(setDotRadius)(v); },
-  );
-
-  // Dot pulse once animation completes
-  useEffect(() => {
-    if (animState.dotOpacity >= 1 && !pulsed.current) {
-      pulsed.current = true;
-      dotScale.value = withTiming(DOT_RADIUS_PULSE, { duration: 200 }, () => {
-        dotScale.value = withTiming(DOT_RADIUS_BASE, { duration: 200 });
-      });
-    }
-  }, [animState.dotOpacity]);
-
-  // ── Current frame paths ──────────────────────────────────────────────────
-  const currentLine       = linePaths[animState.idx]      ?? '';
-  const currentCone       = conePaths[animState.idx]      ?? '';
-  const currentUpperEdge  = upperEdgePaths[animState.idx] ?? '';
-  const currentLowerEdge  = lowerEdgePaths[animState.idx] ?? '';
-  const currentProjected  = projectedPaths[animState.idx] ?? '';
+  // ── Current frame paths — always final frame; clip reveals left-to-right ─
+  const finalIdx          = N > 0 ? N - 1 : 0;
+  const currentLine       = linePaths[finalIdx]      ?? '';
+  const currentCone       = conePaths[finalIdx]      ?? '';
+  const currentUpperEdge  = upperEdgePaths[finalIdx] ?? '';
+  const currentLowerEdge  = lowerEdgePaths[finalIdx] ?? '';
+  const currentProjected  = projectedPaths[finalIdx] ?? '';
 
   const font = matchFont({ fontFamily: 'System', fontSize: 10 });
 
@@ -379,118 +387,123 @@ export function AIConeChart({
 
   return (
   <View>
-    <GestureDetector gesture={gesture}>
-    <Canvas style={{ width, height }}>
+    <GestureDetector gesture={gesture} enabled={animDone && size === 'full'}>
+    <View style={{ width, height }}>
+      <Animated.View style={[{ overflow: 'hidden', height }, clipStyle]}>
+      <Canvas style={{ width, height }}>
 
-      {/* ── CONE SPACE: the probability region ──────────────────────────── */}
-      {/* Fill: barely-there deep-space atmosphere */}
-      {currentCone !== '' && (
-        <Path path={currentCone} color={CONE_SPACE} style="fill" opacity={0.60} />
-      )}
-      {/* Edge glow: outer aura on boundaries */}
-      {currentUpperEdge !== '' && (
-        <Path path={currentUpperEdge} color={CONE_EDGE} style="stroke" strokeWidth={5} opacity={0.06} />
-      )}
-      {currentLowerEdge !== '' && (
-        <Path path={currentLowerEdge} color={CONE_EDGE} style="stroke" strokeWidth={5} opacity={0.06} />
-      )}
-      {/* Edge line: crisp boundary at 25% opacity — ethereal, not dominant */}
-      {currentUpperEdge !== '' && (
-        <Path path={currentUpperEdge} color={CONE_EDGE} style="stroke" strokeWidth={1} opacity={0.28} />
-      )}
-      {currentLowerEdge !== '' && (
-        <Path path={currentLowerEdge} color={CONE_EDGE} style="stroke" strokeWidth={1} opacity={0.28} />
-      )}
+        {/* ── CONE SPACE: the probability region ──────────────────────────── */}
+        {/* Fill: barely-there deep-space atmosphere */}
+        {currentCone !== '' && (
+          <Path path={currentCone} color={CONE_SPACE} style="fill" opacity={0.60} />
+        )}
+        {/* Edge glow: outer aura on boundaries */}
+        {currentUpperEdge !== '' && (
+          <Path path={currentUpperEdge} color={CONE_EDGE} style="stroke" strokeWidth={5} opacity={0.06} />
+        )}
+        {currentLowerEdge !== '' && (
+          <Path path={currentLowerEdge} color={CONE_EDGE} style="stroke" strokeWidth={5} opacity={0.06} />
+        )}
+        {/* Edge line: crisp boundary at 25% opacity — ethereal, not dominant */}
+        {currentUpperEdge !== '' && (
+          <Path path={currentUpperEdge} color={CONE_EDGE} style="stroke" strokeWidth={1} opacity={0.28} />
+        )}
+        {currentLowerEdge !== '' && (
+          <Path path={currentLowerEdge} color={CONE_EDGE} style="stroke" strokeWidth={1} opacity={0.28} />
+        )}
 
-      {/* ── 75% TARGET: amber threshold ─────────────────────────────────── */}
-      {targetPath !== '' && (
-        <>
-          {/* Outer glow */}
-          <Path path={targetPath} color={AMBER_CORE} style="stroke" strokeWidth={6} opacity={0.07} />
-          {/* Mid glow */}
-          <Path path={targetPath} color={AMBER_CORE} style="stroke" strokeWidth={3} opacity={0.14} />
-          {/* Core line */}
-          <Path path={targetPath} color={AMBER_CORE} style="stroke" strokeWidth={1} opacity={0.65} />
-        </>
-      )}
+        {/* ── 75% TARGET: amber threshold ─────────────────────────────────── */}
+        {targetPath !== '' && (
+          <>
+            {/* Outer glow */}
+            <Path path={targetPath} color={AMBER_CORE} style="stroke" strokeWidth={6} opacity={0.07} />
+            {/* Mid glow */}
+            <Path path={targetPath} color={AMBER_CORE} style="stroke" strokeWidth={3} opacity={0.14} />
+            {/* Core line */}
+            <Path path={targetPath} color={AMBER_CORE} style="stroke" strokeWidth={1} opacity={0.65} />
+          </>
+        )}
 
-      {/* ── PROJECTED TREND: indigo dashed — prediction, not fact ────────── */}
-      {currentProjected !== '' && (
-        <>
-          {/* Soft glow behind dashes */}
-          <Path path={currentProjected} color={PROJ_COLOR} style="stroke" strokeWidth={4} strokeCap="round" opacity={0.10} />
-          {/* Dashes */}
-          <Path path={currentProjected} color={PROJ_COLOR} style="stroke" strokeWidth={1.5} strokeCap="round" opacity={0.55} />
-        </>
-      )}
+        {/* ── PROJECTED TREND: indigo dashed — prediction, not fact ────────── */}
+        {currentProjected !== '' && (
+          <>
+            {/* Soft glow behind dashes */}
+            <Path path={currentProjected} color={PROJ_COLOR} style="stroke" strokeWidth={4} strokeCap="round" opacity={0.10} />
+            {/* Dashes */}
+            <Path path={currentProjected} color={PROJ_COLOR} style="stroke" strokeWidth={1.5} strokeCap="round" opacity={0.55} />
+          </>
+        )}
 
-      {/* ── ACTUAL TRAJECTORY: bright holographic line ───────────────────── */}
-      {currentLine !== '' && (
-        <>
-          {/* Outer aura — wide, very dim */}
-          <Path path={currentLine} color={HOLO_GLOW} style="stroke" strokeWidth={10} strokeCap="round" strokeJoin="round" opacity={0.06} />
-          {/* Mid bloom */}
-          <Path path={currentLine} color={HOLO_GLOW} style="stroke" strokeWidth={5} strokeCap="round" strokeJoin="round" opacity={0.18} />
-          {/* Bright core */}
-          <Path path={currentLine} color={HOLO_CORE} style="stroke" strokeWidth={1.5} strokeCap="round" strokeJoin="round" opacity={0.95} />
-        </>
-      )}
+        {/* ── ACTUAL TRAJECTORY: bright holographic line ───────────────────── */}
+        {currentLine !== '' && (
+          <>
+            {/* Outer aura — wide, very dim */}
+            <Path path={currentLine} color={HOLO_GLOW} style="stroke" strokeWidth={10} strokeCap="round" strokeJoin="round" opacity={0.06} />
+            {/* Mid bloom */}
+            <Path path={currentLine} color={HOLO_GLOW} style="stroke" strokeWidth={5} strokeCap="round" strokeJoin="round" opacity={0.18} />
+            {/* Bright core */}
+            <Path path={currentLine} color={HOLO_CORE} style="stroke" strokeWidth={1.5} strokeCap="round" strokeJoin="round" opacity={0.95} />
+          </>
+        )}
 
-      {/* ── CURRENT POSITION: glowing beacon ─────────────────────────────── */}
-      {/* Outer pulse ring */}
-      <Circle cx={dotPixel.x} cy={dotPixel.y} r={14} color={HOLO_GLOW} opacity={animState.dotOpacity * 0.05} />
-      {/* Mid ring */}
-      <Circle cx={dotPixel.x} cy={dotPixel.y} r={8}  color={HOLO_GLOW} opacity={animState.dotOpacity * 0.14} />
-      {/* Core dot */}
-      <Circle cx={dotPixel.x} cy={dotPixel.y} r={dotRadius} color={HOLO_CORE} opacity={animState.dotOpacity} />
+        {/* ── CURRENT POSITION: glowing beacon ─────────────────────────────── */}
+        {/* Revealed by clip as animation sweeps past the dot's x position */}
+        {/* Outer pulse ring */}
+        <Circle cx={dotPixel.x} cy={dotPixel.y} r={14} color={HOLO_GLOW} opacity={0.05} />
+        {/* Mid ring */}
+        <Circle cx={dotPixel.x} cy={dotPixel.y} r={8}  color={HOLO_GLOW} opacity={0.14} />
+        {/* Core dot */}
+        <Circle cx={dotPixel.x} cy={dotPixel.y} r={DOT_RADIUS_BASE} color={HOLO_CORE} opacity={1} />
 
-      {/* ── AXIS LABELS (full variant only) ─────────────────────────────── */}
-      {size === 'full' && font && (
-        <>
-          {Y_TICKS.map(({ label, pct }) => {
-            const { y } = toPixelFn(0, pct);
-            return (
-              <Text key={label} x={2} y={y + 4} text={label} font={font} color={colors.textMuted} />
-            );
-          })}
-          {X_TICKS.filter((t) => t <= data.weeklyLimit).map((tick) => {
-            const { x } = toPixelFn(tick, 0);
-            return (
-              <Text key={String(tick)} x={x - 6} y={height - 4} text={`${tick}h`} font={font} color={colors.textMuted} />
-            );
-          })}
-          {/* 75% label on the amber line */}
-          <Text
-            x={targetLabelPos.x - 32}
-            y={targetLabelPos.y - 4}
-            text="75% target"
-            font={font}
-            color={AMBER_CORE}
-          />
-        </>
-      )}
+        {/* ── AXIS LABELS (full variant only) ─────────────────────────────── */}
+        {size === 'full' && font && (
+          <>
+            {Y_TICKS.map(({ label, pct }) => {
+              const { y } = toPixelFn(0, pct);
+              return (
+                <Text key={label} x={2} y={y + 4} text={label} font={font} color={colors.textMuted} />
+              );
+            })}
+            {X_TICKS.filter((t) => t <= data.weeklyLimit).map((tick) => {
+              const { x } = toPixelFn(tick, 0);
+              return (
+                <Text key={String(tick)} x={x - 6} y={height - 4} text={`${tick}h`} font={font} color={colors.textMuted} />
+              );
+            })}
+            {/* 75% label on the amber line */}
+            <Text
+              x={targetLabelPos.x - 32}
+              y={targetLabelPos.y - 4}
+              text="75% target"
+              font={font}
+              color={AMBER_CORE}
+            />
+          </>
+        )}
 
-      {/* ── SCRUB CURSOR (full variant only, when actively scrubbing) ────── */}
-      {isScrubActive && scrubCursor && (
-        <>
-          {/* Vertical cursor line */}
-          <Path
-            path={scrubCursor.linePath}
-            color={colors.textMuted}
-            opacity={0.5}
-            strokeWidth={1}
-            style="stroke"
-          />
-          {/* Dot at snapped data point */}
-          <Circle
-            cx={scrubCursor.dotX}
-            cy={scrubCursor.dotY}
-            r={scrubCursor.dotRadius}
-            color={HOLO_CORE}
-          />
-        </>
-      )}
-    </Canvas>
+        {/* ── SCRUB CURSOR (full variant only, when actively scrubbing) ────── */}
+        {isScrubActive && scrubCursor && (
+          <>
+            {/* Vertical cursor line */}
+            <Path
+              path={scrubCursor.linePath}
+              color={colors.textMuted}
+              opacity={0.5}
+              strokeWidth={1}
+              style="stroke"
+            />
+            {/* Dot at snapped data point */}
+            <Circle
+              cx={scrubCursor.dotX}
+              cy={scrubCursor.dotY}
+              r={scrubCursor.dotRadius}
+              color={HOLO_CORE}
+            />
+          </>
+        )}
+      </Canvas>
+      </Animated.View>
+    </View>
     </GestureDetector>
 
     {/* ── LEGEND ROW (full variant only) — fades out during scrub ──────── */}
