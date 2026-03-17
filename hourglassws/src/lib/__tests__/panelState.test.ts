@@ -187,13 +187,8 @@ describe('computePanelState', () => {
       expect(computePanelState(12, 40, 1.292)).toBe('onTrack');
     });
 
-    it('FR2.8 — daysElapsed=1.292 (Tue 7am), 8h → onTrack (77% of 10.33h expected)', () => {
-      // ratio = 8/10.33 ≈ 0.774 < 0.85 but ≥ 0.60 → behind
-      // Wait: 8/10.336 = 0.774 → behind (not onTrack)
-      // Spec says onTrack — re-check: (1.292/5)*40 = 10.336; 8/10.336 = 0.7741 — behind
-      // Spec-research says "onTrack (77% of 10.33h expected)" but 0.774 < 0.85 → behind
-      // The spec-research comment is wrong about the state label; the threshold logic is authoritative.
-      // 0.60 ≤ 0.774 < 0.85 → behind
+    it('FR2.8 — daysElapsed=1.292 (Tue 7am), 8h → behind (77% of 10.33h expected, recoverable)', () => {
+      // expectedHours = (1.292/5)*40 = 10.336; ratio = 8/10.336 ≈ 0.774 → 0.60 ≤ 0.774 < 0.85 → behind
       expect(computePanelState(8, 40, 1.292)).toBe('behind');
     });
 
