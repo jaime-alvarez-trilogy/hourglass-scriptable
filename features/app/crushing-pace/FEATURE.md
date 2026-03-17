@@ -82,4 +82,4 @@ otherwise                     → critical
 
 | Date | Spec | Description |
 |------|------|-------------|
-| 2026-03-17 | [01-ahead-of-pace-state](specs/01-ahead-of-pace-state/spec.md) | Add aheadOfPace state across all panel state maps |
+| 2026-03-17 | [01-ahead-of-pace-state](specs/01-ahead-of-pace-state/spec.md) | Add aheadOfPace state across all panel state maps — COMPLETE |
