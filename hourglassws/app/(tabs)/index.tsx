@@ -154,10 +154,10 @@ export default function HoursDashboard() {
   const weeklyLimit = config?.weeklyLimit ?? 40;
 
   // AI Trajectory compact card (FR2 03-ai-tab-integration)
-  const { data: aiData } = useAIData();
+  const { data: aiData, previousWeekPercent } = useAIData();
   const coneData = useMemo(
-    () => (aiData ? computeAICone(aiData.dailyBreakdown, weeklyLimit) : null),
-    [aiData, weeklyLimit],
+    () => (aiData ? computeAICone(aiData.dailyBreakdown, weeklyLimit, previousWeekPercent) : null),
+    [aiData, weeklyLimit, previousWeekPercent],
   );
   const daysElapsed = computeDaysElapsed();
   const basePanelState = computePanelState(data?.total ?? 0, weeklyLimit, daysElapsed);

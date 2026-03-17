@@ -342,11 +342,12 @@ describe('HoursDashboard FR2 — render: compact card with AI data', () => {
     expect(coneChart.props.data).toBe(MOCK_CONE_DATA);
   });
 
-  it('SC2.16 — computeAICone called with dailyBreakdown and weeklyLimit=40', () => {
+  it('SC2.16 — computeAICone called with dailyBreakdown, weeklyLimit=40, and previousWeekPercent', () => {
     renderDashboard();
     expect(mockComputeAICone).toHaveBeenCalledWith(
       MOCK_AI_DATA.dailyBreakdown,
       40,
+      undefined, // previousWeekPercent from mock (no history)
     );
   });
 });
@@ -437,6 +438,7 @@ describe('HoursDashboard FR2 — weeklyLimit reuses config.weeklyLimit from useC
     expect(mockComputeAICone).toHaveBeenCalledWith(
       expect.anything(),
       30,
+      undefined, // previousWeekPercent from mock (no history)
     );
   });
 });

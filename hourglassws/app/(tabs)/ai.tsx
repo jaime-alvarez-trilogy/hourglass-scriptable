@@ -165,7 +165,7 @@ export default function AIScreen() {
   const trend = trendDirection(completedAIPct);
 
   // Cone data — computed once data is guaranteed non-null
-  const coneData = computeAICone(safeData.dailyBreakdown, weeklyLimit);
+  const coneData = computeAICone(safeData.dailyBreakdown, weeklyLimit, previousWeekPercent);
 
   // Derive display values
   const aiPercent = (safeData.aiPctLow + safeData.aiPctHigh) / 2;
