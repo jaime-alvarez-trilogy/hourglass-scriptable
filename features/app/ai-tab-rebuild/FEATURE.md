@@ -195,7 +195,7 @@ useHistoryBackfill (in _layout.tsx, t+25s, once per session)
 
 | Date | Spec | Description |
 |------|------|-------------|
-| 2026-03-16 | [01-safe-arc-hero](specs/01-safe-arc-hero/spec-research.md) | Replace AIArcHero useAnimatedProps path-string animation with strokeDashoffset (number-only) |
+| 2026-03-16 | [01-safe-arc-hero](specs/01-safe-arc-hero/spec.md) | Replace AIArcHero useAnimatedProps path-string animation with strokeDashoffset (number-only) |
 | 2026-03-16 | [02-safe-cone-scrub](specs/02-safe-cone-scrub/spec.md) | Gate AIConeChart scrub useAnimatedReaction behind animation-complete state |
 | 2026-03-16 | [03-backfill-relocation](specs/03-backfill-relocation/spec.md) | Move useHistoryBackfill to _layout.tsx; remove from tab-level screens |
 | 2026-03-16 | [04-ai-tab-screen](specs/04-ai-tab-screen/spec-research.md) | Rebuild ai.tsx with data-gated rendering; remove useStaggeredEntry |
