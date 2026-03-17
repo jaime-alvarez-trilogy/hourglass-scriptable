@@ -13,11 +13,11 @@ import { fetchTimesheet } from '../api/timesheet';
 import { fetchPayments } from '../api/payments';
 import { fetchWorkDiary } from '../api/workDiary';
 import { fetchPendingManual, fetchPendingOvertime } from '../api/approvals';
-import { calculateHours, getWeekStartDate } from '../lib/hours';
-import { countDiaryTags, aggregateAICache } from '../lib/ai';
-import { parseManualItems, parseOvertimeItems } from '../lib/approvals';
-import type { HoursData } from '../lib/hours';
-import type { AIWeekData, TagData } from '../lib/ai';
+import { calculateHours, getWeekStartDate } from './hours';
+import { countDiaryTags, aggregateAICache } from './ai';
+import { parseManualItems, parseOvertimeItems } from './approvals';
+import type { HoursData } from './hours';
+import type { AIWeekData, TagData } from './ai';
 import type { CrossoverConfig } from '../types/config';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
