@@ -7,8 +7,8 @@ export const PACING_ON_TRACK_THRESHOLD = 0.85;
 /** Fraction of expected pace considered "recoverable behind" (60–84% of pace). */
 export const PACING_BEHIND_THRESHOLD = 0.60;
 
-/** Fraction of expected pace considered "crushing it" ahead of schedule (≥150% of pace). */
-export const PACING_CRUSHING_THRESHOLD = 1.5;
+/** Fraction of expected pace considered "crushing it" ahead of schedule (≥125% of pace). */
+export const PACING_CRUSHING_THRESHOLD = 1.25;
 
 /**
  * Computes which of the 7 Hourglass panel states applies to the current week.
@@ -17,7 +17,7 @@ export const PACING_CRUSHING_THRESHOLD = 1.5;
  *   idle         — No work started yet, or contractual limit is zero.
  *   overtime     — Hours worked strictly exceed the weekly limit (hours > limit).
  *   crushedIt    — Hours worked exactly meet the weekly limit (hours === limit).
- *   aheadOfPace  — Pacing at ≥ 150% of expected hours mid-week ("CRUSHING IT").
+ *   aheadOfPace  — Pacing at ≥ 125% of expected hours mid-week ("CRUSHING IT").
  *   onTrack      — Pacing at ≥ 85% of expected hours for the days elapsed.
  *   behind       — Pacing at 60–84% of expected hours (recoverable).
  *   critical     — Pacing below 60% of expected hours (severe deficit).

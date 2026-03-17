@@ -15,9 +15,9 @@ describe('computePanelState', () => {
       expect(computePanelState(0, 40, 0)).toBe('idle');
     });
 
-    it('returns onTrack when ahead of pace mid-week (Wed, 20h worked, expected 16h)', () => {
-      // daysElapsed=2, expected = (2/5)*40 = 16, ratio = 20/16 = 1.25 ≥ 0.85
-      expect(computePanelState(20, 40, 2)).toBe('onTrack');
+    it('returns onTrack when modestly ahead of pace mid-week (Wed, 18h worked, expected 16h)', () => {
+      // daysElapsed=2, expected = (2/5)*40 = 16, ratio = 18/16 = 1.125 ≥ 0.85 but < 1.25
+      expect(computePanelState(18, 40, 2)).toBe('onTrack');
     });
 
     it('returns onTrack when Thu at 30h worked (expected 32h, ratio 0.9375)', () => {
@@ -203,19 +203,19 @@ describe('computePanelState', () => {
   // FR1 (01-ahead-of-pace-state): aheadOfPace state
   // ---------------------------------------------------------------------------
   describe('aheadOfPace state — FR1 (01-ahead-of-pace-state)', () => {
-    it('FR1.1 — returns aheadOfPace on Mon EOD with 12h (12/8 = 150% of expected)', () => {
-      // daysElapsed=1.0, expected = (1/5)*40 = 8h, ratio = 12/8 = 1.5 ≥ 1.5
-      expect(computePanelState(12, 40, 1.0)).toBe('aheadOfPace');
+    it('FR1.1 — returns aheadOfPace on Mon EOD with 10h (10/8 = 125% of expected)', () => {
+      // daysElapsed=1.0, expected = (1/5)*40 = 8h, ratio = 10/8 = 1.25 ≥ 1.25
+      expect(computePanelState(10, 40, 1.0)).toBe('aheadOfPace');
     });
 
-    it('FR1.2 — returns aheadOfPace on Tue EOD with 24h (24/16 = 150% of expected)', () => {
-      // daysElapsed=2.0, expected = (2/5)*40 = 16h, ratio = 24/16 = 1.5 ≥ 1.5
-      expect(computePanelState(24, 40, 2.0)).toBe('aheadOfPace');
+    it('FR1.2 — returns aheadOfPace on Tue 9am with 13.75h (13.75/11 = 125% of expected)', () => {
+      // daysElapsed=1.375, expected = (1.375/5)*40 = 11h, ratio = 13.75/11 = 1.25
+      expect(computePanelState(13.75, 40, 1.375)).toBe('aheadOfPace');
     });
 
-    it('FR1.3 — returns aheadOfPace when pacingRatio is exactly 1.5', () => {
-      // daysElapsed=2.5, expected = (2.5/5)*40 = 20h, ratio = 30/20 = 1.5 exactly
-      expect(computePanelState(30, 40, 2.5)).toBe('aheadOfPace');
+    it('FR1.3 — returns aheadOfPace when pacingRatio is exactly 1.25', () => {
+      // daysElapsed=2.0, expected = (2/5)*40 = 16h, ratio = 20/16 = 1.25 exactly
+      expect(computePanelState(20, 40, 2.0)).toBe('aheadOfPace');
     });
 
     it('FR1.4 — returns aheadOfPace when pacingRatio is 2.0 (well above threshold)', () => {
@@ -223,9 +223,9 @@ describe('computePanelState', () => {
       expect(computePanelState(16, 40, 1.0)).toBe('aheadOfPace');
     });
 
-    it('FR1.5 — returns onTrack when pacingRatio is 1.499 (just below threshold)', () => {
-      // Need ratio just below 1.5. daysElapsed=1.0, expected=8h, hours=11.99 → ratio≈1.499
-      expect(computePanelState(11.99, 40, 1.0)).toBe('onTrack');
+    it('FR1.5 — returns onTrack when pacingRatio is 1.249 (just below threshold)', () => {
+      // daysElapsed=1.0, expected=8h, hours=9.99 → ratio≈1.249
+      expect(computePanelState(9.99, 40, 1.0)).toBe('onTrack');
     });
 
     it('FR1.6 — overtime takes priority over aheadOfPace (hours > weeklyLimit)', () => {
@@ -256,8 +256,8 @@ describe('computePanelState', () => {
       expect(PACING_BEHIND_THRESHOLD).toBe(0.6);
     });
 
-    it('exports PACING_CRUSHING_THRESHOLD as 1.5', () => {
-      expect(PACING_CRUSHING_THRESHOLD).toBe(1.5);
+    it('exports PACING_CRUSHING_THRESHOLD as 1.25', () => {
+      expect(PACING_CRUSHING_THRESHOLD).toBe(1.25);
     });
   });
 });
