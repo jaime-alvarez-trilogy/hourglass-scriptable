@@ -4,27 +4,35 @@
 // keeping the home screen widget fresh on every app open.
 //
 // Errors are swallowed — widget sync failure must never crash or disrupt the UI.
+//
+// Extended in 08-widget-enhancements: optional approvalItems and myRequests params.
 
 import { useEffect } from 'react';
 import { updateWidgetData } from '../widgets/bridge';
 import type { HoursData } from '../lib/hours';
 import type { AIWeekData } from '../lib/ai';
 import type { CrossoverConfig } from '../types/config';
+import type { ApprovalItem } from '../lib/approvals';
+import type { ManualRequestEntry } from '../types/requests';
 
 /**
  * Foreground widget sync hook.
  * Call from (tabs)/_layout.tsx to keep widgets updated whenever the app is open.
  *
- * @param hoursData    Weekly hours/earnings data (null = still loading)
- * @param aiData       AI% and BrainLift data (null = unavailable, not blocking)
- * @param pendingCount Pending approval count (0 for contributors)
- * @param config       App configuration (null = still loading)
+ * @param hoursData     Weekly hours/earnings data (null = still loading)
+ * @param aiData        AI% and BrainLift data (null = unavailable, not blocking)
+ * @param pendingCount  Pending approval count (legacy — now derived from approvalItems)
+ * @param config        App configuration (null = still loading)
+ * @param approvalItems Manager's pending approval items (default [])
+ * @param myRequests    Contributor's manual time requests (default [])
  */
 export function useWidgetSync(
   hoursData: HoursData | null,
   aiData: AIWeekData | null,
   pendingCount: number,
-  config: CrossoverConfig | null
+  config: CrossoverConfig | null,
+  approvalItems?: ApprovalItem[],
+  myRequests?: ManualRequestEntry[]
 ): void {
   useEffect(() => {
     // Guard: only sync when we have the minimum required data
@@ -32,8 +40,19 @@ export function useWidgetSync(
       return;
     }
 
-    updateWidgetData(hoursData, aiData, pendingCount, config).catch((err: unknown) => {
+    updateWidgetData(
+      hoursData,
+      aiData,
+      pendingCount,
+      config,
+      approvalItems ?? [],
+      myRequests ?? []
+    ).catch((err: unknown) => {
       console.error('[useWidgetSync] Widget update failed:', err);
     });
-  }, [hoursData, pendingCount, config]); // aiData intentionally omitted: AI data changes don't need to re-trigger
+  // approvalItems in deps: managers need re-sync when approvals change
+  // aiData intentionally omitted: AI data changes don't need to re-trigger
+  // myRequests intentionally omitted: contributor request changes don't need independent re-trigger
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hoursData, pendingCount, config, approvalItems]);
 }
