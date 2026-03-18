@@ -131,9 +131,19 @@ describe('updateWidgetData (FR1)', () => {
     expect(data.pendingCount).toBe(0);
   });
 
-  it('passes pendingCount through for managers', async () => {
+  it('pendingCount derived from approvalItems.length for managers', async () => {
     const config = makeConfig({ isManager: true });
-    await updateWidgetData(makeHoursData(), makeAIData(), 3, config);
+    // pendingCount param is now ignored; derived from approvalItems.length
+    // Pass 3 approval items → pendingCount should be 3
+    const approvalItems = [
+      { id: 'mt-1', category: 'MANUAL' as const, userId: 1, fullName: 'A', durationMinutes: 60,
+        hours: '1.0', description: '', startDateTime: '', type: 'WEB' as const, timecardIds: [1], weekStartDate: '2026-03-16' },
+      { id: 'mt-2', category: 'MANUAL' as const, userId: 2, fullName: 'B', durationMinutes: 60,
+        hours: '1.0', description: '', startDateTime: '', type: 'WEB' as const, timecardIds: [2], weekStartDate: '2026-03-16' },
+      { id: 'mt-3', category: 'MANUAL' as const, userId: 3, fullName: 'C', durationMinutes: 60,
+        hours: '1.0', description: '', startDateTime: '', type: 'WEB' as const, timecardIds: [3], weekStartDate: '2026-03-16' },
+    ];
+    await updateWidgetData(makeHoursData(), makeAIData(), 3, config, approvalItems);
     const data = getWrittenWidgetData()!;
     expect(data.pendingCount).toBe(3);
     expect(data.isManager).toBe(true);

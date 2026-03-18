@@ -81,7 +81,9 @@ describe('FR3: widgetBridge.updateWidgetData', () => {
       MOCK_SNAPSHOT.hoursData,
       MOCK_SNAPSHOT.aiData,
       MOCK_SNAPSHOT.pendingCount,
-      MOCK_SNAPSHOT.config
+      MOCK_SNAPSHOT.config,
+      [],
+      []
     );
   });
 
@@ -107,7 +109,9 @@ describe('FR3: widgetBridge.updateWidgetData', () => {
       MOCK_SNAPSHOT.hoursData,
       null,
       MOCK_SNAPSHOT.pendingCount,
-      MOCK_SNAPSHOT.config
+      MOCK_SNAPSHOT.config,
+      [],
+      []
     );
   });
 
@@ -120,6 +124,8 @@ describe('FR3: widgetBridge.updateWidgetData', () => {
       expect.anything(),
       expect.anything(),
       5,
+      expect.anything(),
+      expect.anything(),
       expect.anything()
     );
   });

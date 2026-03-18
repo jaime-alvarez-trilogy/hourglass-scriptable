@@ -79,7 +79,9 @@ describe('FR5: useWidgetSync', () => {
       MOCK_HOURS_DATA,
       MOCK_AI_DATA,
       2,
-      MOCK_CONFIG
+      MOCK_CONFIG,
+      [],
+      []
     );
   });
 
@@ -129,7 +131,9 @@ describe('FR5: useWidgetSync', () => {
       MOCK_HOURS_DATA,
       MOCK_AI_DATA,
       3,
-      MOCK_CONFIG
+      MOCK_CONFIG,
+      [],
+      []
     );
   });
 
@@ -143,7 +147,9 @@ describe('FR5: useWidgetSync', () => {
       MOCK_HOURS_DATA,
       null,
       0,
-      MOCK_CONFIG
+      MOCK_CONFIG,
+      [],
+      []
     );
   });
 
