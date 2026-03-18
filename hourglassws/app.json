@@ -12,10 +12,16 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.jalvarez0907.hourglass",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification", "fetch"]
+        "UIBackgroundModes": [
+          "remote-notification",
+          "fetch"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       },
       "entitlements": {
-        "com.apple.security.application-groups": ["group.com.jalvarez0907.hourglass.widgets"]
+        "com.apple.security.application-groups": [
+          "group.com.jalvarez0907.hourglass.widgets"
+        ]
       }
     },
     "android": {
@@ -48,8 +54,12 @@
               "name": "HourglassWidget",
               "displayName": "Hourglass",
               "description": "Track your weekly hours and earnings",
-              "supportedFamilies": ["systemSmall", "systemMedium", "systemLarge"],
-              "contentMarginsDisabled": false
+              "supportedFamilies": [
+                "systemSmall",
+                "systemMedium",
+                "systemLarge"
+              ],
+              "contentMarginsDisabled": true
             }
           ]
         }
@@ -85,7 +95,10 @@
           "icon": "./assets/images/notification-icon.png",
           "color": "#00FF88"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-web-browser"
     ],
     "updates": {
       "url": "https://u.expo.dev/4ad8a6bd-aec2-45a5-935f-5598d47b605d"
