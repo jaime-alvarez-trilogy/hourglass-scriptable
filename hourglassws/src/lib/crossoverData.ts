@@ -16,6 +16,8 @@ import { fetchPendingManual, fetchPendingOvertime } from '../api/approvals';
 import { calculateHours, getWeekStartDate } from './hours';
 import { countDiaryTags, aggregateAICache } from './ai';
 import { parseManualItems, parseOvertimeItems } from './approvals';
+import type { ApprovalItem } from './approvals';
+import type { ManualRequestEntry } from '../types/requests';
 import type { HoursData } from './hours';
 import type { AIWeekData, TagData } from './ai';
 import type { CrossoverConfig } from '../types/config';
@@ -27,6 +29,9 @@ export interface CrossoverSnapshot {
   aiData: AIWeekData | null;
   pendingCount: number;      // pending approvals count; 0 for contributors
   config: CrossoverConfig;
+  // 08-widget-enhancements: optional fields for widget action mode
+  approvalItems?: ApprovalItem[];       // manager's pending items; undefined for contributors
+  myRequests?: ManualRequestEntry[];    // contributor's requests; undefined in background path
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -123,6 +128,8 @@ export async function fetchFreshData(): Promise<CrossoverSnapshot> {
 
   // 8. Approval count (manager only)
   let pendingCount = 0;
+  let approvalItems: ApprovalItem[] | undefined;
+
   if (config.isManager) {
     const [rawManual, rawOvertime] = await Promise.all([
       fetchPendingManual(token, config.useQA, weekStart).catch(() => null),
@@ -132,8 +139,11 @@ export async function fetchFreshData(): Promise<CrossoverSnapshot> {
     const manualItems = rawManual ? parseManualItems(rawManual, weekStart) : [];
     const overtimeItems = rawOvertime ? parseOvertimeItems(rawOvertime) : [];
     pendingCount = manualItems.length + overtimeItems.length;
+    // 08-widget-enhancements: include items in snapshot for widget action mode
+    approvalItems = [...manualItems, ...overtimeItems];
   }
 
   // 9. Return snapshot
-  return { hoursData, aiData, pendingCount, config };
+  // myRequests is not populated in the background path (foreground-only in v1)
+  return { hoursData, aiData, pendingCount, config, approvalItems };
 }
