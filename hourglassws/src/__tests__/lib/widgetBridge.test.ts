@@ -123,4 +123,55 @@ describe('FR3: widgetBridge.updateWidgetData', () => {
       expect.anything()
     );
   });
+
+  // ─── FR6 (08-widget-enhancements): approvalItems and myRequests forwarding ──
+
+  it('forwards approvalItems from snapshot to real bridge', async () => {
+    const approvalItems = [
+      { id: 'mt-1', category: 'MANUAL', userId: 100, fullName: 'Alice', durationMinutes: 60,
+        hours: '1.0', description: 'Work', startDateTime: '2026-03-18T10:00:00Z',
+        type: 'WEB', timecardIds: [1], weekStartDate: '2026-03-16' },
+    ];
+    const snapshot = { ...MOCK_SNAPSHOT, approvalItems };
+    await updateWidgetData(snapshot);
+    expect(mockRealUpdateWidgetData).toHaveBeenCalledWith(
+      MOCK_SNAPSHOT.hoursData,
+      MOCK_SNAPSHOT.aiData,
+      MOCK_SNAPSHOT.pendingCount,
+      MOCK_SNAPSHOT.config,
+      approvalItems,
+      []
+    );
+  });
+
+  it('forwards myRequests from snapshot to real bridge', async () => {
+    const myRequests = [
+      { id: 'req-1', date: '2026-03-18', durationMinutes: 60, memo: 'Fix',
+        status: 'PENDING' as const, rejectionReason: null },
+    ];
+    const snapshot = { ...MOCK_SNAPSHOT, myRequests };
+    await updateWidgetData(snapshot);
+    expect(mockRealUpdateWidgetData).toHaveBeenCalledWith(
+      MOCK_SNAPSHOT.hoursData,
+      MOCK_SNAPSHOT.aiData,
+      MOCK_SNAPSHOT.pendingCount,
+      MOCK_SNAPSHOT.config,
+      [],
+      myRequests
+    );
+  });
+
+  it('defaults approvalItems to [] when absent from snapshot', async () => {
+    // snapshot has no approvalItems field
+    const snapshot = { ...MOCK_SNAPSHOT };
+    await updateWidgetData(snapshot);
+    expect(mockRealUpdateWidgetData).toHaveBeenCalledWith(
+      MOCK_SNAPSHOT.hoursData,
+      MOCK_SNAPSHOT.aiData,
+      MOCK_SNAPSHOT.pendingCount,
+      MOCK_SNAPSHOT.config,
+      [],
+      []
+    );
+  });
 });

@@ -176,4 +176,67 @@ describe('FR5: useWidgetSync', () => {
 
     expect(mockUpdateWidgetData).not.toHaveBeenCalled();
   });
+
+  // ─── FR5 (08-widget-enhancements): new optional params ─────────────────────
+
+  it('4-arg call (no approvalItems/myRequests) still works — updateWidgetData called once', () => {
+    renderHook(() =>
+      useWidgetSync(MOCK_HOURS_DATA, MOCK_AI_DATA, 0, MOCK_CONFIG)
+    );
+    expect(mockUpdateWidgetData).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes approvalItems to updateWidgetData when provided', () => {
+    const approvalItems = [
+      { id: 'mt-1', category: 'MANUAL' as const, name: 'Alice', hours: '1.0' },
+    ];
+    renderHook(() =>
+      useWidgetSync(MOCK_HOURS_DATA, MOCK_AI_DATA, 1, MOCK_CONFIG, approvalItems)
+    );
+    expect(mockUpdateWidgetData).toHaveBeenCalledWith(
+      MOCK_HOURS_DATA,
+      MOCK_AI_DATA,
+      1,
+      MOCK_CONFIG,
+      approvalItems,
+      []
+    );
+  });
+
+  it('passes myRequests to updateWidgetData when provided', () => {
+    const myRequests = [
+      { id: 'req-1', date: 'Wed Mar 18', hours: '1.0h', memo: 'Fix', status: 'PENDING' as const },
+    ];
+    renderHook(() =>
+      useWidgetSync(MOCK_HOURS_DATA, MOCK_AI_DATA, 0, MOCK_CONFIG, [], myRequests)
+    );
+    expect(mockUpdateWidgetData).toHaveBeenCalledWith(
+      MOCK_HOURS_DATA,
+      MOCK_AI_DATA,
+      0,
+      MOCK_CONFIG,
+      [],
+      myRequests
+    );
+  });
+
+  it('re-fires updateWidgetData when approvalItems reference changes', () => {
+    const initialApprovals = [{ id: 'mt-1', category: 'MANUAL' as const, name: 'Alice', hours: '1.0' }];
+    const updatedApprovals = [
+      { id: 'mt-1', category: 'MANUAL' as const, name: 'Alice', hours: '1.0' },
+      { id: 'mt-2', category: 'MANUAL' as const, name: 'Bob', hours: '2.0' },
+    ];
+
+    const { rerender } = renderHook<void, { approvalItems: typeof initialApprovals }>(
+      ({ approvalItems }) =>
+        useWidgetSync(MOCK_HOURS_DATA, MOCK_AI_DATA, approvalItems.length, MOCK_CONFIG, approvalItems),
+      { initialProps: { approvalItems: initialApprovals } }
+    );
+
+    expect(mockUpdateWidgetData).toHaveBeenCalledTimes(1);
+
+    rerender({ approvalItems: updatedApprovals });
+
+    expect(mockUpdateWidgetData).toHaveBeenCalledTimes(2);
+  });
 });

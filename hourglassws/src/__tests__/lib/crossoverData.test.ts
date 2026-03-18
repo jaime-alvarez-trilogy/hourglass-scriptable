@@ -376,3 +376,68 @@ describe('FR2: fetchFreshData — non-fatal error paths', () => {
     expect(result).toHaveProperty('hoursData');
   });
 });
+
+// ─── FR7 (08-widget-enhancements): CrossoverSnapshot approvalItems field ──────
+
+describe('FR7: fetchFreshData — approvalItems in snapshot', () => {
+  it('manager: snapshot includes approvalItems combining manual and overtime items', async () => {
+    // Default setup: isManager=true, parseManualItems → MOCK_MANUAL_ITEMS (1 item),
+    // parseOvertimeItems → MOCK_OVERTIME_ITEMS (1 item)
+    const result = await fetchFreshData();
+
+    expect(result).toHaveProperty('approvalItems');
+    expect(Array.isArray(result.approvalItems)).toBe(true);
+    // Should contain both manual and overtime items
+    expect(result.approvalItems).toHaveLength(2);
+  });
+
+  it('manager: approvalItems contains the parsed manual items', async () => {
+    const result = await fetchFreshData();
+
+    expect(result.approvalItems).toContainEqual(
+      expect.objectContaining({ id: MOCK_MANUAL_ITEMS[0].id })
+    );
+  });
+
+  it('manager: approvalItems contains the parsed overtime items', async () => {
+    const result = await fetchFreshData();
+
+    expect(result.approvalItems).toContainEqual(
+      expect.objectContaining({ id: MOCK_OVERTIME_ITEMS[0].id })
+    );
+  });
+
+  it('manager: pendingCount still equals approvalItems.length', async () => {
+    const result = await fetchFreshData();
+
+    expect(result.pendingCount).toBe(result.approvalItems!.length);
+  });
+
+  it('non-manager: snapshot does NOT include approvalItems field', async () => {
+    mockLoadConfig.mockResolvedValue({ ...MOCK_CONFIG, isManager: false });
+
+    const result = await fetchFreshData();
+
+    // approvalItems should be undefined (not set) for contributors
+    expect(result.approvalItems).toBeUndefined();
+  });
+
+  it('non-manager: myRequests not set in snapshot (foreground-only)', async () => {
+    mockLoadConfig.mockResolvedValue({ ...MOCK_CONFIG, isManager: false });
+
+    const result = await fetchFreshData();
+
+    expect(result.myRequests).toBeUndefined();
+  });
+
+  it('manager with approval fetch failures: approvalItems is [] (empty, not undefined)', async () => {
+    mockFetchPendingManual.mockRejectedValue(new Error('403'));
+    mockFetchPendingOvertime.mockRejectedValue(new Error('403'));
+
+    const result = await fetchFreshData();
+
+    // When both fail, approvalItems should exist but be empty
+    expect(result).toHaveProperty('approvalItems');
+    expect(result.approvalItems).toEqual([]);
+  });
+});
