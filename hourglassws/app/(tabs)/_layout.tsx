@@ -31,7 +31,7 @@ export default function TabLayout() {
   const { data: aiData } = useAIData();
   const { items } = useApprovalItems();
   const { config } = useConfig();
-  useWidgetSync(hoursData, aiData, items.length, config);
+  useWidgetSync(hoursData, aiData, items.length, config, items);
   return (
     <View style={{ flex: 1 }}>
       <Tabs

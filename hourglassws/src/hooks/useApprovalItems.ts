@@ -18,6 +18,7 @@ import {
   getWeekStartDate,
 } from '../lib/approvals'
 import type { ApprovalItem, ManualApprovalItem, OvertimeApprovalItem } from '../lib/approvals'
+import { MOCK_TEAM_ITEMS } from '../lib/devMock'
 
 // Query key for the approval items list
 const APPROVALS_KEY = ['approvals'] as const
@@ -28,6 +29,9 @@ const APPROVALS_KEY = ['approvals'] as const
 
 async function fetchAllApprovalItems(): Promise<ApprovalItem[]> {
   const [config, credentials] = await Promise.all([loadConfig(), loadCredentials()])
+
+  // Dev: manager preview — return fake team items without API calls
+  if (config?.devManagerView && !config?.isManager) return [...MOCK_TEAM_ITEMS]
 
   // Guard: contributor or no config — return empty
   if (!config || !config.isManager || !credentials) return []
@@ -89,6 +93,13 @@ export function useApprovalItems(): {
     const [config, credentials] = await Promise.all([loadConfig(), loadCredentials()])
     if (!config || !credentials) throw new Error('Not configured')
 
+    // Dev mock: optimistic remove only — no API call, no refetch (refetch would restore mock items)
+    if (config.devManagerView && !config.isManager) {
+      const current = optimisticItems ?? data ?? []
+      setOptimisticItems(current.filter((i) => i.id !== item.id))
+      return
+    }
+
     // Optimistic remove
     const current = optimisticItems ?? data ?? []
     const previousItems = current
@@ -130,6 +141,13 @@ export function useApprovalItems(): {
     const [config, credentials] = await Promise.all([loadConfig(), loadCredentials()])
     if (!config || !credentials) throw new Error('Not configured')
 
+    // Dev mock: optimistic remove only — no API call, no refetch
+    if (config.devManagerView && !config.isManager) {
+      const current = optimisticItems ?? data ?? []
+      setOptimisticItems(current.filter((i) => i.id !== item.id))
+      return
+    }
+
     // Optimistic remove
     const current = optimisticItems ?? data ?? []
     const previousItems = current
@@ -158,8 +176,11 @@ export function useApprovalItems(): {
   // approveAll — Promise.allSettled: continues on individual failures
   // ---------------------------------------------------------------------------
   const approveAll = useCallback(async (): Promise<void> => {
+    const config = await loadConfig()
     const current = optimisticItems ?? data ?? []
     await Promise.allSettled(current.map((item) => approveItem(item)))
+    // Dev mock: items already cleared optimistically; don't refetch (would restore mock items)
+    if (config?.devManagerView && !config?.isManager) return
     // Re-fetch after all settle to sync truth
     setOptimisticItems(null)
     queryClient.invalidateQueries({ queryKey: APPROVALS_KEY })

@@ -148,22 +148,23 @@ export function formatMyRequests(
 
 /**
  * Derives the actionBg tint color from role and item states.
- * Returns null in hours mode (no pending items).
+ * Returns "" in hours mode (no pending items) — never null, as null serializes
+ * to NSNull which UserDefaults rejects as a non-plist type.
  */
 function deriveActionBg(
   isManager: boolean,
   approvalItems: ApprovalItem[],
   myRequests: ManualRequestEntry[],
-): string | null {
+): string {
   if (isManager) {
-    return approvalItems.length > 0 ? '#1C1400' : null;
+    return approvalItems.length > 0 ? '#1C1400' : '';
   }
   // Contributor: check request statuses
   const hasRejected = myRequests.some((r) => r.status === 'REJECTED');
   if (hasRejected) return '#1C0A0E';
   const hasPending = myRequests.some((r) => r.status === 'PENDING');
   if (hasPending) return '#120E1A';
-  return null;
+  return '';
 }
 
 // ─── buildWidgetData ──────────────────────────────────────────────────────────
@@ -676,13 +677,15 @@ export async function updateWidgetData(
   // then signal WidgetKit to reload.
   if (Platform.OS === 'ios') {
     try {
-      // expo-widgets is iOS-only; import dynamically to avoid crash on Android.
-      // The native Widget constructor accepts a layout as String (not Function).
-      // Passing WIDGET_LAYOUT_JS (a string) bypasses the TypeScript function
-      // signature but matches what the Swift constructor expects: String.
-      // The string is evaluated in the widget extension's JSContext each render.
+      // expo-widgets is iOS-only and only available in production EAS builds.
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { createWidget } = require('expo-widgets');
+      const expoWidgets = require('expo-widgets') as { createWidget?: (...args: unknown[]) => { updateTimeline: (entries: unknown[]) => void } } | undefined;
+      const createWidget = expoWidgets?.createWidget;
+      if (!createWidget) {
+        // Native module not compiled in (Expo Go / simulator) — skip silently
+        console.log('[bridge] iOS widget skipped (expo-widgets unavailable in dev)');
+        return;
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const widget = createWidget('HourglassWidget', WIDGET_LAYOUT_JS as any);
       const entries = buildTimelineEntries(data, 60, 15);

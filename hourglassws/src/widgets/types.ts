@@ -76,6 +76,6 @@ export interface WidgetData {
   approvalItems: WidgetApprovalItem[];
   /** Contributor's own manual time requests for widget action view, max 3; [] for managers */
   myRequests: WidgetMyRequest[];
-  /** Background tint color in action mode, or null in hours mode */
-  actionBg: string | null;
+  /** Background tint color in action mode, or "" in hours mode */
+  actionBg: string;
 }

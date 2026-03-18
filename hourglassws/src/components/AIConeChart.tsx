@@ -13,7 +13,7 @@
  *   - compact: home tab card, ~100px tall, no labels
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text as RNText, StyleSheet } from 'react-native';
 import {
   Canvas,
@@ -288,9 +288,12 @@ export function AIConeChart({
 
   // Animation-complete gate — prevents scrub reactions from firing during clip animation
   const [animDone, setAnimDone] = useState(false);
-  const isMountedRef = useRef(true);
+  // useSharedValue instead of useRef: the completion callback is a worklet, so
+  // Reanimated serializes captured plain objects. Writing to a serialized object's
+  // key from the JS thread triggers a Reanimated proxy warning.
+  const isMountedSV = useSharedValue(true);
   useEffect(() => {
-    return () => { isMountedRef.current = false; };
+    return () => { isMountedSV.value = false; };
   }, []);
 
   // Bridge isScrubbing → React state for cursor visibility + legend fade
@@ -356,7 +359,7 @@ export function AIConeChart({
     if (N > 1) {
       clipProgress.value = withTiming(1, CONE_ANIMATION, () => {
         'worklet';
-        if (isMountedRef.current) {
+        if (isMountedSV.value) {
           runOnJS(setAnimDone)(true);
         }
       });
