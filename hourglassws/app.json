@@ -111,6 +111,8 @@
       "reactCompiler": true
     },
     "extra": {
+      "ENABLE_NATIVE_TABS": true,
+      "ENABLE_SHARED_ELEMENT_TRANSITIONS": true,
       "router": {},
       "eas": {
         "projectId": "4ad8a6bd-aec2-45a5-935f-5598d47b605d"
