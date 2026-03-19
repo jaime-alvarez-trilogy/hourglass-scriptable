@@ -71,8 +71,10 @@ module.exports = {
         'display-extrabold': ['SpaceGrotesk_700Bold'], // optical weight reduction: was Inter_800ExtraBold
 
         // Monospace — data tables, timestamps, numeric columns (SpaceMono)
-        'mono':      ['SpaceMono_400Regular'],
-        'mono-bold': ['SpaceMono_700Bold'],
+        // Note: SpaceMono has no 500Medium weight; mono-medium aliases to 400Regular.
+        'mono':        ['SpaceMono_400Regular'],
+        'mono-medium': ['SpaceMono_400Regular'],
+        'mono-bold':   ['SpaceMono_700Bold'],
 
         // Tier 2 — UI labels, navigation, buttons, form inputs (Inter, unchanged)
         'sans':         ['Inter_400Regular'],

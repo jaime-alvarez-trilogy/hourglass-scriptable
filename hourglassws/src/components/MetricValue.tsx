@@ -1,9 +1,11 @@
 // MetricValue.tsx
 // FR2: Hero number with Reanimated fade-in animation on mount (03-base-components)
-// FR4 (06-wiring-and-tokens): Inter 800 weight (font-display-extrabold), letterSpacing: -0.5
+// FR4 (06-wiring-and-tokens): font-display-extrabold, letterSpacing: -0.5 (superseded by 01-design-tokens)
+// 01-design-tokens: font-display-extrabold now resolves to SpaceGrotesk_700Bold;
+//                   letterSpacing updated to proportional -fontSize * 0.02 formula.
 //
-// Design system rule (BRAND_GUIDELINES.md):
-//   Numeric values always use Inter (font-display-extrabold = Inter_800ExtraBold).
+// Design system rule (BRAND_GUIDELINES.md v2.0):
+//   Hero numbers use SpaceGrotesk (font-display-extrabold = SpaceGrotesk_700Bold).
 //   Use tabular-nums for all animated counters.
 //   Entry animation uses timingChartFill — data settling on truth, not spring.
 //
