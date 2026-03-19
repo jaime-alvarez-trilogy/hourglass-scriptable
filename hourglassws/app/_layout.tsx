@@ -20,6 +20,18 @@ import {
   Inter_800ExtraBold,
 } from '@expo-google-fonts/inter';
 
+import {
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
+
+import {
+  SpaceMono_400Regular,
+  SpaceMono_700Bold,
+} from '@expo-google-fonts/space-mono';
+
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useConfig } from '@/src/hooks/useConfig';
 import { useRoleRefresh } from '@/src/hooks/useRoleRefresh';
@@ -51,6 +63,14 @@ function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
     Inter_800ExtraBold,
+    // SpaceGrotesk — hero metrics, headings (brand-revamp/01-design-tokens)
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+    // SpaceMono — data tables, timestamps (brand-revamp/01-design-tokens)
+    SpaceMono_400Regular,
+    SpaceMono_700Bold,
   });
 
   // SC1.3: hide native splash once config resolves
