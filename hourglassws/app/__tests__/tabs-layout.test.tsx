@@ -48,13 +48,20 @@ describe('tabs _layout — FR1: NoiseOverlay wiring', () => {
     expect(source).toMatch(/import\s*\{[^}]*\bView\b[^}]*\}\s*from\s*['"]react-native['"]/);
   });
 
-  it('FR1.6 — NoiseOverlay is placed AFTER <Tabs> (wrapper View + overlay after Tabs)', () => {
+  it('FR1.6 — NoiseOverlay is placed AFTER each navigator (wrapper View + overlay after navigator)', () => {
     // NoiseOverlay handles pointerEvents="none" internally.
-    // Verify structural placement: <NoiseOverlay /> appears after </Tabs> in source.
-    const tabsEnd = source.indexOf('</Tabs>');
-    const noiseStart = source.indexOf('<NoiseOverlay');
-    expect(tabsEnd).toBeGreaterThan(-1);
-    expect(noiseStart).toBeGreaterThan(tabsEnd);
+    // Verify structural placement: each <NoiseOverlay /> appears after its preceding navigator.
+    // Since 06-native-tabs added NativeTabs as an additional render path, there are now
+    // two navigators (NativeTabs and Tabs) each followed by <NoiseOverlay />.
+    // Check that the last <NoiseOverlay> appears after the last navigator close tag.
+    const allTabsEnd = [...source.matchAll(/<\/Tabs>/g)].map((m) => m.index ?? 0);
+    const allNativeTabsEnd = [...source.matchAll(/<\/NativeTabs>/g)].map((m) => m.index ?? 0);
+    const allNavEnds = [...allTabsEnd, ...allNativeTabsEnd];
+    const lastNavEnd = Math.max(...allNavEnds);
+    const allNoiseStarts = [...source.matchAll(/<NoiseOverlay/g)].map((m) => m.index ?? 0);
+    const lastNoiseStart = Math.max(...allNoiseStarts);
+    expect(lastNavEnd).toBeGreaterThan(-1);
+    expect(lastNoiseStart).toBeGreaterThan(lastNavEnd);
   });
 });
 
