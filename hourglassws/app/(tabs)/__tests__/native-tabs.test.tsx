@@ -20,7 +20,7 @@ import * as path from 'path';
 // ─── File paths ───────────────────────────────────────────────────────────────
 
 const LAYOUT_FILE = path.resolve(__dirname, '../_layout.tsx');
-const APP_JSON_FILE = path.resolve(__dirname, '../../../../app.json');
+const APP_JSON_FILE = path.resolve(__dirname, '../../../app.json');
 
 // ─── FR1: Feature flags in app.json ──────────────────────────────────────────
 
@@ -184,10 +184,13 @@ describe('06-native-tabs — FR4: NativeTabs render path', () => {
     expect(code).not.toContain('tabBarBackground');
   });
 
-  it('SC4.5 / SC4.6 — badge logic uses ternary with items.length', () => {
-    // tabBarBadge: items.length > 0 ? items.length : undefined
-    expect(source).toMatch(/tabBarBadge.*items\.length/);
-    expect(source).toMatch(/items\.length.*>.*0.*\?.*items\.length.*:.*undefined/);
+  it('SC4.5 / SC4.6 — badge logic derives count from items.length with undefined fallback', () => {
+    // Badge is set to count when > 0, undefined when 0. May be inline or via variable.
+    // Verify the critical ternary exists somewhere in source:
+    //   items.length > 0 ? items.length : undefined
+    expect(source).toContain('items.length');
+    expect(source).toMatch(/items\.length\s*>\s*0\s*\?\s*items\.length\s*:\s*undefined/);
+    expect(source).toContain('tabBarBadge');
   });
 
   it('SC4.7 — explore tab hidden via href: null', () => {
