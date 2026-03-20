@@ -1,40 +1,29 @@
 // Tests: Card component (02-dark-glass + 01-ambient-layer)
-// FR1: Card glass layer — base variant (BlurView intensity 60, semi-transparent bg)
-// FR2: Card glass layer — elevated variant (BlurView intensity 80, brighter bg)
+// FR1: Card glass layer — base variant (flat dark surface, no BlurView)
+// FR2: Card glass layer — elevated variant (slightly brighter flat dark surface)
 // FR3: Card glass={false} opt-out — flat legacy render
-// FR3 (01-ambient-layer): GLASS_BASE opacity ≤ 0.15
-// FR4 (01-ambient-layer): GLASS_ELEVATED opacity ≤ 0.20
-// FR3/FR4 (01-ambient-layer): BLUR_INTENSITY_BASE ≥ 60, BLUR_INTENSITY_ELEVATED ≥ 80
+// FR3 (01-ambient-layer): GLASS_BASE opacity updated for flat-glass (no BlurView)
+// FR4 (01-ambient-layer): GLASS_ELEVATED opacity updated for flat-glass (no BlurView)
 //
 // Retained from 03-base-components:
 //   SC1.1 — runtime render checks (children, elevated, className)
 //   SC1.2/SC1.3 — source file class strings (updated for glass implementation)
 //
+// NOTE: BlurView removed from Card (crash fix — see Card.tsx for rationale).
+// Card now uses flat semi-opaque dark surface. Tests updated accordingly.
+//
 // NOTE on NativeWind v4 + test-renderer:
 // NativeWind v4 transforms className to hashed IDs in Jest/node.
 // className assertions are done via source-file static analysis (fs.readFileSync).
-//
-// NOTE on expo-blur mock:
-// BlurView is mocked as a passthrough component so it renders in the test tree.
 
 import React from 'react';
 import { create, act } from 'react-test-renderer';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Mock expo-blur — BlurView renders as passthrough in tests
-jest.mock('expo-blur', () => {
-  const mockReact = require('react');
-  return {
-    __esModule: true,
-    BlurView: ({ children, intensity, tint, style }: any) =>
-      mockReact.createElement('BlurView', { intensity, tint, style }, children ?? null),
-  };
-});
-
 const CARD_FILE = path.resolve(__dirname, '../Card.tsx');
 
-// ─── Module handle — load once after mock is registered ────────────────────────
+// ─── Module handle — load once ────────────────────────────────────────────────
 
 let Card: any;
 let GLASS_BASE: any;
@@ -125,42 +114,30 @@ describe('Card — FR1: GLASS_BASE exported constant', () => {
     expect(GLASS_BASE.borderWidth).toBe(1);
   });
 
-  it('FR1.6 — BLUR_INTENSITY_BASE is ≥ 60 (01-ambient-layer: increased for ambient sampling)', () => {
+  it('FR1.6 — BLUR_INTENSITY_BASE is ≥ 60 (constant retained for test compatibility)', () => {
     expect(BLUR_INTENSITY_BASE).toBeGreaterThanOrEqual(60);
   });
 });
 
-// ─── FR1: Card base renders BlurView ─────────────────────────────────────────
+// ─── FR1: Card base glass layer structure ─────────────────────────────────────
+// BlurView removed — Card uses flat dark surface to avoid GPU framebuffer OOM.
 
-describe('Card — FR1: base glass layer renders BlurView', () => {
-  function findBlurViews(node: any): any[] {
-    if (!node) return [];
-    const results: any[] = [];
-    if (node.type === 'BlurView') results.push(node);
-    if (node.children) {
-      for (const child of node.children) {
-        results.push(...findBlurViews(child));
-      }
-    }
-    return results;
-  }
-
-  it('FR1.7 — base Card renders at least one BlurView', () => {
+describe('Card — FR1: base glass layer structure', () => {
+  it('FR1.7 — base Card renders without BlurView (flat surface, no GPU framebuffer allocation)', () => {
     let tree: any;
     act(() => {
       tree = create(React.createElement(Card, null, 'child'));
     });
-    const blurViews = findBlurViews(tree.toJSON());
-    expect(blurViews.length).toBeGreaterThan(0);
+    const json = JSON.stringify(tree.toJSON());
+    expect(json).not.toContain('BlurView');
   });
 
-  it('FR1.8 — base BlurView has intensity ≥ 60 (01-ambient-layer: increased for ambient sampling)', () => {
+  it('FR1.8 — base Card renders children inside the content layer', () => {
     let tree: any;
     act(() => {
-      tree = create(React.createElement(Card, null, 'child'));
+      tree = create(React.createElement(Card, null, 'inner content'));
     });
-    const blurViews = findBlurViews(tree.toJSON());
-    expect(blurViews[0].props.intensity).toBeGreaterThanOrEqual(60);
+    expect(JSON.stringify(tree.toJSON())).toContain('inner content');
   });
 
   it('FR1.9 — source has overflow hidden in OUTER_STYLE (reliable source check)', () => {
@@ -195,59 +172,32 @@ describe('Card — FR2: GLASS_ELEVATED exported constant', () => {
     expect(GLASS_ELEVATED.borderColor).toBe(GLASS_BASE.borderColor);
   });
 
-  it('FR2.5 — BLUR_INTENSITY_ELEVATED is ≥ 80 (01-ambient-layer: increased for ambient sampling)', () => {
+  it('FR2.5 — BLUR_INTENSITY_ELEVATED is ≥ 80 (constant retained for test compatibility)', () => {
     expect(BLUR_INTENSITY_ELEVATED).toBeGreaterThanOrEqual(80);
   });
 });
 
-// ─── FR2: elevated BlurView intensity ────────────────────────────────────────
+// ─── FR2: elevated variant renders without BlurView ──────────────────────────
 
-describe('Card — FR2: elevated variant uses intensity 60', () => {
-  function findBlurViews(node: any): any[] {
-    if (!node) return [];
-    const results: any[] = [];
-    if (node.type === 'BlurView') results.push(node);
-    if (node.children) {
-      for (const child of node.children) {
-        results.push(...findBlurViews(child));
-      }
-    }
-    return results;
-  }
-
-  it('FR2.6 — elevated Card renders BlurView with intensity ≥ 80 (01-ambient-layer)', () => {
+describe('Card — FR2: elevated variant uses flat dark surface', () => {
+  it('FR2.6 — elevated Card renders without BlurView (flat surface, no GPU framebuffer allocation)', () => {
     let tree: any;
     act(() => {
       tree = create(React.createElement(Card, { elevated: true }, 'elevated child'));
     });
-    const blurViews = findBlurViews(tree.toJSON());
-    expect(blurViews.length).toBeGreaterThan(0);
-    expect(blurViews[0].props.intensity).toBeGreaterThanOrEqual(80);
+    expect(JSON.stringify(tree.toJSON())).not.toContain('BlurView');
   });
 });
 
 // ─── FR3: glass={false} opt-out ──────────────────────────────────────────────
 
 describe('Card — FR3: glass opt-out prop', () => {
-  function findBlurViews(node: any): any[] {
-    if (!node) return [];
-    const results: any[] = [];
-    if (node.type === 'BlurView') results.push(node);
-    if (node.children) {
-      for (const child of node.children) {
-        results.push(...findBlurViews(child));
-      }
-    }
-    return results;
-  }
-
   it('FR3.1 — glass={false} renders no BlurView', () => {
     let tree: any;
     act(() => {
       tree = create(React.createElement(Card, { glass: false }, 'flat child'));
     });
-    const blurViews = findBlurViews(tree.toJSON());
-    expect(blurViews.length).toBe(0);
+    expect(JSON.stringify(tree.toJSON())).not.toContain('BlurView');
   });
 
   it('FR3.2 — glass={false} still renders children', () => {
@@ -258,13 +208,13 @@ describe('Card — FR3: glass opt-out prop', () => {
     expect(JSON.stringify(tree.toJSON())).toContain('flat child');
   });
 
-  it('FR3.3 — glass={true} (default) renders BlurView', () => {
+  it('FR3.3 — glass={true} (default) renders without BlurView (flat-glass implementation)', () => {
     let tree: any;
     act(() => {
       tree = create(React.createElement(Card, { glass: true }, 'glass child'));
     });
-    const blurViews = findBlurViews(tree.toJSON());
-    expect(blurViews.length).toBeGreaterThan(0);
+    // BlurView removed from Card — both glass=true and glass=false use flat surfaces
+    expect(JSON.stringify(tree.toJSON())).not.toContain('BlurView');
   });
 
   it('FR3.4 — className prop is accepted without crash in both modes', () => {
@@ -281,7 +231,7 @@ describe('Card — FR3: glass opt-out prop', () => {
   });
 });
 
-// ─── Source file static checks (updated for 02-dark-glass) ───────────────────
+// ─── Source file static checks (updated for flat-glass) ──────────────────────
 
 describe('Card — source file structure checks', () => {
   let source: string;
@@ -322,9 +272,10 @@ describe('Card — source file structure checks', () => {
     expect(source).toContain('GLASS_ELEVATED');
   });
 
-  it('SC2.3 — source imports BlurView from expo-blur', () => {
-    expect(source).toContain('expo-blur');
-    expect(source).toContain('BlurView');
+  it('SC2.3 — source does not import BlurView (flat-glass implementation, no per-card GPU framebuffer)', () => {
+    // BlurView removed from Card to prevent concurrent UIVisualEffectView allocation OOM.
+    // PanelGradient and AIArcHero retain their single BlurViews.
+    expect(noComments).not.toContain('BlurView');
   });
 
   it('SC2.4 — source uses rgba white border colour', () => {
@@ -332,26 +283,66 @@ describe('Card — source file structure checks', () => {
     expect(source).toMatch(/rgba\(255, 255, 255, 0\.\d+\)/);
   });
 
-  it('SC2.5 — source uses StyleSheet.absoluteFill (for blur positioning)', () => {
-    expect(source).toContain('StyleSheet.absoluteFill');
+  it('SC2.5 — source does not use StyleSheet.absoluteFill (BlurView removed)', () => {
+    expect(noComments).not.toContain('StyleSheet.absoluteFill');
+  });
+});
+
+// ─── FR7 (03-glass-surfaces): Card delegation to GlassCard ───────────────────
+// Card with glass=true (default) now delegates to GlassCard which renders a
+// Skia Canvas with BackdropFilter. glass=false keeps the flat legacy surface.
+
+describe('Card — FR7 (03-glass-surfaces): GlassCard delegation', () => {
+  it('FR7.1 — Card with default props renders Canvas element (GlassCard delegation)', () => {
+    let tree: any;
+    act(() => {
+      tree = create(React.createElement(Card, null, 'child'));
+    });
+    expect(JSON.stringify(tree.toJSON())).toContain('"Canvas"');
+  });
+
+  it('FR7.2 — Card glass={false} renders no Canvas element (flat surface)', () => {
+    let tree: any;
+    act(() => {
+      tree = create(React.createElement(Card, { glass: false }, 'child'));
+    });
+    expect(JSON.stringify(tree.toJSON())).not.toContain('"Canvas"');
+  });
+
+  it('FR7.3 — Card elevated={true} renders without crash (elevated passed to GlassCard)', () => {
+    expect(() => {
+      act(() => {
+        create(React.createElement(Card, { elevated: true }, 'elevated child'));
+      });
+    }).not.toThrow();
+  });
+
+  it('FR7.4 — Card glass={true} default renders children inside GlassCard', () => {
+    let tree: any;
+    act(() => {
+      tree = create(React.createElement(Card, null, 'glass child'));
+    });
+    expect(JSON.stringify(tree.toJSON())).toContain('glass child');
   });
 });
 
 // ─── FR3 (01-ambient-layer): GLASS_BASE opacity ───────────────────────────────
+// Opacity updated: flat-glass uses high-alpha backgrounds (0.85/0.92) since there
+// is no underlying blur to provide the frosted-glass depth. Low alpha (0.12/0.18)
+// only made sense when a BlurView sat behind the surface.
 
-describe('Card — FR3 (01-ambient-layer): GLASS_BASE opacity reduction', () => {
-  it('FR3-ambient.1 — GLASS_BASE.backgroundColor alpha is ≤ 0.15', () => {
-    // Extract alpha value from rgba(r, g, b, alpha)
+describe('Card — FR3 (01-ambient-layer): GLASS_BASE opacity (flat-glass)', () => {
+  it('FR3-ambient.1 — GLASS_BASE.backgroundColor alpha is > 0.5 (opaque flat-glass surface)', () => {
     const match = GLASS_BASE.backgroundColor.match(/rgba\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)/);
     expect(match).not.toBeNull();
     const alpha = parseFloat(match![1]);
-    expect(alpha).toBeLessThanOrEqual(0.15);
+    expect(alpha).toBeGreaterThan(0.5);
   });
 
-  it('FR3-ambient.2 — GLASS_ELEVATED.backgroundColor alpha is ≤ 0.20', () => {
+  it('FR3-ambient.2 — GLASS_ELEVATED.backgroundColor alpha is > 0.5 (opaque flat-glass surface)', () => {
     const match = GLASS_ELEVATED.backgroundColor.match(/rgba\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)/);
     expect(match).not.toBeNull();
     const alpha = parseFloat(match![1]);
-    expect(alpha).toBeLessThanOrEqual(0.20);
+    expect(alpha).toBeGreaterThan(0.5);
   });
 });
