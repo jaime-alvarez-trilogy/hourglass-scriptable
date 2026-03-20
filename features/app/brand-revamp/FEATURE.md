@@ -50,7 +50,7 @@ The Hourglass application has a solid architectural foundation (Expo SDK 55, Rea
 | 2026-03-19 | [03-glass-surfaces](specs/03-glass-surfaces/spec-research.md) | Skia BackdropFilter GlassCard + gradient borders + inner shadows |
 | 2026-03-19 | [04-victory-charts](specs/04-victory-charts/spec.md) | VNX chart migration + neon glows + SweepGradient AI arc — **SPEC READY** |
 | 2026-03-19 | [05-motion-system](specs/05-motion-system/spec-research.md) | Staggered entry, PressIn micro-interactions, list cascade |
-| 2026-03-19 | [06-native-tabs](specs/06-native-tabs/spec.md) | NativeTabs migration — spec complete |
+| 2026-03-19 | [06-native-tabs](specs/06-native-tabs/spec.md) | NativeTabs migration — **COMPLETE** |
 | 2026-03-19 | [07-shared-transitions](specs/07-shared-transitions/spec-research.md) | Shared Element Transitions on key navigations |
 
 | Spec | Description | Blocks | Blocked By | Complexity |
