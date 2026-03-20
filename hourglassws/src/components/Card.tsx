@@ -1,19 +1,18 @@
 // Card.tsx
-// FR1 (02-dark-glass): Card glass layer — base variant (BlurView intensity 60)
-// FR2 (02-dark-glass): Card glass layer — elevated variant (BlurView intensity 80)
+// FR1 (02-dark-glass): Card glass layer — base variant
+// FR2 (02-dark-glass): Card glass layer — elevated variant
 // FR3 (02-dark-glass): glass={false} opt-out for flat legacy render
-// FR3/FR4 (01-ambient-layer): opacity 0.12/0.18, intensity 60/80 — enables ambient frost sampling
+// FR1 (03-glass-surfaces): delegates glass=true to GlassCard (Skia BackdropFilter)
 //
 // Design system: BRAND_GUIDELINES.md "Surface & Depth — Dark Glass System"
 //   backdrop-filter: blur(16px), background: hsla(248,15%,10%,0.75)
-//   border: 1px solid rgba(255,255,255,0.06)
+//   gradient border: violetAccent → transparent 45°
 //
-// Architecture:
-//   Outer View  → overflow:hidden + borderRadius (clips BlurView to rounded corners)
-//   BlurView    → StyleSheet.absoluteFill (sits behind content layer)
-//   Inner View  → semi-transparent backgroundColor (lets blur show through)
+// Architecture (03-glass-surfaces):
+//   glass=true  → delegates to GlassCard (BackdropFilter blur + gradient border + InnerShadow)
+//   glass=false → flat legacy View with NativeWind surface classes
 //
-// glass={false} renders flat legacy card for modal overlays that already provide blur.
+// GLASS_BASE/GLASS_ELEVATED exported for test compatibility and flat fallback colors.
 
 import React from 'react';
 import { View, ViewStyle } from 'react-native';

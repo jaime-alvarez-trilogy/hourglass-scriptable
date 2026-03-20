@@ -171,7 +171,9 @@ export default function GlassCard({
           borderRadius: borderRadiusPx,
           overflow: 'hidden',
         },
-        animatedStyle,
+        // Only apply animated scale style when pressable — avoids a no-op GPU
+        // layer on Android for the common non-interactive case
+        pressable ? animatedStyle : undefined,
         style,
       ]}
       renderToHardwareTextureAndroid={Platform.OS === 'android'}
@@ -214,15 +216,13 @@ export default function GlassCard({
 
       {/* InnerShadow: top dark inset + bottom highlight for physical thickness */}
       <InnerShadow
+        inset
         shadowColor={SHADOW_TOP}
         shadowOffset={{ width: 0, height: 4 }}
-        shadowRadius={8}
+        shadowBlur={8}
+        isReflectedLightEnabled
+        reflectedLightColor={SHADOW_BOTTOM}
         style={contentStyle}
-        // Bottom highlight applied via second shadow configuration
-        // react-native-inner-shadow accepts shadowColor for the main shadow;
-        // the SHADOW_BOTTOM highlight is embedded in the component default.
-        // We document the intended value here for source static test assertions:
-        // highlight: SHADOW_BOTTOM = rgba(255,255,255,0.08)
       >
         {children}
       </InnerShadow>
