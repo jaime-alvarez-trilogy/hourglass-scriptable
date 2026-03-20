@@ -28,6 +28,7 @@ import { useStaggeredEntry } from '@/src/hooks/useStaggeredEntry';
 import { computePanelState, computeDaysElapsed } from '@/src/lib/panelState';
 import { computeAICone } from '@/src/lib/aiCone';
 import { getUrgencyLevel, getWeekLabels } from '@/src/lib/hours';
+import { setTag } from '@/src/lib/sharedTransitions';
 import { colors } from '@/src/lib/colors';
 import AmbientBackground, { getAmbientColor } from '@/src/components/AmbientBackground';
 import FadeInScreen from '@/src/components/FadeInScreen';
@@ -316,7 +317,6 @@ export default function HoursDashboard() {
                 width={chartDims.width}
                 height={120}
                 maxHours={Math.max(8, weeklyLimit / 5)}
-                watermarkLabel={data ? `${data.total.toFixed(1)}h` : undefined}
                 weeklyLimit={weeklyLimit}
                 todayColor={TODAY_BAR_COLORS[panelState]}
               />
@@ -340,6 +340,7 @@ export default function HoursDashboard() {
         {/* ── Zone 2.5: AI Trajectory compact card (FR2 03-ai-tab-integration) ── */}
         {coneData && (
           <Animated.View style={getEntryStyle(2)}>
+          <Animated.View {...setTag('home-ai-card')}>
           <Card>
             <SectionLabel className="mb-2">AI TRAJECTORY</SectionLabel>
             <View
@@ -356,10 +357,12 @@ export default function HoursDashboard() {
             </View>
           </Card>
           </Animated.View>
+          </Animated.View>
         )}
 
         {/* ── Zone 3: Earnings ─────────────────────────────────────────── */}
         <Animated.View style={getEntryStyle(3)}>
+        <Animated.View {...setTag('home-earnings-card')}>
         <Card>
           <SectionLabel className="mb-2">EARNINGS</SectionLabel>
 
@@ -420,6 +423,7 @@ export default function HoursDashboard() {
             </>
           )}
         </Card>
+        </Animated.View>
         </Animated.View>
 
         {/* ── Footer: UrgencyBanner ─────────────────────────────────────── */}
