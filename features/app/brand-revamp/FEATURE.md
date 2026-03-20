@@ -46,7 +46,7 @@ The Hourglass application has a solid architectural foundation (Expo SDK 55, Rea
 | Date | Spec | Description |
 |------|------|-------------|
 | 2026-03-19 | [01-design-tokens](specs/01-design-tokens/spec.md) | Typography system migration + text color desaturation — **COMPLETE** |
-| 2026-03-19 | [02-animated-mesh](specs/02-animated-mesh/spec.md) | Animated Skia RadialGradient background — **SPEC READY** |
+| 2026-03-19 | [02-animated-mesh](specs/02-animated-mesh/spec.md) | Animated Skia RadialGradient background — **COMPLETE** |
 | 2026-03-19 | [03-glass-surfaces](specs/03-glass-surfaces/spec-research.md) | Skia BackdropFilter GlassCard + gradient borders + inner shadows |
 | 2026-03-19 | [04-victory-charts](specs/04-victory-charts/spec.md) | VNX chart migration + neon glows + SweepGradient AI arc — **SPEC READY** |
 | 2026-03-19 | [05-motion-system](specs/05-motion-system/spec-research.md) | Staggered entry, PressIn micro-interactions, list cascade |
@@ -201,8 +201,11 @@ hourglassws/
     lib/
       colors.ts                ← 01: sync textPrimary/Secondary/Muted
     components/
-      AnimatedMeshBackground.tsx  ← 02: new (replaces AmbientBackground)
-      AmbientBackground.tsx       ← 02: deprecated (kept for compat, delegates to new)
+      AnimatedMeshBackground.tsx  ← 02: new — Skia Canvas, 3 orbiting RadialGradient nodes, BlendMode.Screen
+      AmbientBackground.tsx       ← 02: deprecated (delegates default export to AnimatedMeshBackground; named exports preserved)
+      __tests__/
+        AnimatedMeshBackground.test.tsx  ← 02: 56 tests (FR1–FR5)
+        AmbientBackground.test.tsx       ← 02: updated (51 tests, compat wrapper checks)
       GlassCard.tsx               ← 03: new (Skia BackdropFilter + gradient border + shadow)
       Card.tsx                    ← 03: updated to use GlassCard
       WeeklyBarChart.tsx          ← 04: migrated to VNX CartesianChart + Bar
