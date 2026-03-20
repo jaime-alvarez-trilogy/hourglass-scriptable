@@ -31,6 +31,8 @@ import TrendSparkline from '@/src/components/TrendSparkline';
 import { DailyAIRow } from '@/src/components/DailyAIRow';
 import { computeAICone } from '@/src/lib/aiCone';
 import { colors } from '@/src/lib/colors';
+import { setTag } from '@/src/lib/sharedTransitions';
+import Animated from 'react-native-reanimated';
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
@@ -209,6 +211,7 @@ export default function AIScreen() {
           />
 
           {/* Prime Radiant Card — FR1 (03-ai-tab-integration) */}
+          <Animated.View {...setTag('home-ai-card')}>
           <Card>
             <SectionLabel className="mb-3">PRIME RADIANT</SectionLabel>
             {coneData ? (
@@ -227,6 +230,7 @@ export default function AIScreen() {
               </View>
             ) : null}
           </Card>
+          </Animated.View>
 
           {/* Daily Breakdown Card — FR5 */}
           {safeData.dailyBreakdown.length > 0 && (
