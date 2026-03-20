@@ -179,11 +179,14 @@ describe('GlassCard — FR3: inner shadow physical depth', () => {
 // ─── FR4: Pressable spring animation ─────────────────────────────────────────
 
 describe('GlassCard — FR4: pressable spring animation', () => {
-  it('FR4.1 — pressable=false (default) renders without Pressable in tree', () => {
+  it('FR4.1 — pressable=false (default) has no press handler on root element', () => {
+    // In jest/web env Pressable renders as a div — can't check by element type.
+    // Instead verify there is no element with onPressIn/onPressOut in the tree,
+    // which confirms no press responder is wired.
     const tree = renderCard({ pressable: false });
-    const json = treeJSON(tree);
-    // Without pressable, no Pressable wrapper should appear
-    expect(json).not.toContain('"Pressable"');
+    const json = tree.toJSON();
+    expect(findElementWithProp(json, 'onPressIn')).toBeNull();
+    expect(findElementWithProp(json, 'onPressOut')).toBeNull();
   });
 
   it('FR4.2 — pressable=true wraps card in a touchable element (source check)', () => {
