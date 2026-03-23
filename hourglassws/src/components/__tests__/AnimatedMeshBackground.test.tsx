@@ -354,9 +354,10 @@ describe('AnimatedMeshBackground — FR3: Node C color resolution', () => {
 
     it('FR3.16 — panelState takes priority over earningsPace when both provided', () => {
       if (!resolveNodeCColor) return;
-      // panelState=critical (#F43F5E) should win over earningsPace=0.9 (would give gold)
+      // panelState=critical (#F87171) should win over earningsPace=0.9 (would give gold)
+      // 10-mesh-color-overhaul: critical changed from #F43F5E → #F87171 (desatCoral)
       const result = resolveNodeCColor('critical', 0.9);
-      expect(result.toLowerCase()).toContain('f43f5e');
+      expect(result.toLowerCase()).toContain('f87171');
     });
   });
 });

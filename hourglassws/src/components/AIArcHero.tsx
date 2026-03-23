@@ -3,7 +3,7 @@
 //
 // Visual enhancement:
 //   Arc stroke paint: SweepGradient with tier-derived color [tierColor, tierColor]
-//   (10-mesh-color-overhaul FR4: was static ['#00C2FF', '#A78BFA', '#FF00FF'])
+//   (10-mesh-color-overhaul FR4: replaced static 3-stop gradient with tier-aware solid color)
 //   Tier color from classifyAIPct(aiPct).color (see src/lib/aiTier.ts)
 //   Animation: sweepProgress SharedValue 0→aiPct/100 via withSpring (mass=1, stiffness=80, damping=12)
 //   Path trim: Skia Path.copy().trim(0, sweepProgress, false)
@@ -146,7 +146,7 @@ export default function AIArcHero({
       : '';
 
   // Tier-aware arc color — derived from aiPct at render time (10-mesh-color-overhaul FR4)
-  // Replaces static GRADIENT_COLORS ['#00C2FF', '#A78BFA', '#FF00FF'].
+  // Previously used a static 3-stop cyan/violet/magenta gradient, now solid tier color.
   // [tierColor, tierColor] produces a solid-color arc via a two-stop identical gradient.
   const tierColor = classifyAIPct(aiPct).color;
 
