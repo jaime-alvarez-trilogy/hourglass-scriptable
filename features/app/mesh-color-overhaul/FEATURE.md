@@ -58,4 +58,4 @@ The following items from the visual QA pass were already fixed in 09-chart-visua
 
 | Date | Spec | Description |
 |------|------|-------------|
-| 2026-03-23 | [10-mesh-color-overhaul](specs/10-mesh-color-overhaul/spec.md) | Spec created. 5 FRs: mesh radius, state palette, aiTier utility, arc color, sparkline padding. |
+| 2026-03-23 | [10-mesh-color-overhaul](specs/10-mesh-color-overhaul/spec.md) | Complete. 5 FRs implemented: mesh radius w*1.2, desaturated state palette (7 new tokens), aiTier utility extracted, AIArcHero tier-aware arc, TrendSparkline left padding. |
