@@ -386,8 +386,9 @@ describe('AnimatedMeshBackground — FR4: gradient node visual spec', () => {
     expect(source).toContain('vec');
   });
 
-  it('FR4.6 — source contains 0.12 alpha for inner gradient stops', () => {
-    expect(source).toContain('0.12');
+  it('FR4.6 — source contains 0.22 alpha for inner gradient stops (08-dark-glass-polish: bumped from 0.15 to 0.22)', () => {
+    // Bumped from 0.15 → 0.22 in 08-dark-glass-polish for more visible light bloom behind glass
+    expect(source).toContain('0.22');
   });
 
   it('FR4.7 — Node A contains violet color A78BFA (case-insensitive)', () => {
@@ -483,5 +484,83 @@ describe('hexToRgba helper (if exported)', () => {
     if (!mod.hexToRgba) return; // optional export
     expect(mod.hexToRgba('#A78BFA', 0.12)).toBe('rgba(167,139,250,0.12)');
     expect(mod.hexToRgba('#00C2FF', 0.12)).toBe('rgba(0,194,255,0.12)');
+  });
+
+  it('FR5.9 — hexToRgba with 0.22 alpha for NODE_A (08-dark-glass-polish opacity bump)', () => {
+    const mod = require('../AnimatedMeshBackground');
+    if (!mod.hexToRgba) return;
+    expect(mod.hexToRgba('#A78BFA', 0.22)).toBe('rgba(167,139,250,0.22)');
+    expect(mod.hexToRgba('#00C2FF', 0.22)).toBe('rgba(0,194,255,0.22)');
+  });
+});
+
+// ─── 08-dark-glass-polish: Node C color signal tests (FR4) ──────────────────
+
+describe('AnimatedMeshBackground — 08-dark-glass-polish FR4: Node C signal wiring', () => {
+  let source: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(MESH_FILE, 'utf8');
+  });
+
+  it('FR4-polish.1 — NODE_A_INNER uses 0.22 opacity (not 0.15)', () => {
+    // 08-dark-glass-polish bumps opacity 0.15 → 0.22 for more visible light bloom
+    expect(source).toContain("rgba(167,139,250,0.22)");
+  });
+
+  it('FR4-polish.2 — NODE_B_INNER uses 0.22 opacity (not 0.15)', () => {
+    expect(source).toContain("rgba(0,194,255,0.22)");
+  });
+
+  it('FR4-polish.3 — source uses 0.22 for Node C hexToRgba call', () => {
+    // hexToRgba(nodeCHex, 0.22) — the dynamic Node C opacity
+    expect(source).toContain('0.22');
+  });
+
+  it('FR4-polish.4 — resolveNodeCColor earningsPace=0.9 returns gold', () => {
+    const mod = require('../AnimatedMeshBackground');
+    if (!mod.resolveNodeCColor) return;
+    const result = mod.resolveNodeCColor(undefined, 0.9);
+    // gold = #E8C97A
+    expect(result.toLowerCase()).toContain('e8c97a');
+  });
+
+  it('FR4-polish.5 — resolveNodeCColor earningsPace=0.65 returns warning color', () => {
+    const mod = require('../AnimatedMeshBackground');
+    if (!mod.resolveNodeCColor) return;
+    const result = mod.resolveNodeCColor(undefined, 0.65);
+    // warning = #F59E0B
+    expect(result.toLowerCase()).toContain('f59e0b');
+  });
+
+  it('FR4-polish.6 — resolveNodeCColor earningsPace=0.5 returns critical color', () => {
+    const mod = require('../AnimatedMeshBackground');
+    if (!mod.resolveNodeCColor) return;
+    const result = mod.resolveNodeCColor(undefined, 0.5);
+    // critical = #F43F5E
+    expect(result.toLowerCase()).toContain('f43f5e');
+  });
+
+  it('FR4-polish.7 — resolveNodeCColor aiPct=80 returns violet', () => {
+    const mod = require('../AnimatedMeshBackground');
+    if (!mod.resolveNodeCColor) return;
+    const result = mod.resolveNodeCColor(undefined, undefined, 80);
+    // violet = #A78BFA
+    expect(result.toLowerCase()).toContain('a78bfa');
+  });
+
+  it('FR4-polish.8 — resolveNodeCColor aiPct=65 returns cyan', () => {
+    const mod = require('../AnimatedMeshBackground');
+    if (!mod.resolveNodeCColor) return;
+    const result = mod.resolveNodeCColor(undefined, undefined, 65);
+    // cyan = #00C2FF
+    expect(result.toLowerCase()).toContain('00c2ff');
+  });
+
+  it('FR4-polish.9 — resolveNodeCColor aiPct=50 returns warning', () => {
+    const mod = require('../AnimatedMeshBackground');
+    if (!mod.resolveNodeCColor) return;
+    const result = mod.resolveNodeCColor(undefined, undefined, 50);
+    expect(result.toLowerCase()).toContain('f59e0b');
   });
 });

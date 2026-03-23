@@ -366,6 +366,39 @@ describe('AIArcHero — SC4.13: crash-free rendering', () => {
   });
 });
 
+// ─── SC4.3f: fill Path uses color="white" (08-dark-glass-polish FR2) ─────────
+//
+// The fill Path must use color="white" (alpha=1.0) so that the SweepGradient
+// shader is multiplied against full alpha and renders visibly.
+// color="transparent" zeroes the paint alpha and makes the gradient invisible.
+
+describe('AIArcHero — SC4.3f: fill Path color (08-dark-glass-polish FR2)', () => {
+  let source: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(COMPONENT_FILE, 'utf8');
+  });
+
+  it('SC4.3f.1 — fill Path does NOT use color="transparent"', () => {
+    // "transparent" on the fill Path zeroes paint alpha → SweepGradient invisible
+    // The fill Path is the second Path in the Canvas (after the track arc)
+    // We check the source does not have color="transparent" near a SweepGradient
+    const sweepGradientIdx = source.indexOf('<SweepGradient');
+    expect(sweepGradientIdx).toBeGreaterThan(-1);
+
+    // The fill Path wraps the SweepGradient — look at nearby context
+    const nearbyContext = source.slice(Math.max(0, sweepGradientIdx - 300), sweepGradientIdx);
+    expect(nearbyContext).not.toContain('color="transparent"');
+  });
+
+  it('SC4.3f.2 — fill Path uses color="white" (full alpha enables gradient)', () => {
+    // color="white" → alpha=1.0 → gradient multiplied by 1 → visible
+    const sweepGradientIdx = source.indexOf('<SweepGradient');
+    const nearbyContext = source.slice(Math.max(0, sweepGradientIdx - 300), sweepGradientIdx);
+    expect(nearbyContext).toContain('color="white"');
+  });
+});
+
 // ─── SC4.14: size prop ───────────────────────────────────────────────────────
 
 describe('AIArcHero — SC4.14: size prop', () => {
