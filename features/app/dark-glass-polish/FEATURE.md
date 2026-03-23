@@ -54,14 +54,34 @@ Despite the glass architecture being in place, four specific areas fall short of
 - New components (all changes are in-place edits)
 - Test changes beyond updating affected unit tests
 
+## Status
+
+**Complete** (2026-03-23)
+
 ## Specs
 
-| Spec | Description | Blocks | Blocked By | Complexity |
-|------|-------------|--------|------------|------------|
-| 08-dark-glass-polish | All 4 visual fixes (bento grid, ring gradient, row glass, mesh signals) | — | — | M |
+| Spec | Status | Description | Blocks | Blocked By | Complexity |
+|------|--------|-------------|--------|------------|------------|
+| 08-dark-glass-polish | Complete | All 4 visual fixes (bento grid, ring gradient, row glass, mesh signals) | — | — | M |
+
+## Files Touched
+
+| File | Change |
+|------|--------|
+| `hourglassws/app/(tabs)/overview.tsx` | FR1 bento grid layout + FR4 mesh wiring |
+| `hourglassws/app/(tabs)/ai.tsx` | FR4 mesh signal wiring |
+| `hourglassws/src/components/AIArcHero.tsx` | FR2 fill path color fix |
+| `hourglassws/src/components/DailyAIRow.tsx` | FR3 row glass elevation |
+| `hourglassws/src/components/AnimatedMeshBackground.tsx` | FR4 opacity bump 0.15→0.22 |
+| `hourglassws/src/components/__tests__/AIArcHeroSkia.test.tsx` | FR2 fill path tests |
+| `hourglassws/src/components/__tests__/AnimatedMeshBackground.test.tsx` | FR4 opacity + signal tests |
+| `hourglassws/src/components/__tests__/DailyAIRow.test.tsx` | FR3 new test file (22 tests) |
+| `hourglassws/app/(tabs)/__tests__/overview.test.tsx` | Update FR4 mesh wiring tests |
+| `hourglassws/app/(tabs)/__tests__/ai.test.tsx` | Update FR4 mesh wiring tests |
 
 ## Changelog
 
 | Date | Spec | Description |
 |------|------|-------------|
 | 2026-03-23 | [08-dark-glass-polish](specs/08-dark-glass-polish/spec.md) | Add spec and checklist for 4 visual fixes |
+| 2026-03-23 | [08-dark-glass-polish](specs/08-dark-glass-polish/spec.md) | Implement all 4 fixes — bento grid, ring gradient, row glass, mesh signals |
