@@ -377,3 +377,36 @@ describe('TrendSparkline — FR1+FR2 (04-victory-charts): VNX glow', () => {
     ).not.toThrow();
   });
 });
+
+// ─── 10-mesh-color-overhaul: FR5 — Left domainPadding ───────────────────────
+
+describe('TrendSparkline — 10-mesh-color-overhaul FR5: left domainPadding', () => {
+  let source: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(SPARKLINE_FILE, 'utf8');
+  });
+
+  it('FR5-overhaul.1 — domainPadding has left: 10 (not left: 0)', () => {
+    // Pattern matches { left: 10, right: 10 } in any whitespace format
+    expect(source).toMatch(/domainPadding=\{\{\s*left:\s*10,\s*right:\s*10\s*\}\}/);
+  });
+
+  it('FR5-overhaul.2 — source does NOT contain domainPadding with left: 0', () => {
+    // left: 0 is the old value — must be replaced with left: 10
+    const domainPaddingLine = source.split('\n').find(line =>
+      line.includes('domainPadding') && line.includes('left:') && !line.trimStart().startsWith('//')
+    );
+    if (domainPaddingLine) {
+      expect(domainPaddingLine).not.toMatch(/left:\s*0[^.0-9]/);
+    }
+  });
+
+  it('FR5-overhaul.3 — padTop and padBottom domain calc lines are unchanged', () => {
+    // These lines use yRange * 0.20 and yRange * 0.10 and must not be modified
+    expect(source).toContain('padTop');
+    expect(source).toContain('padBottom');
+    expect(source).toMatch(/yRange\s*\*\s*0\.20/);
+    expect(source).toMatch(/yRange\s*\*\s*0\.10/);
+  });
+});

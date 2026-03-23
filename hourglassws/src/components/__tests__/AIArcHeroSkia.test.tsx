@@ -142,21 +142,57 @@ describe('AIArcHero — SC4.3: SweepGradient paint', () => {
     expect(source).toContain('SweepGradient');
   });
 
-  it('SC4.3b — SweepGradient includes cyan #00C2FF', () => {
-    expect(source).toContain('#00C2FF');
+  // SC4.3b/c/d/e: static GRADIENT_COLORS removed by 10-mesh-color-overhaul
+  // Arc color is now tier-derived. Tests updated to reflect new behavior.
+
+  it('SC4.3b — GRADIENT_COLORS constant is removed (10-mesh-color-overhaul FR4)', () => {
+    // The static 3-stop gradient constant must be gone
+    expect(source).not.toContain('GRADIENT_COLORS');
   });
 
-  it('SC4.3c — SweepGradient includes violet #A78BFA', () => {
-    expect(source).toContain('#A78BFA');
+  it('SC4.3c — source does NOT contain static cyan arc #00C2FF in gradient colors', () => {
+    // #00C2FF was one of the static gradient stops; now derived from classifyAIPct
+    // It should not appear as a static gradient color in the SweepGradient block
+    // Note: it may still appear in other contexts (e.g. Node B in comments), but
+    // GRADIENT_COLORS is removed so it can't be used as a gradient stop.
+    expect(source).not.toContain('GRADIENT_COLORS');
   });
 
-  it('SC4.3d — SweepGradient includes magenta #FF00FF', () => {
-    expect(source).toContain('#FF00FF');
+  it('SC4.3d — source does NOT contain static magenta #FF00FF', () => {
+    expect(source).not.toContain('#FF00FF');
   });
 
-  it('SC4.3e — SweepGradient colors array contains all three gradient colors', () => {
-    // Pattern: colors={['#00C2FF', '#A78BFA', '#FF00FF']} or similar
-    expect(source).toMatch(/#00C2FF[\s\S]{0,50}#A78BFA[\s\S]{0,50}#FF00FF|SweepGradient[\s\S]{0,200}#00C2FF/);
+  it('SC4.3e — SweepGradient uses [tierColor, tierColor] (two identical tier-derived stops)', () => {
+    // The gradient is now driven by tierColor (from classifyAIPct)
+    expect(source).toContain('tierColor');
+    expect(source).toMatch(/\[tierColor,\s*tierColor\]/);
+  });
+});
+
+// ─── 10-mesh-color-overhaul FR4: Tier-aware arc color ────────────────────────
+
+describe('AIArcHero — 10-mesh-color-overhaul FR4: tier-aware arc color', () => {
+  let source: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(COMPONENT_FILE, 'utf8');
+  });
+
+  it('FR4-overhaul.1 — classifyAIPct is imported from @/src/lib/aiTier', () => {
+    expect(source).toContain('classifyAIPct');
+    expect(source).toContain('@/src/lib/aiTier');
+  });
+
+  it('FR4-overhaul.2 — tierColor is derived from classifyAIPct(aiPct).color', () => {
+    expect(source).toMatch(/classifyAIPct\s*\(\s*aiPct\s*\)\s*\.color/);
+  });
+
+  it('FR4-overhaul.3 — SweepGradient colors uses [tierColor, tierColor]', () => {
+    expect(source).toMatch(/colors=\{\s*\[tierColor,\s*tierColor\]\s*\}/);
+  });
+
+  it('FR4-overhaul.4 — track arc color rgba(255,255,255,0.08) is unchanged', () => {
+    expect(source).toContain('rgba(255,255,255,0.08)');
   });
 });
 

@@ -299,34 +299,39 @@ describe('AnimatedMeshBackground — FR3: Node C color resolution', () => {
 
   // If resolveNodeCColor is exported, test the pure function directly
   describe('resolveNodeCColor (if exported)', () => {
-    it('FR3.8 — panelState="onTrack" → returns string containing #10B981', () => {
+    it('FR3.8 — panelState="onTrack" → returns #4ADE80 (10-mesh-color-overhaul: desaturated success green)', () => {
       if (!resolveNodeCColor) return; // skip if not exported
       const result = resolveNodeCColor('onTrack');
-      expect(result.toLowerCase()).toContain('10b981');
+      // Updated by 10-mesh-color-overhaul: #10B981 → #4ADE80
+      expect(result.toLowerCase()).toContain('4ade80');
     });
 
-    it('FR3.9 — panelState="crushedIt" → returns string containing #E8C97A', () => {
+    it('FR3.9 — panelState="crushedIt" → returns #C89F5D (10-mesh-color-overhaul: champagne gold)', () => {
       if (!resolveNodeCColor) return;
       const result = resolveNodeCColor('crushedIt');
-      expect(result.toLowerCase()).toContain('e8c97a');
+      // Updated by 10-mesh-color-overhaul: #E8C97A → #C89F5D
+      expect(result.toLowerCase()).toContain('c89f5d');
     });
 
-    it('FR3.10 — panelState="critical" → returns string containing #F43F5E', () => {
+    it('FR3.10 — panelState="critical" → returns #F87171 (10-mesh-color-overhaul: desaturated coral)', () => {
       if (!resolveNodeCColor) return;
       const result = resolveNodeCColor('critical');
-      expect(result.toLowerCase()).toContain('f43f5e');
+      // Updated by 10-mesh-color-overhaul: #F43F5E → #F87171
+      expect(result.toLowerCase()).toContain('f87171');
     });
 
-    it('FR3.11 — panelState="behind" → returns string containing #F59E0B', () => {
+    it('FR3.11 — panelState="behind" → returns #FCD34D (10-mesh-color-overhaul: warn amber)', () => {
       if (!resolveNodeCColor) return;
       const result = resolveNodeCColor('behind');
-      expect(result.toLowerCase()).toContain('f59e0b');
+      // Updated by 10-mesh-color-overhaul: #F59E0B → #FCD34D
+      expect(result.toLowerCase()).toContain('fcd34d');
     });
 
-    it('FR3.12 — panelState="idle" → returns #0D0C14 (invisible base)', () => {
+    it('FR3.12 — panelState="idle" → returns #556B8E (10-mesh-color-overhaul: dusty blue, not #0D0C14)', () => {
       if (!resolveNodeCColor) return;
       const result = resolveNodeCColor('idle');
-      expect(result.toLowerCase()).toContain('0d0c14');
+      // Updated by 10-mesh-color-overhaul: null → #556B8E
+      expect(result.toLowerCase()).toContain('556b8e');
     });
 
     it('FR3.13 — all props undefined → returns #0D0C14', () => {
@@ -417,8 +422,9 @@ describe('AnimatedMeshBackground — FR4: gradient node visual spec', () => {
     expect(rectIdx).toBeLessThan(circleIdx);
   });
 
-  it('FR4.11 — source contains w * 0.7 for circle radius', () => {
-    expect(source).toMatch(/0\.7/);
+  it('FR4.11 — source contains w * 1.2 for circle radius (10-mesh-color-overhaul: expanded from 0.7)', () => {
+    // Updated by 10-mesh-color-overhaul: radius expanded from w*0.7 to w*1.2
+    expect(source).toMatch(/1\.2/);
   });
 });
 
@@ -491,6 +497,106 @@ describe('hexToRgba helper (if exported)', () => {
     if (!mod.hexToRgba) return;
     expect(mod.hexToRgba('#A78BFA', 0.22)).toBe('rgba(167,139,250,0.22)');
     expect(mod.hexToRgba('#00C2FF', 0.22)).toBe('rgba(0,194,255,0.22)');
+  });
+});
+
+// ─── 10-mesh-color-overhaul: FR1 — Mesh radius expansion ────────────────────
+
+describe('AnimatedMeshBackground — 10-mesh-color-overhaul FR1: node radius', () => {
+  let source: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(MESH_FILE, 'utf8');
+  });
+
+  it('FR1-overhaul.1 — nodeRadius evaluates to w * 1.2 (not w * 0.7)', () => {
+    // Regex: any form of w * 1.2 or w*1.2
+    expect(source).toMatch(/w\s*\*\s*1\.2/);
+  });
+
+  it('FR1-overhaul.2 — source does NOT contain w * 0.7 as the nodeRadius value', () => {
+    // w * 0.7 should no longer appear as the radius assignment
+    // It's OK if 0.7 appears in comments, but the nodeRadius = line must use 1.2
+    const nodeRadiusLine = source.split('\n').find(line =>
+      line.includes('nodeRadius') && line.includes('=') && !line.trimStart().startsWith('//')
+    );
+    if (nodeRadiusLine) {
+      expect(nodeRadiusLine).toContain('1.2');
+      expect(nodeRadiusLine).not.toContain('0.7');
+    }
+  });
+
+  it('FR1-overhaul.3 — hexToRgba still produces valid rgba string (regression)', () => {
+    const mod = require('../AnimatedMeshBackground');
+    if (!mod.hexToRgba) return;
+    const result = mod.hexToRgba('#A78BFA', 0.22);
+    expect(result).toBe('rgba(167,139,250,0.22)');
+  });
+});
+
+// ─── 10-mesh-color-overhaul: FR2 — State color palette ──────────────────────
+
+describe('AnimatedMeshBackground — 10-mesh-color-overhaul FR2: state color palette', () => {
+  let resolveNodeCColor: (panelState?: any, earningsPace?: any, aiPct?: any) => string;
+
+  beforeAll(() => {
+    jest.resetModules();
+    const mod = require('../AnimatedMeshBackground');
+    resolveNodeCColor = mod.resolveNodeCColor;
+  });
+
+  it('FR2-overhaul.1 — resolveNodeCColor("idle") returns #556B8E (dusty blue, not null)', () => {
+    if (!resolveNodeCColor) return;
+    const result = resolveNodeCColor('idle');
+    expect(result.toLowerCase()).toBe('#556b8e');
+  });
+
+  it('FR2-overhaul.2 — resolveNodeCColor("critical") returns #F87171 (desaturated coral)', () => {
+    if (!resolveNodeCColor) return;
+    const result = resolveNodeCColor('critical');
+    expect(result.toLowerCase()).toBe('#f87171');
+  });
+
+  it('FR2-overhaul.3 — resolveNodeCColor("behind") returns #FCD34D (warn amber)', () => {
+    if (!resolveNodeCColor) return;
+    const result = resolveNodeCColor('behind');
+    expect(result.toLowerCase()).toBe('#fcd34d');
+  });
+
+  it('FR2-overhaul.4 — resolveNodeCColor("onTrack") returns #4ADE80 (success green)', () => {
+    if (!resolveNodeCColor) return;
+    const result = resolveNodeCColor('onTrack');
+    expect(result.toLowerCase()).toBe('#4ade80');
+  });
+
+  it('FR2-overhaul.5 — resolveNodeCColor("aheadOfPace") returns #4ADE80 (same as onTrack)', () => {
+    if (!resolveNodeCColor) return;
+    const result = resolveNodeCColor('aheadOfPace');
+    expect(result.toLowerCase()).toBe('#4ade80');
+  });
+
+  it('FR2-overhaul.6 — resolveNodeCColor("crushedIt") returns #C89F5D (champagne gold)', () => {
+    if (!resolveNodeCColor) return;
+    const result = resolveNodeCColor('crushedIt');
+    expect(result.toLowerCase()).toBe('#c89f5d');
+  });
+
+  it('FR2-overhaul.7 — resolveNodeCColor("overtime") returns #CEA435 (luxury gold)', () => {
+    if (!resolveNodeCColor) return;
+    const result = resolveNodeCColor('overtime');
+    expect(result.toLowerCase()).toBe('#cea435');
+  });
+
+  it('FR2-overhaul.8 — resolveNodeCColor(null, null, null) returns colors.background (#0D0C14)', () => {
+    if (!resolveNodeCColor) return;
+    const result = resolveNodeCColor(null, null, null);
+    expect(result.toLowerCase()).toBe('#0d0c14');
+  });
+
+  it('FR2-overhaul.9 — resolveNodeCColor(undefined, undefined, undefined) returns colors.background', () => {
+    if (!resolveNodeCColor) return;
+    const result = resolveNodeCColor(undefined, undefined, undefined);
+    expect(result.toLowerCase()).toBe('#0d0c14');
   });
 });
 
