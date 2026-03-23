@@ -336,14 +336,17 @@ describe('OverviewScreen FR4 (03-overview-hero) — source: ambient wiring', () 
     expect(source).toMatch(/import.*AmbientBackground/);
   });
 
-  it('SC4.2 — AmbientBackground rendered in source (JSX element)', () => {
+  it('SC4.2 — AnimatedMeshBackground rendered in source (JSX element) [08-dark-glass-polish: replaced AmbientBackground]', () => {
+    // 08-dark-glass-polish: <AmbientBackground color={...} /> replaced with
+    // <AnimatedMeshBackground earningsPace={earningsPace} /> for direct signal wiring
     const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
-    expect(source).toMatch(/<AmbientBackground/);
+    expect(source).toMatch(/<AnimatedMeshBackground/);
   });
 
-  it('SC4.2 — AmbientBackground appears before ScrollView in source (outside scroll)', () => {
+  it('SC4.2 — AnimatedMeshBackground appears before ScrollView in source (outside scroll)', () => {
+    // 08-dark-glass-polish: AnimatedMeshBackground is the direct mesh renderer
     const source = fs.readFileSync(OVERVIEW_FILE, 'utf8');
-    const ambientIdx = source.indexOf('<AmbientBackground');
+    const ambientIdx = source.indexOf('<AnimatedMeshBackground');
     const scrollIdx = source.indexOf('<ScrollView');
     expect(ambientIdx).toBeGreaterThan(-1);
     expect(scrollIdx).toBeGreaterThan(-1);

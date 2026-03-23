@@ -28,6 +28,7 @@ import Card from '@/src/components/Card';
 import SectionLabel from '@/src/components/SectionLabel';
 import AIArcHero from '@/src/components/AIArcHero';
 import AmbientBackground, { getAmbientColor } from '@/src/components/AmbientBackground';
+import AnimatedMeshBackground from '@/src/components/AnimatedMeshBackground';
 import TrendSparkline from '@/src/components/TrendSparkline';
 import { DailyAIRow } from '@/src/components/DailyAIRow';
 import { computeAICone } from '@/src/lib/aiCone';
@@ -188,7 +189,8 @@ export default function AIScreen() {
   return (
     <View style={{ flex: 1 }}>
       {/* FR4 (04-ai-hero-arc): Ambient layer — full-screen behind all content */}
-      <AmbientBackground color={ambientColor} />
+      {/* 08-dark-glass-polish: direct AnimatedMeshBackground wiring with aiPct signal */}
+      <AnimatedMeshBackground aiPct={Math.round(heroAIPct)} />
       <FadeInScreen>
         <ScrollView
           className="flex-1 bg-background"
@@ -217,11 +219,10 @@ export default function AIScreen() {
           {/* Prime Radiant Card — FR1 (03-ai-tab-integration) */}
           <Animated.View style={getEntryStyle(1)}>
           <Animated.View {...setTag('home-ai-card')}>
-          <Card>
+          <Card borderAccentColor={colors.cyan}>
             <SectionLabel className="mb-3">PRIME RADIANT</SectionLabel>
             {coneData ? (
               <View
-                style={{ height: 240 }}
                 onLayout={e => setConeDims({ width: e.nativeEvent.layout.width, height: 240 })}
               >
                 <AIConeChart
@@ -241,7 +242,7 @@ export default function AIScreen() {
           {/* Daily Breakdown Card — FR5 */}
           {safeData.dailyBreakdown.length > 0 && (
             <Animated.View style={getEntryStyle(2)}>
-            <Card testID="daily-breakdown">
+            <Card testID="daily-breakdown" borderAccentColor={colors.cyan}>
               {/* Column headers */}
               <View className="flex-row pb-1.5 border-b border-border mb-1">
                 <Text className="flex-1 text-xs text-textMuted uppercase tracking-wider">Day</Text>
@@ -258,12 +259,15 @@ export default function AIScreen() {
           {/* 12-Week AI Trajectory Card */}
           {hasTrajectory && (
             <Animated.View style={getEntryStyle(3)}>
-            <Card>
+            <Card borderAccentColor={colors.cyan}>
               <SectionLabel className="mb-2">12-WEEK TRAJECTORY</SectionLabel>
 
               {/* Hero average + trend row */}
               <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                <Text style={{ color: tier.color, fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'] }}>
+                <Text
+                  className="font-display-bold"
+                  style={{ color: tier.color, fontSize: 28, fontVariant: ['tabular-nums'], letterSpacing: -0.56 }}
+                >
                   {Math.round(avgAIPct)}% avg
                 </Text>
                 <Text style={{ color: colors.textMuted, fontSize: 13 }}>

@@ -30,6 +30,7 @@ import { colors } from '@/src/lib/colors';
 import { springPremium } from '@/src/lib/reanimated-presets';
 import { useStaggeredEntry } from '@/src/hooks/useStaggeredEntry';
 import AmbientBackground, { getAmbientColor } from '@/src/components/AmbientBackground';
+import AnimatedMeshBackground from '@/src/components/AnimatedMeshBackground';
 import Card from '@/src/components/Card';
 import SectionLabel from '@/src/components/SectionLabel';
 import TrendSparkline from '@/src/components/TrendSparkline';
@@ -70,6 +71,8 @@ interface ChartSectionProps {
   subtitle?: string;
   data: number[];
   color: string;
+  /** Semantic border accent color per brand §1.4. Defaults to card default (violet). */
+  borderAccentColor?: string;
   maxValue?: number;
   targetValue?: number;
   showGuide?: boolean;
@@ -85,6 +88,7 @@ function ChartSection({
   subtitle,
   data,
   color,
+  borderAccentColor,
   maxValue,
   targetValue,
   showGuide,
@@ -93,20 +97,23 @@ function ChartSection({
   externalCursorIndex,
   chartKey,
 }: ChartSectionProps) {
-  const [dims, setDims] = useState({ width: 0, height: 52 });
+  const [dims, setDims] = useState({ width: 0, height: 72 });
 
   return (
-    <Card>
+    <Card borderAccentColor={borderAccentColor}>
       <SectionLabel className="mb-2">{label}</SectionLabel>
-      <Text style={{ color, fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'] }}>
+      <Text
+        className="font-display-bold"
+        style={{ color, fontSize: 28, fontVariant: ['tabular-nums'], letterSpacing: -0.56 }}
+      >
         {heroValue}
       </Text>
       {subtitle ? (
         <Text className="text-textSecondary text-xs font-sans mt-0.5">{subtitle}</Text>
       ) : null}
       <View
-        style={{ height: 52 }}
-        onLayout={e => setDims({ width: e.nativeEvent.layout.width, height: 52 })}
+        style={{ height: 72 }}
+        onLayout={e => setDims({ width: e.nativeEvent.layout.width, height: 72 })}
         className="mt-3"
       >
         <TrendSparkline
@@ -132,7 +139,8 @@ function ChartSection({
 export default function OverviewScreen() {
   const chartKey = useFocusKey();
   const { config } = useConfig();
-  const { getEntryStyle } = useStaggeredEntry({ count: 4 });
+  // 08-dark-glass-polish: count 4→3 because Hours+AI% share one stagger row
+  const { getEntryStyle } = useStaggeredEntry({ count: 3 });
 
   // Ensure earnings/hours history is populated even if home tab hasn't run yet
   useEarningsHistory(12);
@@ -220,7 +228,8 @@ export default function OverviewScreen() {
     <FadeInScreen>
       <SafeAreaView className="flex-1 bg-background">
         {/* Layer 1: ambient field — absolute, full-screen, behind all content */}
-        <AmbientBackground color={ambientColor} />
+        {/* 08-dark-glass-polish: direct AnimatedMeshBackground wiring with earningsPace signal */}
+        <AnimatedMeshBackground earningsPace={earningsPace} />
 
         <ScrollView
           className="flex-1"
@@ -277,7 +286,8 @@ export default function OverviewScreen() {
             </View>
           </Animated.View>
 
-          {/* Earnings chart — target = max weekly earnings (hourlyRate × weeklyLimit) */}
+          {/* 08-dark-glass-polish FR1: Bento grid layout */}
+          {/* Earnings — full width (primary importance) */}
           <Animated.View style={getEntryStyle(0)}>
           <Animated.View {...setTag('home-earnings-card')}>
           <ChartSection
@@ -286,6 +296,7 @@ export default function OverviewScreen() {
             subtitle={maxEarnings > 0 ? `Max $${Math.round(maxEarnings).toLocaleString()} / week` : undefined}
             data={overviewData.earnings}
             color={colors.gold}
+            borderAccentColor={colors.gold}
             maxValue={maxEarnings > 0 ? maxEarnings : undefined}
             showGuide={maxEarnings > 0}
             weekLabels={overviewData.weekLabels}
@@ -296,49 +307,52 @@ export default function OverviewScreen() {
           </Animated.View>
           </Animated.View>
 
-          {/* Hours chart — target = weeklyLimit */}
-          <Animated.View style={getEntryStyle(1)}>
-          <ChartSection
-            label="WEEKLY HOURS"
-            heroValue={`${heroHours.toFixed(1)}h`}
-            subtitle={`Goal: ${weeklyLimit}h / week`}
-            data={overviewData.hours}
-            color={colors.success}
-            maxValue={weeklyLimit > 0 ? weeklyLimit : undefined}
-            showGuide={weeklyLimit > 0}
-            weekLabels={overviewData.weekLabels}
-            onScrubChange={setScrubWeekIndex}
-            externalCursorIndex={scrubWeekIndex}
-            chartKey={`hours-${chartKey}-${window}`}
-          />
+          {/* Hours + AI% — side-by-side half-width cards (secondary metrics) */}
+          <Animated.View style={[getEntryStyle(1), { flexDirection: 'row', gap: 8 }]}>
+            <View style={{ flex: 1 }}>
+            <ChartSection
+              label="WEEKLY HOURS"
+              heroValue={`${heroHours.toFixed(1)}h`}
+              subtitle={`Goal: ${weeklyLimit}h / week`}
+              data={overviewData.hours}
+              color={colors.success}
+              borderAccentColor={computeSnapshotHoursColor(heroHours, weeklyLimit)}
+              maxValue={weeklyLimit > 0 ? weeklyLimit : undefined}
+              showGuide={weeklyLimit > 0}
+              weekLabels={overviewData.weekLabels}
+              onScrubChange={setScrubWeekIndex}
+              externalCursorIndex={scrubWeekIndex}
+              chartKey={`hours-${chartKey}-${window}`}
+            />
+            </View>
+            <View style={{ flex: 1 }}>
+            <ChartSection
+              label="AI USAGE %"
+              heroValue={`${Math.round(heroAiPct)}%`}
+              subtitle="Target: 75% of tracked time"
+              data={overviewData.aiPct}
+              color={colors.cyan}
+              borderAccentColor={colors.cyan}
+              maxValue={100}
+              targetValue={75}
+              showGuide
+              weekLabels={overviewData.weekLabels}
+              onScrubChange={setScrubWeekIndex}
+              externalCursorIndex={scrubWeekIndex}
+              chartKey={`ai-${chartKey}-${window}`}
+            />
+            </View>
           </Animated.View>
 
-          {/* AI% chart — target = 75% (scale to 100, guide at 75) */}
+          {/* BrainLift — full width at bottom */}
           <Animated.View style={getEntryStyle(2)}>
-          <ChartSection
-            label="AI USAGE %"
-            heroValue={`${Math.round(heroAiPct)}%`}
-            subtitle="Target: 75% of tracked time"
-            data={overviewData.aiPct}
-            color={colors.cyan}
-            maxValue={100}
-            targetValue={75}
-            showGuide
-            weekLabels={overviewData.weekLabels}
-            onScrubChange={setScrubWeekIndex}
-            externalCursorIndex={scrubWeekIndex}
-            chartKey={`ai-${chartKey}-${window}`}
-          />
-          </Animated.View>
-
-          {/* BrainLift chart — target = 5h (scale ceiling = target) */}
-          <Animated.View style={getEntryStyle(3)}>
           <ChartSection
             label="BRAINLIFT HOURS"
             heroValue={`${heroBrainlift.toFixed(1)}h`}
             subtitle="Target: 5h / week"
             data={overviewData.brainliftHours}
             color={colors.violet}
+            borderAccentColor={colors.violet}
             showGuide
             targetValue={5}
             weekLabels={overviewData.weekLabels}

@@ -26,10 +26,10 @@ import {
   Path,
   SweepGradient,
   Skia,
-  useDerivedValue,
 } from '@shopify/react-native-skia';
 import Animated, {
   useSharedValue,
+  useDerivedValue,
   withSpring,
 } from 'react-native-reanimated';
 import { colors } from '@/src/lib/colors';
@@ -156,22 +156,24 @@ export default function AIArcHero({
         <View style={{ position: 'relative', width: size, height: size }}>
           {/* Skia Canvas with arc */}
           <Canvas style={{ width: size, height: size }}>
-            {/* Track arc — full 270°, colors.border stroke */}
+            {/* Track arc — full 270°, rgba(255,255,255,0.08) per brand §5.4 */}
             <Path
               path={fullSkiaPath}
               style="stroke"
               strokeWidth={STROKE_WIDTH}
               strokeCap="round"
-              color={colors.border}
+              color="rgba(255,255,255,0.08)"
             />
 
             {/* Fill arc — trimmed by sweepProgress, SweepGradient paint */}
+            {/* color="white" → alpha=1.0 so SweepGradient shader renders at full opacity.   */}
+            {/* color="transparent" would zero the paint alpha, making the gradient invisible */}
             <Path
               path={trimmedPath}
               style="stroke"
               strokeWidth={STROKE_WIDTH}
               strokeCap="round"
-              color="transparent"
+              color="white"
             >
               <SweepGradient
                 c={{ x: cx, y: cy }}

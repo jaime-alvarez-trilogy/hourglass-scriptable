@@ -73,10 +73,12 @@ export interface AnimatedMeshBackgroundProps {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // Node A — Violet (#A78BFA) — constant, always present
-const NODE_A_INNER = 'rgba(167,139,250,0.12)';
+// 08-dark-glass-polish: bumped from 0.15 → 0.22 for more visible light bloom behind glass
+const NODE_A_INNER = 'rgba(167,139,250,0.22)';
 
 // Node B — Cyan (#00C2FF) — constant, always present
-const NODE_B_INNER = 'rgba(0,194,255,0.12)';
+// 08-dark-glass-polish: bumped from 0.15 → 0.22 for more visible light bloom behind glass
+const NODE_B_INNER = 'rgba(0,194,255,0.22)';
 
 // Gradient stops arrays — outer stop is always transparent
 const NODE_A_COLORS: [string, string] = [NODE_A_INNER, 'transparent'];
@@ -139,30 +141,32 @@ export function AnimatedMeshBackground({
   // cx_A = w * 0.5 + w * 0.30 * sin(time * 2π)
   // cy_A = h * 0.3 + h * 0.20 * cos(time * 2π)
   // At time=0: x = w*0.5, y = h*0.5 (cos(0)=1 → h*0.3 + h*0.20 = h*0.50)
-  const nodeACenter = useDerivedValue(() => ({
-    x: w * 0.5 + w * 0.30 * Math.sin(time.value * Math.PI * 2),
-    y: h * 0.3 + h * 0.20 * Math.cos(time.value * Math.PI * 2),
-  }));
+  //
+  // Individual cx/cy DerivedValues — passed directly (no .value) to Skia Circle props
+  // so Skia can subscribe on the UI thread and animate without JS re-renders per frame.
+  const nodeACx = useDerivedValue(() => w * 0.5 + w * 0.30 * Math.sin(time.value * Math.PI * 2));
+  const nodeACy = useDerivedValue(() => h * 0.3 + h * 0.20 * Math.cos(time.value * Math.PI * 2));
+  // Combined SkPoint DerivedValue for RadialGradient's `c` prop (expects {x, y})
+  const nodeACenter = useDerivedValue(() => ({ x: nodeACx.value, y: nodeACy.value }));
 
   // FR2: Node B — Cyan, phase 2π/3 (120°)
   // cx_B = w * 0.5 + w * 0.30 * sin(time * 2π + 2π/3)
   // cy_B = h * 0.6 + h * 0.20 * cos(time * 2π + 2π/3)
-  const nodeBCenter = useDerivedValue(() => ({
-    x: w * 0.5 + w * 0.30 * Math.sin(time.value * Math.PI * 2 + (2 * Math.PI) / 3),
-    y: h * 0.6 + h * 0.20 * Math.cos(time.value * Math.PI * 2 + (2 * Math.PI) / 3),
-  }));
+  const nodeBCx = useDerivedValue(() => w * 0.5 + w * 0.30 * Math.sin(time.value * Math.PI * 2 + (2 * Math.PI) / 3));
+  const nodeBCy = useDerivedValue(() => h * 0.6 + h * 0.20 * Math.cos(time.value * Math.PI * 2 + (2 * Math.PI) / 3));
+  const nodeBCenter = useDerivedValue(() => ({ x: nodeBCx.value, y: nodeBCy.value }));
 
   // FR2: Node C — Status-driven, phase 4π/3 (240°)
   // cx_C = w * 0.5 + w * 0.25 * sin(time * 2π + 4π/3)
   // cy_C = h * 0.5 + h * 0.15 * cos(time * 2π + 4π/3)
-  const nodeCCenter = useDerivedValue(() => ({
-    x: w * 0.5 + w * 0.25 * Math.sin(time.value * Math.PI * 2 + (4 * Math.PI) / 3),
-    y: h * 0.5 + h * 0.15 * Math.cos(time.value * Math.PI * 2 + (4 * Math.PI) / 3),
-  }));
+  const nodeCCx = useDerivedValue(() => w * 0.5 + w * 0.25 * Math.sin(time.value * Math.PI * 2 + (4 * Math.PI) / 3));
+  const nodeCCy = useDerivedValue(() => h * 0.5 + h * 0.15 * Math.cos(time.value * Math.PI * 2 + (4 * Math.PI) / 3));
+  const nodeCCenter = useDerivedValue(() => ({ x: nodeCCx.value, y: nodeCCy.value }));
 
   // FR3: Resolve Node C color at render time (not per-frame — this is a plain JS value)
   const nodeCHex = resolveNodeCColor(panelState, earningsPace, aiPct);
-  const nodeCColors: [string, string] = [hexToRgba(nodeCHex, 0.12), 'transparent'];
+  // 08-dark-glass-polish: bumped from 0.15 → 0.22 for more visible light bloom behind glass
+  const nodeCColors: [string, string] = [hexToRgba(nodeCHex, 0.22), 'transparent'];
 
   // FR4: Circle radius — large enough for nodes to overlap and create mesh intersections
   const nodeRadius = w * 0.7;
@@ -173,13 +177,15 @@ export function AnimatedMeshBackground({
       <Rect x={0} y={0} width={w} height={h} color="#0D0C14" />
 
       {/* FR4: Node A — Violet orbital, BlendMode.Screen */}
+      {/* nodeACx/nodeACy are passed directly (no .value) — Skia subscribes to the   */}
+      {/* Reanimated SharedValue on the UI thread and redraws without JS per frame.  */}
       <Circle
-        cx={nodeACenter.value.x}
-        cy={nodeACenter.value.y}
+        cx={nodeACx}
+        cy={nodeACy}
         r={nodeRadius}
       >
         <RadialGradient
-          c={vec(nodeACenter.value.x, nodeACenter.value.y)}
+          c={nodeACenter}
           r={nodeRadius}
           colors={NODE_A_COLORS}
         />
@@ -188,12 +194,12 @@ export function AnimatedMeshBackground({
 
       {/* FR4: Node B — Cyan orbital, BlendMode.Screen */}
       <Circle
-        cx={nodeBCenter.value.x}
-        cy={nodeBCenter.value.y}
+        cx={nodeBCx}
+        cy={nodeBCy}
         r={nodeRadius}
       >
         <RadialGradient
-          c={vec(nodeBCenter.value.x, nodeBCenter.value.y)}
+          c={nodeBCenter}
           r={nodeRadius}
           colors={NODE_B_COLORS}
         />
@@ -202,12 +208,12 @@ export function AnimatedMeshBackground({
 
       {/* FR4: Node C — Status-driven orbital, BlendMode.Screen */}
       <Circle
-        cx={nodeCCenter.value.x}
-        cy={nodeCCenter.value.y}
+        cx={nodeCCx}
+        cy={nodeCCy}
         r={nodeRadius}
       >
         <RadialGradient
-          c={vec(nodeCCenter.value.x, nodeCCenter.value.y)}
+          c={nodeCCenter}
           r={nodeRadius}
           colors={nodeCColors}
         />

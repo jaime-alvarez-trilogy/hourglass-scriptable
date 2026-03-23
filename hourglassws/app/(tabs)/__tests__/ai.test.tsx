@@ -131,21 +131,24 @@ describe('AI Tab — FR4 (04-ai-hero-arc): AmbientBackground wiring', () => {
     expect(source).toMatch(/getAmbientColor\s*\(\s*\{[^}]*type\s*:\s*['"]aiPct['"]/);
   });
 
-  it('SC4.4 — AmbientBackground is rendered in ai.tsx JSX', () => {
+  it('SC4.4 — AnimatedMeshBackground is rendered in ai.tsx JSX [08-dark-glass-polish: replaces AmbientBackground element]', () => {
+    // 08-dark-glass-polish: <AmbientBackground color={...} /> replaced with
+    // <AnimatedMeshBackground aiPct={Math.round(heroAIPct)} /> for direct signal wiring.
+    // AmbientBackground import is kept for getAmbientColor (used for AIArcHero).
     const source = fs.readFileSync(AI_TAB_FILE, 'utf8');
-    expect(source).toMatch(/<AmbientBackground/);
+    expect(source).toMatch(/<AnimatedMeshBackground/);
   });
 
-  it('SC4.5 — AmbientBackground receives color={ambientColor}', () => {
+  it('SC4.5 — AnimatedMeshBackground receives aiPct prop [08-dark-glass-polish]', () => {
     const source = fs.readFileSync(AI_TAB_FILE, 'utf8');
-    expect(source).toMatch(/AmbientBackground[^>]*color=\{ambientColor\}/);
+    expect(source).toMatch(/AnimatedMeshBackground[^>]*aiPct=/);
   });
 
-  it('SC4.6 — AmbientBackground is rendered outside/before ScrollView (behind content)', () => {
+  it('SC4.6 — AnimatedMeshBackground is rendered outside/before ScrollView (behind content)', () => {
     const source = fs.readFileSync(AI_TAB_FILE, 'utf8');
-    const ambientPos = source.indexOf('<AmbientBackground');
+    const ambientPos = source.indexOf('<AnimatedMeshBackground');
     const scrollViewPos = source.indexOf('<ScrollView');
-    // AmbientBackground should appear before ScrollView in JSX
+    // AnimatedMeshBackground should appear before ScrollView in JSX
     expect(ambientPos).toBeGreaterThan(-1);
     expect(scrollViewPos).toBeGreaterThan(-1);
     expect(ambientPos).toBeLessThan(scrollViewPos);

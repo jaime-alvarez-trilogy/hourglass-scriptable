@@ -379,23 +379,31 @@ describe('AIArcHero — SC4.3f: fill Path color (08-dark-glass-polish FR2)', () 
     source = fs.readFileSync(COMPONENT_FILE, 'utf8');
   });
 
-  it('SC4.3f.1 — fill Path does NOT use color="transparent"', () => {
+  it('SC4.3f.1 — fill Path does NOT use color="transparent" as a JSX attribute', () => {
     // "transparent" on the fill Path zeroes paint alpha → SweepGradient invisible
-    // The fill Path is the second Path in the Canvas (after the track arc)
-    // We check the source does not have color="transparent" near a SweepGradient
+    // Check that color="transparent" does not appear as a JSX prop (comments are OK)
+    // We look for the attribute pattern specifically: color="transparent" without JSX comment syntax
     const sweepGradientIdx = source.indexOf('<SweepGradient');
     expect(sweepGradientIdx).toBeGreaterThan(-1);
 
-    // The fill Path wraps the SweepGradient — look at nearby context
-    const nearbyContext = source.slice(Math.max(0, sweepGradientIdx - 300), sweepGradientIdx);
-    expect(nearbyContext).not.toContain('color="transparent"');
+    // Find the fill Path block: starts at the second <Path occurrence (after the track arc)
+    const firstPathIdx = source.indexOf('<Path');
+    const secondPathIdx = source.indexOf('<Path', firstPathIdx + 1);
+    expect(secondPathIdx).toBeGreaterThan(-1);
+
+    // Extract the fill Path block (from second <Path to </Path>)
+    const fillPathBlock = source.slice(secondPathIdx, sweepGradientIdx + 100);
+    // Remove JSX comment lines before checking
+    const withoutComments = fillPathBlock.replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
+    expect(withoutComments).not.toContain('color="transparent"');
   });
 
   it('SC4.3f.2 — fill Path uses color="white" (full alpha enables gradient)', () => {
     // color="white" → alpha=1.0 → gradient multiplied by 1 → visible
     const sweepGradientIdx = source.indexOf('<SweepGradient');
-    const nearbyContext = source.slice(Math.max(0, sweepGradientIdx - 300), sweepGradientIdx);
-    expect(nearbyContext).toContain('color="white"');
+    const fillPathStart = source.lastIndexOf('<Path', sweepGradientIdx);
+    const fillPathBlock = source.slice(fillPathStart, sweepGradientIdx);
+    expect(fillPathBlock).toContain('color="white"');
   });
 });
 
