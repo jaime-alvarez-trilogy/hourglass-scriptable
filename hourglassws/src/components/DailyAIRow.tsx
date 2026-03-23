@@ -72,7 +72,7 @@ export function DailyAIRow({ item }: DailyAIRowProps) {
       {/* Skia inner shadow — dark gradient at top edge, fades to transparent by 12px */}
       {/* Gated on dims.w > 0 to avoid zero-size Canvas on first render               */}
       {dims.w > 0 && (
-        <Canvas style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
+        <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
           <RoundedRect x={0} y={0} width={dims.w} height={dims.h} r={ROW_RADIUS}>
             <LinearGradient
               start={vec(0, 0)}
