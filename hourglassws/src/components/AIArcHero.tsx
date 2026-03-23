@@ -2,7 +2,9 @@
 // Rebuilt from react-native-svg to Skia Canvas + Path + SweepGradient
 //
 // Visual enhancement:
-//   Arc stroke paint: SweepGradient (cyan #00C2FF → violet #A78BFA → magenta #FF00FF)
+//   Arc stroke paint: SweepGradient with tier-derived color [tierColor, tierColor]
+//   (10-mesh-color-overhaul FR4: was static ['#00C2FF', '#A78BFA', '#FF00FF'])
+//   Tier color from classifyAIPct(aiPct).color (see src/lib/aiTier.ts)
 //   Animation: sweepProgress SharedValue 0→aiPct/100 via withSpring (mass=1, stiffness=80, damping=12)
 //   Path trim: Skia Path.copy().trim(0, sweepProgress, false)
 //
@@ -33,6 +35,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { colors } from '@/src/lib/colors';
+import { classifyAIPct } from '@/src/lib/aiTier';
 import Card from '@/src/components/Card';
 import ProgressBar from '@/src/components/ProgressBar';
 
@@ -46,10 +49,6 @@ export const BRAINLIFT_TARGET_HOURS = 5;
 const START_ANGLE = 135;   // degrees — 7 o'clock position
 const SWEEP = 270;         // degrees — full track sweep
 const STROKE_WIDTH = 6;
-
-// ─── Sweep gradient colors ────────────────────────────────────────────────────
-
-const GRADIENT_COLORS = ['#00C2FF', '#A78BFA', '#FF00FF'] as const;
 
 // ─── arcPath — pure SVG path string generator (preserved for backward compat) ─
 //
@@ -146,6 +145,11 @@ export default function AIArcHero({
       ? `${deltaPercent.toFixed(1)}%`
       : '';
 
+  // Tier-aware arc color — derived from aiPct at render time (10-mesh-color-overhaul FR4)
+  // Replaces static GRADIENT_COLORS ['#00C2FF', '#A78BFA', '#FF00FF'].
+  // [tierColor, tierColor] produces a solid-color arc via a two-stop identical gradient.
+  const tierColor = classifyAIPct(aiPct).color;
+
   // BrainLift progress (clamped 0–1)
   const brainliftProgress = Math.min(1, brainliftHours / BRAINLIFT_TARGET_HOURS);
 
@@ -177,7 +181,9 @@ export default function AIArcHero({
             >
               <SweepGradient
                 c={{ x: cx, y: cy }}
-                colors={[...GRADIENT_COLORS]}
+                colors={[tierColor, tierColor]}
+                start={START_ANGLE}
+                end={START_ANGLE + SWEEP}
               />
             </Path>
           </Canvas>
