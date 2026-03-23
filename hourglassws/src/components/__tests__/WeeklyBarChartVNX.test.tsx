@@ -376,9 +376,11 @@ describe('WeeklyBarChart — 09FR2: domainPadding suppresses VNX vertical squash
     expect(source).toMatch(/bottom\s*:\s*0/);
   });
 
-  it('SC-09FR2.2 — domainPadding x values use cellW proportional factor (0.35)', () => {
-    // Should reference cellW * 0.35 for left/right padding
-    expect(source).toMatch(/cellW\s*\*\s*0\.35/);
+  it('SC-09FR2.2 — barX computed from index (no x domainPadding — removed to fix bar width skew)', () => {
+    // barX = chartBounds.left + i * cellW + (cellW - barW) / 2
+    // x domainPadding was removed because it caused VNX to shift point.x out of sync
+    // with cellW-derived barW, producing uneven bar widths.
+    expect(source).toMatch(/chartBounds\.left\s*\+\s*i\s*\*\s*cellW/);
   });
 
   it('SC-09FR2.3 — renders without crash with all-low-hours data', () => {

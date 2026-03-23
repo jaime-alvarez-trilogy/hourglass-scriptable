@@ -102,11 +102,12 @@ describe('AIArcHero — FR1: Skia animation contract (source-level)', () => {
     expect(source).toContain('@shopify/react-native-skia');
   });
 
-  it('FR1.5 — SweepGradient uses cyan→violet→magenta colors', () => {
-    // Gradient: #00C2FF → #A78BFA → #FF00FF
-    expect(source).toContain('#00C2FF');
-    expect(source).toContain('#A78BFA');
-    expect(source).toContain('#FF00FF');
+  it('FR1.5 — SweepGradient uses tier-aware color from classifyAIPct (static gradient removed)', () => {
+    // Static GRADIENT_COLORS (#00C2FF→#A78BFA→#FF00FF) replaced with tier-driven
+    // single color: [tierColor, tierColor] derived from classifyAIPct(aiPct).
+    expect(source).toContain('classifyAIPct');
+    expect(source).toContain('aiTier');
+    expect(source).not.toContain("'#00C2FF', '#A78BFA', '#FF00FF'");
   });
 
   it('FR1.6 — useDerivedValue IS used (trims path on UI thread)', () => {
@@ -450,9 +451,10 @@ describe('AIArcHero — 09FR5: SweepGradient start/end angles', () => {
     expect(source).toMatch(/c\s*=\s*\{\s*\{\s*x\s*:\s*cx\s*,\s*y\s*:\s*cy\s*\}/);
   });
 
-  it('SC-09FR5.4 — gradient colors array contains cyan, violet, magenta', () => {
-    expect(source).toContain('#00C2FF');
-    expect(source).toContain('#A78BFA');
-    expect(source).toContain('#FF00FF');
+  it('SC-09FR5.4 — arc color is tier-driven via classifyAIPct (static cyan/violet/magenta removed)', () => {
+    // 10-mesh-color-overhaul FR4: static GRADIENT_COLORS replaced with [tierColor, tierColor]
+    // derived from classifyAIPct(aiPct) imported from @/src/lib/aiTier
+    expect(source).toContain('classifyAIPct');
+    expect(source).not.toContain("GRADIENT_COLORS = ['#00C2FF'");
   });
 });
