@@ -46,3 +46,9 @@ Six targeted bug fixes surfaced from live testing on device. Four are new render
 | Spec | Description | Blocks | Blocked By | Complexity |
 |------|-------------|--------|------------|------------|
 | 09-chart-visual-fixes | All 6 visual QA fixes | — | — | M |
+
+## Changelog
+
+| Date | Spec | Description |
+|------|------|-------------|
+| 2026-03-23 | [09-chart-visual-fixes](specs/09-chart-visual-fixes/spec.md) | Spec and checklist created for 6 visual bug fixes: TrendSparkline clipping, WeeklyBarChart collapse, Home mesh wiring, DailyAIRow padding, SweepGradient angles, ProgressBar flex fill |
