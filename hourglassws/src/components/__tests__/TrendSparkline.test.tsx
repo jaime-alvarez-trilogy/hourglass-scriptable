@@ -255,6 +255,55 @@ describe('TrendSparkline — FR3: Cap Label', () => {
   });
 });
 
+// ─── FR (09-chart-visual-fixes FR1): safeData trailing-zero strip + domainPadding ──
+//
+// SC-09FR1.1 — source contains safeData strip-trailing-zeros pattern
+// SC-09FR1.2 — source guards minimum 1 element (end > 1)
+// SC-09FR1.3 — toLineData called with safeData (not raw data)
+// SC-09FR1.4 — CartesianChart has domainPadding with right: 10
+// SC-09FR1.5 — renders without crash: data=[100, 90, 85, 0]
+// SC-09FR1.6 — renders without crash: data=[0]
+// SC-09FR1.7 — renders without crash: data=[10, 20, 30]
+// SC-09FR1.8 — renders without crash: data=[0, 0, 0]
+
+describe('TrendSparkline — 09FR1: safeData + domainPadding', () => {
+  const source = fs.readFileSync(SPARKLINE_FILE, 'utf8');
+
+  it('SC-09FR1.1 — source contains safeData strip-trailing-zeros logic', () => {
+    expect(source).toMatch(/safeData/);
+    expect(source).toMatch(/end\s*>\s*1/);
+  });
+
+  it('SC-09FR1.2 — source guards minimum 1 element (end > 1 ensures single element preserved)', () => {
+    expect(source).toMatch(/end\s*>\s*1/);
+  });
+
+  it('SC-09FR1.3 — toLineData is called with safeData (not raw data prop)', () => {
+    expect(source).toMatch(/toLineData\s*\(\s*safeData/);
+  });
+
+  it('SC-09FR1.4 — CartesianChart receives domainPadding with right: 10', () => {
+    expect(source).toMatch(/domainPadding/);
+    expect(source).toMatch(/right\s*:\s*10/);
+  });
+
+  it('SC-09FR1.5 — renders without crash for data with trailing zero [100, 90, 85, 0]', () => {
+    expect(() => renderSparkline({ data: [100, 90, 85, 0] })).not.toThrow();
+  });
+
+  it('SC-09FR1.6 — renders without crash for data=[0] (single zero)', () => {
+    expect(() => renderSparkline({ data: [0] })).not.toThrow();
+  });
+
+  it('SC-09FR1.7 — renders without crash for data with no trailing zeros [10, 20, 30]', () => {
+    expect(() => renderSparkline({ data: [10, 20, 30] })).not.toThrow();
+  });
+
+  it('SC-09FR1.8 — renders without crash for all-zero array [0, 0, 0]', () => {
+    expect(() => renderSparkline({ data: [0, 0, 0] })).not.toThrow();
+  });
+});
+
 // ─── FR1 + FR2 (04-victory-charts): TrendSparkline VNX glow (updated) ───────
 //
 // Note: 04-victory-charts FR3 migrated from custom Skia 3-layer glow (strokeWidth=14/7/2.5)

@@ -239,3 +239,26 @@ describe('DailyAIRow — SC3.4–SC3.9: glass wrapper (source checks)', () => {
     expect(source).toContain('LinearGradient');
   });
 });
+
+// ─── FR (09-chart-visual-fixes FR4): DailyAIRow horizontal padding fix ───────
+//
+// SC-09FR4.1 — inner content View className contains px-4 (not px-1)
+// SC-09FR4.2 — source does NOT contain px-1 on the inner content View
+
+describe('DailyAIRow — 09FR4: horizontal padding px-4', () => {
+  let source: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(COMPONENT_FILE, 'utf8');
+  });
+
+  it('SC-09FR4.1 — inner content View className contains px-4', () => {
+    // The inner row content View must use px-4 (16px per side)
+    expect(source).toMatch(/flex-row items-center[\s\S]{0,30}px-4/);
+  });
+
+  it('SC-09FR4.2 — source does NOT contain px-1 on the inner content flex-row View', () => {
+    // px-1 was the old broken value (4px per side) — must be replaced
+    expect(source).not.toMatch(/flex-row items-center[\s\S]{0,30}px-1[^0-9]/);
+  });
+});

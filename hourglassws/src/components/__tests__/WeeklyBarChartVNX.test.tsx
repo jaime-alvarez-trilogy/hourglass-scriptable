@@ -32,18 +32,22 @@ jest.mock('victory-native', () => {
   const chartBounds = { left: 0, right: 300, top: 0, bottom: 120, width: 300, height: 120 };
   return {
     CartesianChart: ({ children, data, xKey, yKeys }: any) => {
+      // Provide realistic points.value so per-bar RoundedRect rendering executes
       const points: any = {};
-      if (yKeys) {
+      if (yKeys && data) {
+        yKeys.forEach((k: string) => {
+          points[k] = (data as any[]).map((_d: any, i: number) => ({
+            x: (i + 0.5) * (chartBounds.right / data.length),
+            y: 60,
+          }));
+        });
+      } else if (yKeys) {
         yKeys.forEach((k: string) => { points[k] = []; });
       }
       return R.createElement('CartesianChart', { data, xKey, yKeys },
         typeof children === 'function' ? children({ points, chartBounds }) : children
       );
     },
-    Bar: ({ children, points, chartBounds: _cb, roundedCorners }: any) =>
-      R.createElement('Bar', { roundedCorners },
-        typeof children === 'function' ? children() : children
-      ),
     Line: ({ children }: any) =>
       R.createElement('Line', {}, typeof children === 'function' ? children() : children),
     Area: ({ children }: any) =>
@@ -144,8 +148,9 @@ describe('WeeklyBarChart VNX — SC2.2: imports CartesianChart and Bar from vict
     expect(source).toMatch(/CartesianChart[\s\S]{0,100}victory-native|victory-native[\s\S]{0,100}CartesianChart/);
   });
 
-  it('SC2.2b — Bar imported from victory-native', () => {
-    expect(source).toMatch(/\bBar\b[\s\S]{0,100}victory-native|victory-native[\s\S]{0,100}\bBar\b/);
+  it('SC2.2b — RoundedRect imported from @shopify/react-native-skia for per-bar gradients', () => {
+    // VNX Bar applies one gradient to all bars — RoundedRect replaced it for per-bar gradients.
+    expect(source).toMatch(/RoundedRect[\s\S]{0,100}react-native-skia|react-native-skia[\s\S]{0,100}RoundedRect/);
   });
 });
 
@@ -199,8 +204,9 @@ describe('WeeklyBarChart VNX — SC2.5/SC2.6: LinearGradient fill', () => {
     source = fs.readFileSync(BAR_CHART_FILE, 'utf8');
   });
 
-  it('SC2.5 — LinearGradient is used inside Bar', () => {
+  it('SC2.5 — LinearGradient is used inside RoundedRect for per-bar gradients', () => {
     expect(source).toContain('LinearGradient');
+    expect(source).toContain('RoundedRect');
   });
 
   it('SC2.6 — LinearGradient includes transparent as end color', () => {
@@ -218,9 +224,10 @@ describe('WeeklyBarChart VNX — SC2.7: rounded top corners', () => {
     source = fs.readFileSync(BAR_CHART_FILE, 'utf8');
   });
 
-  it('SC2.7 — source includes roundedCorners with topLeft and topRight = 4', () => {
-    expect(source).toMatch(/roundedCorners/);
-    expect(source).toMatch(/topLeft\s*:\s*4|topRight\s*:\s*4/);
+  it('SC2.7 — bars have 4px radius (RoundedRect r={4})', () => {
+    // Previously checked roundedCorners on VNX Bar; now using Skia RoundedRect with r={4}.
+    expect(source).toMatch(/RoundedRect/);
+    expect(source).toMatch(/r\s*=\s*\{?\s*4\s*\}?/);
   });
 });
 
@@ -347,5 +354,43 @@ describe('WeeklyBarChart VNX — SC2.13: watermark label preserved', () => {
 
   it('SC2.13d — renders without crash without watermarkLabel', () => {
     expect(() => renderChart({})).not.toThrow();
+  });
+});
+
+// ─── FR (09-chart-visual-fixes FR2): domainPadding suppresses VNX vertical squash ──
+//
+// SC-09FR2.1 — CartesianChart has domainPadding with top: 0 and bottom: 0
+// SC-09FR2.2 — domainPadding x values use cellW * 0.35 factor
+// SC-09FR2.3 — renders without crash with all-low-hours data
+
+describe('WeeklyBarChart — 09FR2: domainPadding suppresses VNX vertical squash', () => {
+  let source: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(BAR_CHART_FILE, 'utf8');
+  });
+
+  it('SC-09FR2.1 — CartesianChart has domainPadding prop with top: 0 and bottom: 0', () => {
+    expect(source).toMatch(/domainPadding/);
+    expect(source).toMatch(/top\s*:\s*0/);
+    expect(source).toMatch(/bottom\s*:\s*0/);
+  });
+
+  it('SC-09FR2.2 — domainPadding x values use cellW proportional factor (0.35)', () => {
+    // Should reference cellW * 0.35 for left/right padding
+    expect(source).toMatch(/cellW\s*\*\s*0\.35/);
+  });
+
+  it('SC-09FR2.3 — renders without crash with all-low-hours data', () => {
+    const lowHoursData = [
+      { day: 'Mon', hours: 1.8, isToday: false, isFuture: false },
+      { day: 'Tue', hours: 0.5, isToday: false, isFuture: false },
+      { day: 'Wed', hours: 2.1, isToday: true,  isFuture: false },
+      { day: 'Thu', hours: 0,   isToday: false, isFuture: true  },
+      { day: 'Fri', hours: 0,   isToday: false, isFuture: true  },
+      { day: 'Sat', hours: 0,   isToday: false, isFuture: true  },
+      { day: 'Sun', hours: 0,   isToday: false, isFuture: true  },
+    ];
+    expect(() => renderChart({ data: lowHoursData, width: 300, height: 120 })).not.toThrow();
   });
 });

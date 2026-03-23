@@ -420,3 +420,39 @@ describe('getAmbientColor — aiPct signal boundaries', () => {
     expect(getAmbientColor({ type: 'aiPct', pct: 0 })).toBe('#F59E0B');
   });
 });
+
+// ─── FR (09-chart-visual-fixes FR5): SweepGradient start/end angles ──────────
+//
+// SC-09FR5.1 — SweepGradient has start={135} (START_ANGLE)
+// SC-09FR5.2 — SweepGradient has end={405} (START_ANGLE + SWEEP = 135 + 270)
+// SC-09FR5.3 — SweepGradient c prop uses cx=cy=size/2
+// SC-09FR5.4 — gradient colors unchanged: cyan→violet→magenta
+
+describe('AIArcHero — 09FR5: SweepGradient start/end angles', () => {
+  let source: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(COMPONENT_FILE, 'utf8');
+  });
+
+  it('SC-09FR5.1 — SweepGradient has start={START_ANGLE} where START_ANGLE=135', () => {
+    // Either start={135} literal or start={START_ANGLE} with START_ANGLE=135
+    expect(source).toMatch(/START_ANGLE\s*=\s*135/);
+    expect(source).toMatch(/start\s*=\s*\{START_ANGLE\}|start\s*=\s*\{135\}/);
+  });
+
+  it('SC-09FR5.2 — SweepGradient has end={START_ANGLE + SWEEP} where SWEEP=270 → end=405', () => {
+    expect(source).toMatch(/SWEEP\s*=\s*270/);
+    expect(source).toMatch(/end\s*=\s*\{START_ANGLE\s*\+\s*SWEEP\}|end\s*=\s*\{405\}/);
+  });
+
+  it('SC-09FR5.3 — SweepGradient c prop uses { x: cx, y: cy } centered on canvas', () => {
+    expect(source).toMatch(/c\s*=\s*\{\s*\{\s*x\s*:\s*cx\s*,\s*y\s*:\s*cy\s*\}/);
+  });
+
+  it('SC-09FR5.4 — gradient colors array contains cyan, violet, magenta', () => {
+    expect(source).toContain('#00C2FF');
+    expect(source).toContain('#A78BFA');
+    expect(source).toContain('#FF00FF');
+  });
+});

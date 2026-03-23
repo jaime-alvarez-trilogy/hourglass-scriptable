@@ -575,46 +575,53 @@ describe('HoursDashboard — FR4 (01-overtime-display): normal state preserved',
   });
 });
 
-// ─── FR1 (02-home-hero-ambient): AmbientBackground wiring ────────────────────
+// ─── FR1 (02-home-hero-ambient): Ambient background wiring ───────────────────
+//
+// NOTE (09-chart-visual-fixes FR3): AmbientBackground was replaced with
+// AnimatedMeshBackground directly. Tests updated to reflect the new pattern.
+// See 09FR3 tests below for the new assertions.
 //
 // Strategy: source-file static analysis — NativeWind v4 hashes className in Jest.
-// These tests verify the wiring contract: import, render, placement, and signal.
 
-describe('HoursDashboard — FR1 (02-home-hero-ambient): AmbientBackground wiring', () => {
+describe('HoursDashboard — FR1 (02-home-hero-ambient): ambient background wiring', () => {
   let source: string;
 
   beforeAll(() => {
     source = fs.readFileSync(INDEX_FILE, 'utf8');
   });
 
-  it('FR1.T1 — imports AmbientBackground from @/src/components/AmbientBackground', () => {
-    expect(source).toMatch(/import\s+AmbientBackground.*from.*AmbientBackground/);
+  it('FR1.T1 — AnimatedMeshBackground is imported (replaced AmbientBackground — 09FR3)', () => {
+    // Updated: 09-chart-visual-fixes FR3 replaced AmbientBackground with AnimatedMeshBackground
+    expect(source).toMatch(/import[\s\S]{0,100}AnimatedMeshBackground/);
   });
 
-  it('FR1.T2 — imports getAmbientColor from @/src/components/AmbientBackground', () => {
-    expect(source).toMatch(/getAmbientColor/);
-    // Must come from AmbientBackground module (same import line or destructured)
-    expect(source).toMatch(/AmbientBackground.*getAmbientColor|getAmbientColor.*AmbientBackground/s);
+  it('FR1.T2 — getAmbientColor is NOT used (removed with AmbientBackground — 09FR3)', () => {
+    // Updated: earningsPaceSignal now derived directly from panelState
+    const importLines = source.split('\n').filter(l => l.trim().startsWith('import'));
+    const hasGetAmbientColor = importLines.some(l => l.includes('getAmbientColor'));
+    expect(hasGetAmbientColor).toBe(false);
   });
 
-  it('FR1.T3 — renders <AmbientBackground in JSX', () => {
-    expect(source).toContain('<AmbientBackground');
+  it('FR1.T3 — renders <AnimatedMeshBackground in JSX (replaced <AmbientBackground — 09FR3)', () => {
+    expect(source).toContain('<AnimatedMeshBackground');
   });
 
-  it('FR1.T4 — AmbientBackground appears before ScrollView in JSX', () => {
-    const ambientPos = source.indexOf('<AmbientBackground');
+  it('FR1.T4 — AnimatedMeshBackground appears before ScrollView in JSX', () => {
+    const ambientPos = source.indexOf('<AnimatedMeshBackground');
     const scrollViewPos = source.indexOf('<ScrollView');
     expect(ambientPos).toBeGreaterThan(-1);
     expect(scrollViewPos).toBeGreaterThan(-1);
     expect(ambientPos).toBeLessThan(scrollViewPos);
   });
 
-  it('FR1.T5 — getAmbientColor is called with type: panelState signal', () => {
-    expect(source).toMatch(/getAmbientColor\s*\(\s*\{[^}]*type\s*:\s*['"]panelState['"]/);
+  it('FR1.T5 — earningsPaceSignal is derived from panelState', () => {
+    // Updated: earningsPaceSignal replaces getAmbientColor({ type: 'panelState', state: panelState })
+    expect(source).toMatch(/earningsPaceSignal/);
+    expect(source).toMatch(/panelState/);
   });
 
-  it('FR1.T6 — getAmbientColor receives panelState as the state argument', () => {
-    expect(source).toMatch(/getAmbientColor\s*\(\s*\{[^}]*panelState/);
+  it('FR1.T6 — AnimatedMeshBackground receives earningsPace prop derived from panelState', () => {
+    expect(source).toMatch(/<AnimatedMeshBackground[\s\S]{0,100}earningsPace/);
   });
 
   it('FR1.T7 — no StyleSheet import added (SC3.1 still passes)', () => {
@@ -646,5 +653,38 @@ describe('HoursDashboard — FR3 (02-home-hero-ambient): ambient transition', ()
       .replace(/\/\/.*$/gm, '')
       .replace(/\/\*[\s\S]*?\*\//g, '');
     expect(noComments).not.toContain('springPremium');
+  });
+});
+
+// ─── FR (09-chart-visual-fixes FR3): AnimatedMeshBackground replaces AmbientBackground ──
+//
+// SC-09FR3.1 — AmbientBackground NOT imported in index.tsx
+// SC-09FR3.2 — AnimatedMeshBackground IS imported in index.tsx
+// SC-09FR3.3 — earningsPaceSignal derivation: critical→1.0, behind→0.5, else→0.0
+// SC-09FR3.4 — AnimatedMeshBackground rendered with earningsPace prop
+
+describe('HoursDashboard — 09FR3: AnimatedMeshBackground replaces AmbientBackground', () => {
+  let source: string;
+
+  beforeAll(() => {
+    source = fs.readFileSync(INDEX_FILE, 'utf8');
+  });
+
+  it('SC-09FR3.1 — AmbientBackground is NOT imported in index.tsx', () => {
+    const importLines = source.split('\n').filter(l => l.trim().startsWith('import'));
+    const hasAmbientBg = importLines.some(l => l.includes('AmbientBackground'));
+    expect(hasAmbientBg).toBe(false);
+  });
+
+  it('SC-09FR3.2 — AnimatedMeshBackground IS imported in index.tsx', () => {
+    expect(source).toMatch(/import[\s\S]{0,100}AnimatedMeshBackground/);
+  });
+
+  it('SC-09FR3.3 — earningsPaceSignal derivation for critical → 1.0', () => {
+    expect(source).toMatch(/critical.*1\.0|1\.0.*critical/);
+  });
+
+  it('SC-09FR3.4 — AnimatedMeshBackground rendered with earningsPace prop', () => {
+    expect(source).toMatch(/<AnimatedMeshBackground[\s\S]{0,100}earningsPace/);
   });
 });
