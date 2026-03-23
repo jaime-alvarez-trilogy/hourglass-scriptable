@@ -59,3 +59,9 @@ Despite the glass architecture being in place, four specific areas fall short of
 | Spec | Description | Blocks | Blocked By | Complexity |
 |------|-------------|--------|------------|------------|
 | 08-dark-glass-polish | All 4 visual fixes (bento grid, ring gradient, row glass, mesh signals) | — | — | M |
+
+## Changelog
+
+| Date | Spec | Description |
+|------|------|-------------|
+| 2026-03-23 | [08-dark-glass-polish](specs/08-dark-glass-polish/spec.md) | Add spec and checklist for 4 visual fixes |
