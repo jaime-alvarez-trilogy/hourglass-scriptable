@@ -63,10 +63,10 @@ describe('ProgressBar — 09FR6: flex two-child approach (source checks)', () =>
     expect(source).toMatch(/flex\s*:\s*spaceFlex\.value|flex\s*:\s*spaceFlex/);
   });
 
-  it('SC6.4 — fill child references violet color (bg-violet className or colors.violet inline)', () => {
-    const hasNativeWindClass = source.includes('bg-violet');
-    const hasInlineColor = source.includes('colors.violet');
-    expect(hasNativeWindClass || hasInlineColor).toBe(true);
+  it('SC6.4 — fill child applies colorClass as NativeWind className', () => {
+    // ProgressBar renders fill color via the colorClass prop applied as className.
+    // Callers pass e.g. colorClass="bg-violet" — the component itself does not hardcode colors.
+    expect(source).toMatch(/className=.*colorClass/);
   });
 
   it('SC6.5 — source uses Math.min and Math.max for clamping progress (0–1)', () => {
