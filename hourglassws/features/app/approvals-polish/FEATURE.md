@@ -42,6 +42,7 @@ Both specs are independent and can be implemented in parallel.
 - **Spec**: [specs/01-glass-swipe-card/spec.md](specs/01-glass-swipe-card/spec.md)
 
 ### 02-requests-mesh
-- **Status**: Spec complete
+- **Status**: Complete
 - **Date**: 2026-03-24
+- **Commits**: test(FR1-FR3), feat(FR1-FR3), fix(02-requests-mesh)
 - **Spec**: [specs/02-requests-mesh/spec.md](specs/02-requests-mesh/spec.md)
