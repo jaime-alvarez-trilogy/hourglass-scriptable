@@ -66,10 +66,25 @@ extractAppBreakdown(slots) → AppBreakdownEntry[]
             ai.tsx
 ```
 
+## Files Touched
+
+### 11-app-data-layer (2026-03-23)
+| File | Change |
+|------|--------|
+| `hourglassws/src/types/api.ts` | Added `WorkDiaryEvent` interface; added `events?: WorkDiaryEvent[]` to `WorkDiarySlot` |
+| `hourglassws/src/lib/aiAppBreakdown.ts` | NEW: `AppBreakdownEntry`, `extractAppBreakdown`, `mergeAppBreakdown`, `loadAppHistory`, `saveAppHistory`, constants |
+| `hourglassws/src/hooks/useAppBreakdown.ts` | NEW: `AppBreakdownResult`, `useAppBreakdown` hook |
+| `hourglassws/src/hooks/useAIData.ts` | FR5: retain slots in Promise.all, write app breakdown to `ai_app_history` |
+| `hourglassws/src/hooks/useHistoryBackfill.ts` | FR6: maintain `slotsData`, write app breakdown per backfilled week |
+| `hourglassws/src/lib/__tests__/aiAppBreakdown.test.ts` | NEW: 34 tests for FR1–FR4 |
+| `hourglassws/src/hooks/__tests__/useAppBreakdown.test.ts` | NEW: 12 tests for FR7 |
+| `hourglassws/src/hooks/__tests__/useAIDataAppBreakdown.test.ts` | NEW: 13 tests for FR5 |
+| `hourglassws/src/hooks/__tests__/useHistoryBackfillAppBreakdown.test.ts` | NEW: 9 tests for FR6 |
+
 ## Changelog
 
 ### Specs
 | Spec | Description | Status |
 |------|-------------|--------|
-| 11-app-data-layer | Types, extraction logic, AsyncStorage cache, hooks | spec-complete |
+| 11-app-data-layer | Types, extraction logic, AsyncStorage cache, hooks | complete |
 | 12-app-breakdown-ui | AppBreakdownCard, guidance chips, ai.tsx wiring | pending |
