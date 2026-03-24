@@ -68,6 +68,17 @@ extractAppBreakdown(slots) → AppBreakdownEntry[]
 
 ## Files Touched
 
+### 12-app-breakdown-ui (2026-03-23)
+| File | Change |
+|------|--------|
+| `hourglassws/src/components/AppUsageBar.tsx` | NEW: Three-segment static bar (violet/cyan/grey) |
+| `hourglassws/src/lib/appGuidance.ts` | NEW: `GuidanceChip` interface + `generateGuidance()` |
+| `hourglassws/src/components/AppBreakdownCard.tsx` | NEW: App rows + guidance chips card |
+| `hourglassws/app/(tabs)/ai.tsx` | Insert AppBreakdownCard at stagger index 3; bump count to 7 |
+| `hourglassws/src/components/__tests__/AppUsageBar.test.tsx` | NEW: FR1 tests |
+| `hourglassws/src/lib/__tests__/appGuidance.test.ts` | NEW: FR2 tests |
+| `hourglassws/src/components/__tests__/AppBreakdownCard.test.tsx` | NEW: FR3 tests |
+
 ### 11-app-data-layer (2026-03-23)
 | File | Change |
 |------|--------|
@@ -87,4 +98,4 @@ extractAppBreakdown(slots) → AppBreakdownEntry[]
 | Spec | Description | Status |
 |------|-------------|--------|
 | 11-app-data-layer | Types, extraction logic, AsyncStorage cache, hooks | complete |
-| 12-app-breakdown-ui | AppBreakdownCard, guidance chips, ai.tsx wiring | pending |
+| 12-app-breakdown-ui | AppBreakdownCard, guidance chips, ai.tsx wiring | spec-ready |
