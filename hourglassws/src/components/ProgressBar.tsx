@@ -18,6 +18,19 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { timingChartFill } from '@/src/lib/reanimated-presets';
+import { colors } from '@/src/lib/colors';
+
+// NativeWind className does not apply to Reanimated Animated.View in NativeWind v4.
+// Inline backgroundColor is the reliable path; colorClass prop is kept for API compat.
+const FILL_COLORS: Record<string, string> = {
+  'bg-success':  colors.success,
+  'bg-warning':  colors.warning,
+  'bg-critical': colors.critical,
+  'bg-violet':   colors.violet,
+  'bg-gold':     colors.gold,
+  'bg-cyan':     colors.cyan,
+  'bg-border':   colors.border,
+};
 
 export interface ProgressBarProps {
   /** Fraction filled, 0–1. Values outside [0,1] are clamped. */
@@ -36,31 +49,30 @@ export default function ProgressBar({
   height = 4,
   className,
 }: ProgressBarProps) {
-  // Clamp progress to [0, 1]
   const clamped = Math.min(1, Math.max(0, progress));
 
-  const fillFraction = useSharedValue(0);
+  const fillFlex = useSharedValue(0);
+  const spaceFlex = useSharedValue(1);
 
   useEffect(() => {
-    fillFraction.value = withTiming(clamped, timingChartFill);
+    fillFlex.value = withTiming(clamped, timingChartFill);
+    spaceFlex.value = withTiming(1 - clamped, timingChartFill);
   }, [clamped]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    // RN accepts percentage strings for width in flex layouts.
-    // `as any` is intentional — the Reanimated style type doesn't include string widths
-    // but React Native's layout engine handles them correctly at runtime.
-    width: `${fillFraction.value * 100}%` as any,
-  }));
+  const fillColor = FILL_COLORS[colorClass ?? 'bg-success'] ?? colors.success;
+
+  const fillStyle = useAnimatedStyle(() => ({ flex: fillFlex.value }));
+  const spaceStyle = useAnimatedStyle(() => ({ flex: spaceFlex.value }));
 
   return (
     <View
       className={`bg-border rounded-full overflow-hidden${className ? ` ${className}` : ''}`}
-      style={{ height }}
+      style={{ height, flexDirection: 'row' }}
     >
-      <Animated.View
-        className={`${colorClass} rounded-full h-full`}
-        style={animatedStyle}
-      />
+      {/* className kept for API compat; backgroundColor overrides it since NativeWind
+          does not apply className to Reanimated Animated.View in NativeWind v4. */}
+      <Animated.View className={`${colorClass} h-full`} style={[fillStyle, { backgroundColor: fillColor }]} />
+      <Animated.View style={spaceStyle} />
     </View>
   );
 }
