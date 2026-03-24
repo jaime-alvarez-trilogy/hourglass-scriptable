@@ -37,7 +37,11 @@ Both specs are independent and can be implemented in parallel.
 ## Changelog
 
 ### 01-glass-swipe-card
-- **Status**: Pending
+- **Status**: Spec complete
+- **Date**: 2026-03-24
+- **Spec**: [specs/01-glass-swipe-card/spec.md](specs/01-glass-swipe-card/spec.md)
 
 ### 02-requests-mesh
-- **Status**: Pending
+- **Status**: Spec complete
+- **Date**: 2026-03-24
+- **Spec**: [specs/02-requests-mesh/spec.md](specs/02-requests-mesh/spec.md)
