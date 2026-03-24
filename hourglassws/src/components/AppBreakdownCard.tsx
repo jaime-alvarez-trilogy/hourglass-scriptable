@@ -4,7 +4,8 @@
 // Layout:
 //   Card (borderAccentColor=violet)
 //   └─ SectionLabel "APP BREAKDOWN"
-//   └─ App rows: [appName] [AppUsageBar] [N slots]
+//   └─ Sub-label "AI APPS" + rows sorted by aiSlots desc
+//   └─ Sub-label "NOT AI" + rows sorted by nonAiSlots desc
 //   └─ Guidance section (omitted when guidance=[])
 //      └─ [colored dot] [chip text]
 //
@@ -22,10 +23,45 @@ import type { GuidanceChip } from '@/src/lib/appGuidance';
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface AppBreakdownCardProps {
-  /** Aggregated 12w entries, already sorted by total slots desc. Max 8 shown. */
+  /** Aggregated 12w entries. Max 8 shown per section. */
   entries: AppBreakdownEntry[];
   /** 0–3 guidance chips from generateGuidance(). */
   guidance: GuidanceChip[];
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function AppRow({ entry, slotCount }: { entry: AppBreakdownEntry; slotCount: number }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <Text
+        style={{ color: colors.textPrimary, fontSize: 13, flex: 1 }}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {entry.appName}
+      </Text>
+      <View style={{ flex: 2 }}>
+        <AppUsageBar
+          aiSlots={entry.aiSlots}
+          brainliftSlots={entry.brainliftSlots}
+          nonAiSlots={entry.nonAiSlots}
+          height={4}
+        />
+      </View>
+      <Text
+        style={{
+          color: colors.textMuted,
+          fontSize: 11,
+          width: 52,
+          textAlign: 'right',
+          fontVariant: ['tabular-nums'],
+        }}
+      >
+        {slotCount} slots
+      </Text>
+    </View>
+  );
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -33,54 +69,47 @@ interface AppBreakdownCardProps {
 export default function AppBreakdownCard({ entries, guidance }: AppBreakdownCardProps): JSX.Element | null {
   if (entries.length === 0) return null;
 
+  const aiApps = entries
+    .filter(e => e.aiSlots > 0)
+    .sort((a, b) => b.aiSlots - a.aiSlots)
+    .slice(0, 8);
+
+  const nonAiApps = entries
+    .filter(e => e.nonAiSlots > 0)
+    .sort((a, b) => b.nonAiSlots - a.nonAiSlots)
+    .slice(0, 8);
+
   return (
     <Card borderAccentColor={colors.violet}>
       <SectionLabel className="mb-3">APP BREAKDOWN</SectionLabel>
 
-      {/* App rows */}
-      <View style={{ gap: 8 }}>
-        {entries.map(entry => {
-          const slotCount = entry.aiSlots + entry.nonAiSlots;
-          return (
-            <View
-              key={entry.appName}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-            >
-              {/* App name */}
-              <Text
-                style={{ color: colors.textPrimary, fontSize: 13, flex: 1 }}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {entry.appName}
-              </Text>
+      {/* AI apps section */}
+      {aiApps.length > 0 && (
+        <View style={{ marginBottom: nonAiApps.length > 0 ? 12 : 0 }}>
+          <Text style={{ color: colors.textMuted, fontSize: 10, letterSpacing: 0.8, marginBottom: 6 }}>
+            AI APPS
+          </Text>
+          <View style={{ gap: 8 }}>
+            {aiApps.map(entry => (
+              <AppRow key={entry.appName} entry={entry} slotCount={entry.aiSlots + entry.nonAiSlots} />
+            ))}
+          </View>
+        </View>
+      )}
 
-              {/* Usage bar — flex fill */}
-              <View style={{ flex: 2 }}>
-                <AppUsageBar
-                  aiSlots={entry.aiSlots}
-                  brainliftSlots={entry.brainliftSlots}
-                  nonAiSlots={entry.nonAiSlots}
-                  height={4}
-                />
-              </View>
-
-              {/* Slot count */}
-              <Text
-                style={{
-                  color: colors.textMuted,
-                  fontSize: 11,
-                  width: 52,
-                  textAlign: 'right',
-                  fontVariant: ['tabular-nums'],
-                }}
-              >
-                {slotCount} slots
-              </Text>
-            </View>
-          );
-        })}
-      </View>
+      {/* Non-AI apps section */}
+      {nonAiApps.length > 0 && (
+        <View>
+          <Text style={{ color: colors.textMuted, fontSize: 10, letterSpacing: 0.8, marginBottom: 6 }}>
+            NON-AI SLOTS
+          </Text>
+          <View style={{ gap: 8 }}>
+            {nonAiApps.map(entry => (
+              <AppRow key={entry.appName} entry={entry} slotCount={entry.nonAiSlots} />
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Guidance chips — omitted when empty */}
       {guidance.length > 0 && (
@@ -90,7 +119,6 @@ export default function AppBreakdownCard({ entries, guidance }: AppBreakdownCard
               key={idx}
               style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}
             >
-              {/* Colored dot */}
               <View
                 style={{
                   width: 6,
@@ -101,7 +129,6 @@ export default function AppBreakdownCard({ entries, guidance }: AppBreakdownCard
                   flexShrink: 0,
                 }}
               />
-              {/* Chip text */}
               <Text style={{ color: colors.textSecondary, fontSize: 12, flex: 1, lineHeight: 17 }}>
                 {chip.text}
               </Text>
