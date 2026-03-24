@@ -20,12 +20,19 @@ import { useConfig } from './useConfig';
 import { loadCredentials } from '../store/config';
 import { getAuthToken, apiGet } from '../api/client';
 import { countDiaryTags } from '../lib/ai';
+import {
+  extractAppBreakdown,
+  mergeAppBreakdown,
+  loadAppHistory,
+  saveAppHistory,
+} from '../lib/aiAppBreakdown';
+import type { AppBreakdownEntry } from '../lib/aiAppBreakdown';
 import { loadWeeklyHistory, mergeWeeklySnapshot, saveWeeklyHistory } from '../lib/weeklyHistory';
 import type { WeeklySnapshot } from '../lib/weeklyHistory';
 import type { TagData } from '../lib/ai';
 import type { WorkDiarySlot } from '../types/api';
 
-const BACKFILL_MAX = 12; // cap at 12 past weeks
+const BACKFILL_MAX = 11; // cover all 12 weeks of history (past completed weeks only)
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -95,10 +102,8 @@ async function runBackfill(
   for (let n = 1; n <= BACKFILL_MAX; n++) {
     const monday = getMondayNWeeksAgo(n);
     const entry = historyMap.get(monday);
-    // Always re-fetch the most recent completed week (n=1) — the week-transition flush
-    // may have written a stale/partial value from the AI cache.
-    // For older weeks, only fill if aiPct === 0 to avoid excessive API calls.
-    if (n === 1 || !entry || entry.aiPct === 0) {
+    // Fill if missing or aiPct === 0 (any week with real work is unlikely to be truly 0%)
+    if (!entry || entry.aiPct === 0) {
       weeksToFill.push(monday);
     }
   }
@@ -121,6 +126,7 @@ async function runBackfill(
   for (const monday of weeksToFill) {
     const dates = weekDates(monday);
     const dayData: Record<string, TagData> = {};
+    const slotsData: Record<string, WorkDiarySlot[]> = {}; // FR6 (11-app-data-layer)
 
     // Fetch all 7 days in parallel, tolerating individual failures
     const results = await Promise.allSettled(
@@ -138,6 +144,7 @@ async function runBackfill(
       const result = results[i];
       if (result.status === 'fulfilled' && Array.isArray(result.value)) {
         dayData[dates[i]] = countDiaryTags(result.value);
+        slotsData[dates[i]] = result.value; // FR6: retain raw slots for app breakdown
       }
     }
 
@@ -145,10 +152,33 @@ async function runBackfill(
     if (Object.keys(dayData).length > 0) {
       const { aiPct, brainliftHours } = computeWeekAI(dayData);
       updated = mergeWeeklySnapshot(updated, { weekStart: monday, aiPct, brainliftHours });
+      // Save + notify after each week so useWeeklyHistory re-reads incrementally.
+      // This drives the progressive chart animation — each write triggers a re-read
+      // which grows data.length by 1, re-triggering TrendSparkline's clip reveal.
+      await saveWeeklyHistory(updated);
     }
+
+    // FR6 (11-app-data-layer): fire-and-forget app breakdown write for this past week.
+    // Failures are silently caught so weekly_history_v2 backfill is unaffected.
+    if (Object.keys(slotsData).length > 0) {
+      const weekBreakdown = Object.values(slotsData).reduce<AppBreakdownEntry[]>(
+        (acc, slots) => mergeAppBreakdown(acc, extractAppBreakdown(slots)),
+        [],
+      );
+      loadAppHistory().then(hist => {
+        const existing = hist[monday] ?? [];
+        return saveAppHistory({
+          ...hist,
+          [monday]: mergeAppBreakdown(existing, weekBreakdown),
+        });
+      }).catch(() => {});
+    }
+
+    // Brief pause between weeks — lets Hermes GC reclaim Promise/response allocations
+    // before the next batch of 7 parallel fetches, avoiding OOM from accumulated heap pressure.
+    await new Promise<void>(resolve => setTimeout(resolve, 300));
   }
 
-  await saveWeeklyHistory(updated);
   return updated;
 }
 
@@ -175,11 +205,6 @@ export function useHistoryBackfill(): WeeklySnapshot[] | null {
     const refreshFromStorage = () =>
       loadWeeklyHistory().then(data => setSnapshots(data)).catch(() => {});
 
-    // Delay backfill by 4 seconds to avoid competing with the initial animation burst
-    // (TrendSparkline mount animations, AIArcHero arc spring, AIConeChart withTiming).
-    // All those animations complete within ~1.5s; 4s gives ample clearance so the
-    // Hermes young-gen GC doesn't run during both animation worklet callbacks and
-    // Promise microtask resolution simultaneously.
     const timer = setTimeout(() => {
       loadCredentials().then(creds => {
         if (!creds) { refreshFromStorage(); return; }
@@ -188,7 +213,7 @@ export function useHistoryBackfill(): WeeklySnapshot[] | null {
       }).catch(() => {
         refreshFromStorage(); // ensure overview always gets fresh storage state
       });
-    }, 4000);
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, [config?.assignmentId]);
