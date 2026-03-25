@@ -44,6 +44,7 @@ import SkeletonLoader from '@/src/components/SkeletonLoader';
 import { UrgencyBanner } from '@/src/components/UrgencyBanner';
 import { ApprovalUrgencyCard } from '@/src/components/ApprovalUrgencyCard';
 import { useApprovalItems } from '@/src/hooks/useApprovalItems';
+import { getApprovalMeshState } from '@/src/lib/approvalMeshSignal';
 import type { PanelState } from '@/src/lib/panelState';
 import type { DailyHours } from '@/src/components/WeeklyBarChart';
 import type { DailyEntry } from '@/src/lib/hours';
@@ -181,6 +182,10 @@ export default function HoursDashboard() {
     : 0.0;
   const urgencyLevel = data ? getUrgencyLevel(data.timeRemaining) : 'none';
 
+  // Approval mesh signal: amber (behind) Mon-Wed, coral (critical) Thu-Sun UTC.
+  // When non-null, overrides earningsPace for Node C and adds floor glow at Requests tab.
+  const approvalMeshState = getApprovalMeshState(approvalItems.length);
+
   const earningsTrend = earningsHistoryTrend;
   const dailyChartData: DailyHours[] = mapDailyToChartData(data?.daily ?? []);
 
@@ -206,7 +211,11 @@ export default function HoursDashboard() {
       {/* FR1 (02-home-hero-ambient): Fixed ambient backdrop — outside ScrollView, does not scroll */}
       {/* 09-chart-visual-fixes FR3: AmbientBackground replaced with AnimatedMeshBackground     */}
       {/* directly — the old wrapper silently discarded its color prop (08-dark-glass-polish).   */}
-      <AnimatedMeshBackground earningsPace={earningsPaceSignal} />
+      <AnimatedMeshBackground
+        panelState={approvalMeshState}
+        earningsPace={approvalMeshState === null ? earningsPaceSignal : null}
+        pendingApprovals={approvalItems.length}
+      />
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 12 }}

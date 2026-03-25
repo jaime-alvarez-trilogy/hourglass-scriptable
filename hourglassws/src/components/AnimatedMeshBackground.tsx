@@ -69,6 +69,10 @@ export interface AnimatedMeshBackgroundProps {
   earningsPace?: number | null;
   /** AI usage percentage (0–100). Used for Node C color when panelState and earningsPace are not provided. */
   aiPct?: number | null;
+  /** Pending team approval count. When > 0, renders a 4th floor glow node at the Requests
+   *  tab position (bottom-right). The node's color escalates by day: amber Mon-Wed,
+   *  coral Thu-Sun. Refracts through NativeTabs UIGlassEffect to tint the tab bar.  */
+  pendingApprovals?: number | null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -122,12 +126,40 @@ export function resolveNodeCColor(
   return colors.background; // idle — #0D0C14, invisible against base layer
 }
 
+// ─── Floor glow node (4th node — approval urgency) ────────────────────────────
+// Positioned at bottom-right (Requests tab, 4th of 4 tabs, x = w * 7/8).
+// Static position (no orbital movement) — pulsing radius only.
+// Refracts through NativeTabs UIGlassEffect, making the Requests tab glow.
+
+const FLOOR_NODE_X_RATIO = 0.875;  // Requests tab: 4th of 4 (positions 0.125, 0.375, 0.625, 0.875)
+const FLOOR_PULSE_MIN = 0.20;      // radius = w * 0.20 (min)
+const FLOOR_PULSE_MAX = 0.32;      // radius = w * 0.32 (max)
+const FLOOR_PULSE_DURATION = 2000; // ms per pulse half-cycle
+const FLOOR_GLOW_ALPHA = 0.30;     // inner gradient alpha (lower than orbital nodes — more localized)
+
+/**
+ * Resolves the floor glow node color from pending approval count + UTC day.
+ * Internal helper — not exported (use getApprovalMeshState from approvalMeshSignal.ts for Node C).
+ *
+ * @returns hex color or null (no glow when pending = 0)
+ */
+function resolveFloorGlowColor(
+  pendingApprovals: number | null | undefined,
+  now: Date = new Date(),
+): string | null {
+  if (!pendingApprovals || pendingApprovals <= 0) return null;
+  const day = now.getUTCDay(); // 0=Sun, 1=Mon, ..., 4=Thu, 5=Fri, 6=Sat
+  const isEndOfWeek = day === 0 || day >= 4;
+  return isEndOfWeek ? colors.desatCoral : colors.warnAmber;
+}
+
 // ─── FR1 + FR2 + FR3 + FR4: AnimatedMeshBackground ─────────────────────────
 
 export function AnimatedMeshBackground({
   panelState,
   earningsPace,
   aiPct,
+  pendingApprovals,
 }: AnimatedMeshBackgroundProps): React.JSX.Element {
   const { width: w, height: h } = useWindowDimensions();
 
@@ -136,6 +168,12 @@ export function AnimatedMeshBackground({
 
   useEffect(() => {
     time.value = withRepeat(withTiming(1, { duration: 20000 }), -1, false);
+  }, []);
+
+  // Floor glow node — pulsing radius (autoReverse=true creates breathe effect)
+  const floorPulse = useSharedValue(0);
+  useEffect(() => {
+    floorPulse.value = withRepeat(withTiming(1, { duration: FLOOR_PULSE_DURATION }), -1, true);
   }, []);
 
   // FR2: Node A — Violet, phase 0
@@ -166,6 +204,16 @@ export function AnimatedMeshBackground({
 
   // FR3: Resolve Node C color at render time (not per-frame — this is a plain JS value)
   const nodeCHex = resolveNodeCColor(panelState, earningsPace, aiPct);
+
+  // Floor glow: resolved color (amber or coral) + animated radius
+  const floorHex = resolveFloorGlowColor(pendingApprovals);
+  const floorColors: [string, string] = floorHex
+    ? [hexToRgba(floorHex, FLOOR_GLOW_ALPHA), 'transparent']
+    : ['transparent', 'transparent'];
+  const floorRadius = useDerivedValue(
+    () => w * (FLOOR_PULSE_MIN + (FLOOR_PULSE_MAX - FLOOR_PULSE_MIN) * floorPulse.value),
+  );
+  const floorCenter = useDerivedValue(() => ({ x: w * FLOOR_NODE_X_RATIO, y: h }));
   // 08-dark-glass-polish: bumped from 0.15 → 0.22 for more visible light bloom behind glass
   const nodeCColors: [string, string] = [hexToRgba(nodeCHex, 0.22), 'transparent'];
 
@@ -221,6 +269,24 @@ export function AnimatedMeshBackground({
         />
         <Paint blendMode="screen" />
       </Circle>
+
+      {/* Node D — Floor glow at Requests tab position. Static x/y, pulsing radius.
+          Refracts through NativeTabs UIGlassEffect (iOS 26) to tint the tab bar.
+          Only rendered when pendingApprovals > 0. */}
+      {pendingApprovals != null && pendingApprovals > 0 && (
+        <Circle
+          cx={w * FLOOR_NODE_X_RATIO}
+          cy={h}
+          r={floorRadius}
+        >
+          <RadialGradient
+            c={floorCenter}
+            r={floorRadius}
+            colors={floorColors}
+          />
+          <Paint blendMode="screen" />
+        </Circle>
+      )}
     </Canvas>
   );
 }

@@ -41,6 +41,7 @@ import { computeEarningsPace } from '@/src/lib/overviewUtils';
 import { setTag } from '@/src/lib/sharedTransitions';
 import { ApprovalUrgencyCard } from '@/src/components/ApprovalUrgencyCard';
 import { useApprovalItems } from '@/src/hooks/useApprovalItems';
+import { getApprovalMeshState } from '@/src/lib/approvalMeshSignal';
 import type { ScrubChangeCallback } from '@/src/hooks/useScrubGesture';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -147,6 +148,9 @@ export default function OverviewScreen() {
   // Approval urgency card (01-approval-urgency-card)
   const { items: approvalItems } = useApprovalItems();
   const isManager = config?.isManager === true || config?.devManagerView === true;
+  // Approval mesh signal: amber (behind) Mon-Wed, coral (critical) Thu-Sun UTC.
+  // When non-null, overrides earningsPace for Node C and adds floor glow at Requests tab.
+  const approvalMeshState = getApprovalMeshState(approvalItems.length);
   // 08-dark-glass-polish: count 4→3 because Hours+AI% share one stagger row
   const { getEntryStyle } = useStaggeredEntry({ count: 3 });
 
@@ -237,7 +241,12 @@ export default function OverviewScreen() {
       <SafeAreaView className="flex-1 bg-background">
         {/* Layer 1: ambient field — absolute, full-screen, behind all content */}
         {/* 08-dark-glass-polish: direct AnimatedMeshBackground wiring with earningsPace signal */}
-        <AnimatedMeshBackground earningsPace={earningsPace} />
+        {/* 02-mesh-urgency-signal: approvalMeshState overrides earningsPace when non-null */}
+        <AnimatedMeshBackground
+          panelState={approvalMeshState}
+          earningsPace={approvalMeshState === null ? earningsPace : null}
+          pendingApprovals={approvalItems.length}
+        />
 
         <ScrollView
           className="flex-1"
