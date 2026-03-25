@@ -246,3 +246,68 @@ describe('FR5: useWidgetSync', () => {
     expect(mockUpdateWidgetData).toHaveBeenCalledTimes(2);
   });
 });
+
+// ─── 01-data-extensions: FR6 useWidgetSync prevWeekSnapshot param ─────────────
+
+describe('FR6 (01-data-extensions): useWidgetSync prevWeekSnapshot param', () => {
+  const MOCK_SNAPSHOT = { hours: 30.0, earnings: 1200 };
+
+  it('FR6: prevWeekSnapshot forwarded to bridge.updateWidgetData when provided', () => {
+    renderHook(() =>
+      useWidgetSync(MOCK_HOURS_DATA, MOCK_AI_DATA, 0, MOCK_CONFIG, [], [], MOCK_SNAPSHOT)
+    );
+    expect(mockUpdateWidgetData).toHaveBeenCalledWith(
+      MOCK_HOURS_DATA,
+      MOCK_AI_DATA,
+      0,
+      MOCK_CONFIG,
+      [],
+      [],
+      MOCK_SNAPSHOT
+    );
+  });
+
+  it('FR6: null prevWeekSnapshot forwarded as null', () => {
+    renderHook(() =>
+      useWidgetSync(MOCK_HOURS_DATA, MOCK_AI_DATA, 0, MOCK_CONFIG, [], [], null)
+    );
+    expect(mockUpdateWidgetData).toHaveBeenCalledWith(
+      MOCK_HOURS_DATA,
+      MOCK_AI_DATA,
+      0,
+      MOCK_CONFIG,
+      [],
+      [],
+      null
+    );
+  });
+
+  it('FR6: existing 5-arg callers still work (backward compat)', () => {
+    renderHook(() =>
+      useWidgetSync(MOCK_HOURS_DATA, MOCK_AI_DATA, 0, MOCK_CONFIG)
+    );
+    expect(mockUpdateWidgetData).toHaveBeenCalledTimes(1);
+  });
+
+  it('FR6: prevWeekSnapshot NOT in useEffect deps — changing snapshot alone does NOT re-trigger', () => {
+    const snap1 = { hours: 30.0, earnings: 1200 };
+    const snap2 = { hours: 28.0, earnings: 1120 };
+
+    const { rerender } = renderHook<
+      void,
+      { snap: typeof snap1 | typeof snap2 }
+    >(
+      ({ snap }) =>
+        useWidgetSync(MOCK_HOURS_DATA, MOCK_AI_DATA, 0, MOCK_CONFIG, [], [], snap),
+      { initialProps: { snap: snap1 } }
+    );
+
+    expect(mockUpdateWidgetData).toHaveBeenCalledTimes(1);
+
+    // Change only the snapshot — should NOT trigger a re-render
+    rerender({ snap: snap2 });
+
+    // Still only called once — prevWeekSnapshot is NOT in deps
+    expect(mockUpdateWidgetData).toHaveBeenCalledTimes(1);
+  });
+});

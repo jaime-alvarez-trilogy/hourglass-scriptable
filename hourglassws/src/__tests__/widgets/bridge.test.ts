@@ -648,6 +648,264 @@ describe('formatMyRequests (FR2)', () => {
   });
 });
 
+// ─── 01-data-extensions: FR1–FR5 new field tests ─────────────────────────────
+//
+// FR1: WidgetData type fields (compile-time + runtime shape)
+// FR2: paceBadge computation
+// FR3: weekDelta computation
+// FR4: brainliftTarget constant
+// FR5: updateWidgetData prevWeekSnapshot param
+
+describe('01-data-extensions: FR1 WidgetData type fields', () => {
+  beforeEach(() => { jest.clearAllMocks(); });
+
+  it('FR1: paceBadge field is present and has a valid union value', async () => {
+    await updateWidgetData(makeHoursData(), makeAIData(), 0, makeConfig());
+    const data = getWrittenWidgetData()!;
+    const valid = ['crushed_it', 'on_track', 'behind', 'critical', 'none'];
+    expect(valid).toContain(data.paceBadge);
+  });
+
+  it('FR1: weekDeltaHours field is present and is a string', async () => {
+    await updateWidgetData(makeHoursData(), makeAIData(), 0, makeConfig());
+    const data = getWrittenWidgetData()!;
+    expect(typeof data.weekDeltaHours).toBe('string');
+  });
+
+  it('FR1: weekDeltaEarnings field is present and is a string', async () => {
+    await updateWidgetData(makeHoursData(), makeAIData(), 0, makeConfig());
+    const data = getWrittenWidgetData()!;
+    expect(typeof data.weekDeltaEarnings).toBe('string');
+  });
+
+  it('FR1: brainliftTarget field is present and is a string', async () => {
+    await updateWidgetData(makeHoursData(), makeAIData(), 0, makeConfig());
+    const data = getWrittenWidgetData()!;
+    expect(typeof data.brainliftTarget).toBe('string');
+  });
+});
+
+describe('01-data-extensions: FR2 paceBadge computation', () => {
+  beforeEach(() => { jest.clearAllMocks(); });
+
+  // Helper: call updateWidgetData with a specific day-of-week injected via Date mock
+  async function getPaceBadgeOnDay(
+    dayOfWeek: number, // 0=Sun..6=Sat
+    hoursTotal: number,
+    overrides?: Partial<Parameters<typeof makeConfig>[0]>
+  ): Promise<string> {
+    // Mock Date.prototype.getDay to return desired day
+    const originalGetDay = Date.prototype.getDay;
+    Date.prototype.getDay = function() { return dayOfWeek; };
+    try {
+      await updateWidgetData(makeHoursData({ total: hoursTotal, overtimeHours: 0 }), makeAIData(), 0, makeConfig(overrides ?? {}));
+    } finally {
+      Date.prototype.getDay = originalGetDay;
+    }
+    return getWrittenWidgetData()!.paceBadge as string;
+  }
+
+  it('FR2: overtimeHours > 0 → paceBadge === "crushed_it" regardless of day', async () => {
+    await updateWidgetData(makeHoursData({ overtimeHours: 2.5, total: 42.5 }), makeAIData(), 0, makeConfig());
+    const data = getWrittenWidgetData()!;
+    expect(data.paceBadge).toBe('crushed_it');
+  });
+
+  it('FR2: hoursData === null → paceBadge === "none"', async () => {
+    await updateWidgetData(null, makeAIData(), 0, makeConfig());
+    const data = getWrittenWidgetData()!;
+    expect(data.paceBadge).toBe('none');
+  });
+
+  it('FR2: Monday (day=1) → workdaysElapsed=0, expectedHours=0 → paceBadge === "none"', async () => {
+    const badge = await getPaceBadgeOnDay(1, 0);
+    expect(badge).toBe('none');
+  });
+
+  it('FR2: Wednesday (day=3) → workdaysElapsed=2, expectedHours=16 → 16h → on_track (ratio=1.0)', async () => {
+    // day=3 (Wed): workdaysElapsed = 3-1 = 2; expectedHours = 40 * (2/5) = 16
+    const badge = await getPaceBadgeOnDay(3, 16);
+    expect(badge).toBe('on_track');
+  });
+
+  it('FR2: Wednesday, ratio 0.7–0.9 → paceBadge === "behind"', async () => {
+    // expectedHours = 16; behind range: 11.2 <= hours < 14.4
+    const badge = await getPaceBadgeOnDay(3, 12);
+    expect(badge).toBe('behind');
+  });
+
+  it('FR2: Wednesday, ratio < 0.7 → paceBadge === "critical"', async () => {
+    // expectedHours = 16; critical: hours < 11.2
+    const badge = await getPaceBadgeOnDay(3, 8);
+    expect(badge).toBe('critical');
+  });
+
+  it('FR2: Saturday (day=6) uses workdaysElapsed=5, full-week comparison → on_track', async () => {
+    // workdaysElapsed=5; expectedHours=40*(5/5)=40; 36h → ratio=0.9 → on_track
+    const badge = await getPaceBadgeOnDay(6, 36);
+    expect(badge).toBe('on_track');
+  });
+
+  it('FR2: Sunday (day=0) uses workdaysElapsed=5, full-week comparison → critical', async () => {
+    // workdaysElapsed=5; expectedHours=40; 20h → ratio=0.5 → critical
+    const badge = await getPaceBadgeOnDay(0, 20);
+    expect(badge).toBe('critical');
+  });
+
+  it('FR2: missing config.weeklyLimit → defaults to 40', async () => {
+    const configNoLimit = { ...makeConfig() };
+    // @ts-expect-error testing missing weeklyLimit
+    delete configNoLimit.weeklyLimit;
+    const originalGetDay = Date.prototype.getDay;
+    Date.prototype.getDay = () => 3; // Wednesday: expectedHours=16
+    try {
+      await updateWidgetData(makeHoursData({ total: 16, overtimeHours: 0 }), makeAIData(), 0, configNoLimit);
+    } finally {
+      Date.prototype.getDay = originalGetDay;
+    }
+    const data = getWrittenWidgetData()!;
+    // 16h / 16 expected = ratio 1.0 → on_track (confirms default 40 was used)
+    expect(data.paceBadge).toBe('on_track');
+  });
+});
+
+describe('01-data-extensions: FR3 weekDelta computation', () => {
+  beforeEach(() => { jest.clearAllMocks(); });
+
+  it('FR3: positive hours delta → weekDeltaHours === "+2.1h"', async () => {
+    await updateWidgetData(
+      makeHoursData({ total: 34.6 }), makeAIData(), 0, makeConfig(),
+      undefined, undefined,
+      { hours: 32.5, earnings: 1216 }
+    );
+    const data = getWrittenWidgetData()!;
+    expect(data.weekDeltaHours).toBe('+2.1h');
+  });
+
+  it('FR3: positive earnings delta → weekDeltaEarnings === "+$84"', async () => {
+    await updateWidgetData(
+      makeHoursData({ weeklyEarnings: 1384 }), makeAIData(), 0, makeConfig(),
+      undefined, undefined,
+      { hours: 32.5, earnings: 1300 }
+    );
+    const data = getWrittenWidgetData()!;
+    expect(data.weekDeltaEarnings).toBe('+$84');
+  });
+
+  it('FR3: negative hours delta → weekDeltaHours === "-3.4h"', async () => {
+    await updateWidgetData(
+      makeHoursData({ total: 29.1 }), makeAIData(), 0, makeConfig(),
+      undefined, undefined,
+      { hours: 32.5, earnings: 1300 }
+    );
+    const data = getWrittenWidgetData()!;
+    expect(data.weekDeltaHours).toBe('-3.4h');
+  });
+
+  it('FR3: negative earnings delta → weekDeltaEarnings === "-$136"', async () => {
+    await updateWidgetData(
+      makeHoursData({ weeklyEarnings: 1164 }), makeAIData(), 0, makeConfig(),
+      undefined, undefined,
+      { hours: 32.5, earnings: 1300 }
+    );
+    const data = getWrittenWidgetData()!;
+    expect(data.weekDeltaEarnings).toBe('-$136');
+  });
+
+  it('FR3: zero delta → weekDeltaHours === "+0.0h" and weekDeltaEarnings === "+$0"', async () => {
+    await updateWidgetData(
+      makeHoursData({ total: 32.5, weeklyEarnings: 1300 }), makeAIData(), 0, makeConfig(),
+      undefined, undefined,
+      { hours: 32.5, earnings: 1300 }
+    );
+    const data = getWrittenWidgetData()!;
+    expect(data.weekDeltaHours).toBe('+0.0h');
+    expect(data.weekDeltaEarnings).toBe('+$0');
+  });
+
+  it('FR3: prevWeekSnapshot === null → weekDeltaHours and weekDeltaEarnings are ""', async () => {
+    await updateWidgetData(
+      makeHoursData(), makeAIData(), 0, makeConfig(),
+      undefined, undefined,
+      null
+    );
+    const data = getWrittenWidgetData()!;
+    expect(data.weekDeltaHours).toBe('');
+    expect(data.weekDeltaEarnings).toBe('');
+  });
+
+  it('FR3: prevWeekSnapshot === undefined (omitted) → weekDeltaHours and weekDeltaEarnings are ""', async () => {
+    await updateWidgetData(makeHoursData(), makeAIData(), 0, makeConfig());
+    const data = getWrittenWidgetData()!;
+    expect(data.weekDeltaHours).toBe('');
+    expect(data.weekDeltaEarnings).toBe('');
+  });
+
+  it('FR3: hoursData === null → weekDeltaHours and weekDeltaEarnings are ""', async () => {
+    await updateWidgetData(
+      null, makeAIData(), 0, makeConfig(),
+      undefined, undefined,
+      { hours: 32.5, earnings: 1300 }
+    );
+    const data = getWrittenWidgetData()!;
+    expect(data.weekDeltaHours).toBe('');
+    expect(data.weekDeltaEarnings).toBe('');
+  });
+});
+
+describe('01-data-extensions: FR4 brainliftTarget constant', () => {
+  beforeEach(() => { jest.clearAllMocks(); });
+
+  it('FR4: brainliftTarget === "5h" with hoursData present', async () => {
+    await updateWidgetData(makeHoursData(), makeAIData(), 0, makeConfig());
+    const data = getWrittenWidgetData()!;
+    expect(data.brainliftTarget).toBe('5h');
+  });
+
+  it('FR4: brainliftTarget === "5h" when hoursData is null', async () => {
+    await updateWidgetData(null, makeAIData(), 0, makeConfig());
+    const data = getWrittenWidgetData()!;
+    expect(data.brainliftTarget).toBe('5h');
+  });
+
+  it('FR4: brainliftTarget === "5h" when aiData is null', async () => {
+    await updateWidgetData(makeHoursData(), null, 0, makeConfig());
+    const data = getWrittenWidgetData()!;
+    expect(data.brainliftTarget).toBe('5h');
+  });
+});
+
+describe('01-data-extensions: FR5 updateWidgetData prevWeekSnapshot param', () => {
+  beforeEach(() => { jest.clearAllMocks(); });
+
+  it('FR5: existing 6-arg callers still work (backward compat)', async () => {
+    await expect(
+      updateWidgetData(makeHoursData(), makeAIData(), 0, makeConfig(), [], [])
+    ).resolves.not.toThrow();
+    expect(getWrittenWidgetData()).not.toBeNull();
+  });
+
+  it('FR5: prevWeekSnapshot provided → delta fields populated correctly', async () => {
+    const snap = { hours: 30.0, earnings: 1200 };
+    await updateWidgetData(
+      makeHoursData({ total: 32.5, weeklyEarnings: 1300 }),
+      makeAIData(), 0, makeConfig(),
+      undefined, undefined,
+      snap
+    );
+    const data = getWrittenWidgetData()!;
+    expect(data.weekDeltaHours).toBe('+2.5h');
+    expect(data.weekDeltaEarnings).toBe('+$100');
+  });
+
+  it('FR5: prevWeekSnapshot omitted → delta fields are ""', async () => {
+    await updateWidgetData(makeHoursData(), makeAIData(), 0, makeConfig());
+    const data = getWrittenWidgetData()!;
+    expect(data.weekDeltaHours).toBe('');
+    expect(data.weekDeltaEarnings).toBe('');
+  });
+});
+
 // ─── FR3: Extended buildWidgetData (via updateWidgetData) ──────────────────────
 //
 // buildWidgetData is internal; we test via updateWidgetData which writes to AsyncStorage.
