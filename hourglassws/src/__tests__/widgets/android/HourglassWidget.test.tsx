@@ -360,13 +360,13 @@ describe('FR3 — Glass panel cards', () => {
     expect(borderPanel).toBeDefined();
   });
 
-  it('FR3.2 — medium widget hours panel has inner backgroundColor #16151F with borderRadius 12', () => {
+  it('FR3.2 — medium widget hours panel has inner backgroundColor #1F1E2C with borderRadius 12 (02-widget-visual-android: updated from #16151F)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, { data: makeData(), widgetFamily: 'medium' })
     );
     const flexes = getFlexWidgets(tree);
     const surfacePanel = flexes.find(
-      (n) => n.props.style?.backgroundColor === '#16151F' && n.props.style?.borderRadius === 12
+      (n) => n.props.style?.backgroundColor === '#1F1E2C' && n.props.style?.borderRadius === 12
     );
     expect(surfacePanel).toBeDefined();
   });

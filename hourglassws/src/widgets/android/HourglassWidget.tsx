@@ -96,6 +96,43 @@ export function blProgressBar(brainliftHours: number, targetHours: number, width
   );
 }
 
+/**
+ * Generates an inline SVG string for the 7-bar weekly hours sparkline.
+ * 7 bars (Mon[0]–Sun[6]) + 3-char day labels below.
+ * Bar colours: accentColor (isToday), '#4A4A6A' (past with hours), '#2F2E41' (zero/future).
+ * Minimum bar height: 2px (shows floor reference even for empty/future bars).
+ * Total SVG height: barAreaHeight + 12 (bar area + label area).
+ */
+export function buildBarChartSvg(
+  daily: import('../types').WidgetDailyEntry[],
+  width: number,
+  barAreaHeight: number,
+  accentColor: string,
+): string {
+  const colW = width / 7;
+  const barW = Math.round(colW * 0.6);
+  const maxHours = Math.max(...daily.map(d => d.hours), 0.01);
+  const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  const bars = daily.map((d, i) => {
+    const x = Math.round(i * colW + colW * 0.2);
+    const barH = Math.max(Math.round(d.hours / maxHours * barAreaHeight), 2);
+    const y = barAreaHeight - barH;
+    const color = d.isToday
+      ? accentColor
+      : (d.isFuture || d.hours === 0)
+        ? '#2F2E41'
+        : '#4A4A6A';
+    const labelX = Math.round(i * colW + colW / 2);
+    return (
+      `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="2" fill="${color}"/>` +
+      `<text x="${labelX}" y="${barAreaHeight + 10}" text-anchor="middle" font-size="9" fill="#777777">${DAY_LABELS[i]}</text>`
+    );
+  }).join('');
+
+  return `<svg width="${width}" height="${barAreaHeight + 12}" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
+}
+
 // ─── Urgency color mapping (for text accents) ─────────────────────────────────
 
 const URGENCY_ACCENT: Record<string, string> = {
@@ -150,7 +187,7 @@ function GlassPanel({ flex, children }: GlassPanelProps) {
     >
       <FlexWidget
         style={{
-          backgroundColor: '#16151F',
+          backgroundColor: '#1F1E2C',
           borderRadius: 12,
           padding: 12,
         }}
@@ -596,6 +633,12 @@ function MediumWidget({ data }: { data: WidgetData }) {
           style={{ color: '#A78BFA', fontSize: 11 }}
         />
       </FlexWidget>
+
+      {/* FR3 (02-widget-visual-android): Daily bar chart */}
+      <SvgWidget
+        svg={buildBarChartSvg(data.daily, 280, 28, accent)}
+        style={{ width: 280, height: 40 }}
+      />
 
       {/* Stale indicator */}
       {stale && (
