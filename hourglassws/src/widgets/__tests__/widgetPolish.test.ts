@@ -63,7 +63,17 @@ function extractComputeTodayDelta(): (today: number, average: number) => string 
     if (src[i] === '}') { depth--; if (started && depth === 0) { i++; break; } }
     i++;
   }
-  const fnSrc = src.slice(fnStart, i);
+  let fnSrc = src.slice(fnStart, i);
+  // Strip TypeScript type annotations from parameters and return type
+  // e.g. `function computeTodayDelta(today: number, average: number): string`
+  // → `function computeTodayDelta(today, average)`
+  fnSrc = fnSrc
+    .replace(/function computeTodayDelta\([^)]*\)(?:\s*:\s*\w+)?/, (match) => {
+      // Remove param type annotations and return type
+      return match
+        .replace(/:\s*\w+/g, '') // remove `: type` annotations
+        .replace(/\(\s*\)/, '()'); // clean up empty parens if needed
+    });
   // eslint-disable-next-line no-new-func
   const fn = new Function('return (' + fnSrc + ')')();
   return fn as (today: number, average: number) => string;

@@ -217,6 +217,22 @@ function computeWeekDeltas(
   return { weekDeltaHours, weekDeltaEarnings };
 }
 
+/**
+ * Computes today's hours vs daily average as a signed delta string.
+ * Returns "" when average === 0 (e.g. Monday, no baseline yet).
+ * Exported for direct unit testing.
+ *
+ * @param today   - HoursData.today (hours worked today, raw number)
+ * @param average - HoursData.average (average daily hours this week, raw number)
+ * @returns "+1.2h" | "-0.5h" | "+0.0h" | ""
+ */
+export function computeTodayDelta(today: number, average: number): string {
+  if (average === 0) return '';
+  const delta = today - average;
+  const abs = Math.abs(delta).toFixed(1);
+  return delta >= 0 ? `+${abs}h` : `-${abs}h`;
+}
+
 // ─── buildWidgetData ──────────────────────────────────────────────────────────
 
 /**
@@ -269,6 +285,7 @@ function buildWidgetData(
       weekDeltaHours,
       weekDeltaEarnings,
       brainliftTarget: '5h',
+      todayDelta: '',
     };
   }
 
@@ -307,6 +324,8 @@ function buildWidgetData(
     weekDeltaHours,
     weekDeltaEarnings,
     brainliftTarget: '5h',
+    // 01-widget-polish fields
+    todayDelta: computeTodayDelta(hoursData.today, hoursData.average),
   };
 }
 

@@ -89,4 +89,9 @@ export interface WidgetData {
   weekDeltaEarnings: string;
   /** BrainLift weekly target label — always "5h" */
   brainliftTarget: string;
+
+  // ─── 01-widget-polish: layout fix fields ─────────────────────────────────
+
+  /** Today's hours vs daily average: "+1.2h" | "-0.5h" | "" (no average yet) */
+  todayDelta: string;
 }

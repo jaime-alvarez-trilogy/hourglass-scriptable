@@ -21,23 +21,13 @@ export function buildMeshSvg(urgency: WidgetUrgency, paceBadge: string): string 
   return (
     `<svg width="360" height="200" xmlns="http://www.w3.org/2000/svg">` +
     `<defs>` +
-    `<radialGradient id="va" cx="25%" cy="30%" r="50%">` +
-    `<stop offset="0%" stop-color="#A78BFA" stop-opacity="0.12"/>` +
-    `<stop offset="100%" stop-color="#A78BFA" stop-opacity="0"/>` +
-    `</radialGradient>` +
-    `<radialGradient id="cb" cx="75%" cy="60%" r="45%">` +
-    `<stop offset="0%" stop-color="#00C2FF" stop-opacity="0.10"/>` +
-    `<stop offset="100%" stop-color="#00C2FF" stop-opacity="0"/>` +
-    `</radialGradient>` +
-    `<radialGradient id="sc" cx="50%" cy="80%" r="40%">` +
-    `<stop offset="0%" stop-color="${stateColor}" stop-opacity="0.14"/>` +
-    `<stop offset="100%" stop-color="${stateColor}" stop-opacity="0"/>` +
-    `</radialGradient>` +
+    `<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">` +
+    `<stop offset="0%" stop-color="#0D0C14" stop-opacity="1"/>` +
+    `<stop offset="50%" stop-color="${stateColor}" stop-opacity="0.15"/>` +
+    `<stop offset="100%" stop-color="#0D0C14" stop-opacity="1"/>` +
+    `</linearGradient>` +
     `</defs>` +
-    `<rect width="100%" height="100%" fill="#0D0C14"/>` +
-    `<ellipse cx="90" cy="60" rx="130" ry="100" fill="url(#va)"/>` +
-    `<ellipse cx="270" cy="120" rx="120" ry="90" fill="url(#cb)"/>` +
-    `<ellipse cx="180" cy="160" rx="110" ry="80" fill="url(#sc)"/>` +
+    `<rect width="100%" height="100%" fill="url(#bg)"/>` +
     `</svg>`
   );
 }
@@ -99,9 +89,9 @@ export function blProgressBar(brainliftHours: number, targetHours: number, width
   const safeHours = isNaN(brainliftHours) ? 0 : brainliftHours;
   const fillWidth = Math.round(Math.min(safeHours / targetHours, 1) * width);
   return (
-    `<svg width="${width}" height="6" xmlns="http://www.w3.org/2000/svg">` +
-    `<rect width="${width}" height="6" rx="3" fill="#2F2E41"/>` +
-    `<rect width="${fillWidth}" height="6" rx="3" fill="#A78BFA"/>` +
+    `<svg width="${width}" height="8" xmlns="http://www.w3.org/2000/svg">` +
+    `<rect width="${width}" height="8" rx="4" fill="#2F2E41"/>` +
+    `<rect width="${fillWidth}" height="8" rx="4" fill="#A78BFA"/>` +
     `</svg>`
   );
 }
@@ -255,20 +245,8 @@ function SmallWidget({ data }: { data: WidgetData }) {
           style={{ color: accent, fontSize: 28, fontWeight: 'bold' }}
         />
 
-        {/* Earnings */}
-        <TextWidget
-          text={data.earnings}
-          style={{ color: '#E8C97A', fontSize: 14 }}
-        />
-
         {/* FR4: Pace badge */}
         <PaceBadge paceBadge={data.paceBadge} />
-
-        {/* Hours remaining */}
-        <TextWidget
-          text={data.hoursRemaining}
-          style={{ color: '#A0A0A0', fontSize: 12 }}
-        />
 
         {/* Stale indicator */}
         {stale && (
@@ -592,7 +570,7 @@ function MediumWidget({ data }: { data: WidgetData }) {
         />
         <TextWidget text="" style={{ flex: 1 }} />
         <TextWidget
-          text={`AI: ${data.aiPct}`}
+          text={`AI Usage: ${data.aiPct}`}
           style={{ color: '#00C2FF', fontSize: 13 }}
         />
       </FlexWidget>
@@ -606,12 +584,12 @@ function MediumWidget({ data }: { data: WidgetData }) {
       {/* FR6: BrainLift progress bar */}
       <FlexWidget style={{ flexDirection: 'row', alignItems: 'center' }}>
         <TextWidget
-          text="BL"
+          text="BrainLift"
           style={{ color: '#A78BFA', fontSize: 11 }}
         />
         <SvgWidget
           svg={blProgressBar(brainliftHours, targetHours, 120)}
-          style={{ width: 120, height: 6 }}
+          style={{ width: 120, height: 8 }}
         />
         <TextWidget
           text={` ${data.brainlift} / ${data.brainliftTarget ?? '5h'}`}

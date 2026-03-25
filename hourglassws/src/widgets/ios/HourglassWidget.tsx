@@ -17,6 +17,13 @@ const { VStack, HStack, ZStack, Text, Spacer } = require('@expo/ui/swift-ui');
 
 // ─── Urgency color mapping ─────────────────────────────────────────────────────
 
+const PACE_LABELS: Record<string, string> = {
+  crushed_it: 'CRUSHED IT',
+  on_track:   'ON TRACK',
+  behind:     'BEHIND PACE',
+  critical:   'CRITICAL',
+};
+
 const URGENCY_COLORS: Record<string, string> = {
   none: '#1A1A2E',
   low: '#4A3B00',
@@ -67,23 +74,17 @@ function SmallWidget({ props }: { props: WidgetData }) {
           {props.hoursDisplay}
         </Text>
 
-        {/* Earnings */}
-        <Text
-          font={{ size: 14 }}
-          foregroundStyle="#FFFFFF"
-        >
-          {props.earnings}
-        </Text>
-
         <Spacer />
 
-        {/* Hours remaining */}
-        <Text
-          font={{ size: 12 }}
-          foregroundStyle="#AAAAAA"
-        >
-          {props.hoursRemaining}
-        </Text>
+        {/* Pace status */}
+        {PACE_LABELS[props.paceBadge] && (
+          <Text
+            font={{ size: 12 }}
+            foregroundStyle={accent}
+          >
+            {PACE_LABELS[props.paceBadge]}
+          </Text>
+        )}
 
         {/* Stale indicator */}
         {isStale(props.cachedAt) && (
@@ -181,7 +182,7 @@ function LargeWidget({ props }: { props: WidgetData }) {
 
   return (
     <ZStack>
-      <VStack background={bg} padding={14}>
+      <VStack background={bg} padding={16}>
         {/* Hero row */}
         <HStack>
           <VStack>
@@ -205,15 +206,17 @@ function LargeWidget({ props }: { props: WidgetData }) {
 
         <Spacer />
 
-        {/* Today + hours remaining */}
+        {/* Today + delta vs daily average */}
         <HStack>
           <Text font={{ size: 13 }} foregroundStyle="#DDDDDD">
             Today: {props.today}
           </Text>
           <Spacer />
-          <Text font={{ size: 13 }} foregroundStyle="#DDDDDD">
-            {props.hoursRemaining}
-          </Text>
+          {props.todayDelta && (
+            <Text font={{ size: 13 }} foregroundStyle="#DDDDDD">
+              {props.todayDelta}
+            </Text>
+          )}
         </HStack>
 
         {/* AI% */}

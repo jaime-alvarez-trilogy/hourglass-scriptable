@@ -63,6 +63,8 @@ function makeData(overrides: Record<string, unknown> = {}): any {
     weekDeltaHours: '+2.1h',
     weekDeltaEarnings: '+$84',
     brainliftTarget: '5h',
+    // 01-widget-polish fields
+    todayDelta: '+1.2h',
     ...overrides,
   };
 }
@@ -127,12 +129,12 @@ function getSvgWidgets(tree: any): any[] {
 // ─── FR1: Helper functions ─────────────────────────────────────────────────────
 
 describe('FR1 — buildMeshSvg', () => {
-  it('FR1.1 — returns a string containing <svg, <defs, and radialGradient', () => {
+  it('FR1.1 — returns a string containing <svg, <defs, and linearGradient (01-widget-polish: replaced radial with linear)', () => {
     const svg = buildMeshSvg('none', 'none');
     expect(typeof svg).toBe('string');
     expect(svg).toContain('<svg');
     expect(svg).toContain('<defs');
-    expect(svg).toContain('radialGradient');
+    expect(svg).toContain('linearGradient');
   });
 
   it('FR1.2 — urgency critical → Node C color is #F43F5E', () => {
@@ -166,10 +168,12 @@ describe('FR1 — buildMeshSvg', () => {
     expect(svg).toContain('#A78BFA');
   });
 
-  it('FR1.7 — always includes Node A violet and Node B cyan', () => {
+  it('FR1.7 — always includes state-driven violet (01-widget-polish: Node B cyan removed, single linear gradient)', () => {
     const svg = buildMeshSvg('none', 'none');
+    // violet is the default state color for urgency=none, paceBadge=none
     expect(svg).toContain('#A78BFA');
-    expect(svg).toContain('#00C2FF');
+    // Cyan (#00C2FF) was Node B; removed in 01-widget-polish linear gradient replacement
+    expect(svg).not.toContain('#00C2FF');
   });
 });
 
@@ -313,12 +317,12 @@ describe('FR2 — SVG mesh background layer', () => {
     expect(firstChild.type).toBe('SvgWidget');
   });
 
-  it('FR2.3 — SvgWidget svg prop contains radialGradient (output of buildMeshSvg)', () => {
+  it('FR2.3 — SvgWidget svg prop contains linearGradient (01-widget-polish: replaced radialGradient with linearGradient)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, { data: makeData(), widgetFamily: 'medium' })
     );
     const svgNodes = getSvgWidgets(tree);
-    const meshNode = svgNodes.find((n) => n.props.svg && n.props.svg.includes('radialGradient'));
+    const meshNode = svgNodes.find((n) => n.props.svg && n.props.svg.includes('linearGradient'));
     expect(meshNode).toBeDefined();
   });
 
@@ -622,7 +626,7 @@ describe('FR6 — BrainLift progress bar', () => {
     expect(blBar).toBeUndefined();
   });
 
-  it('FR6.6 — BL label color is #A78BFA violet', () => {
+  it('FR6.6 — BrainLift label color is #A78BFA violet (01-widget-polish: "BL" renamed to "BrainLift")', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, {
         data: makeData({ brainlift: '3.2h', brainliftTarget: '5h' }),
@@ -630,7 +634,7 @@ describe('FR6 — BrainLift progress bar', () => {
       })
     );
     const texts = getTextWidgets(tree);
-    const blLabel = texts.find((t) => t.props.text === 'BL');
+    const blLabel = texts.find((t) => t.props.text === 'BrainLift');
     expect(blLabel).toBeDefined();
     expect(blLabel.props.style?.color).toBe('#A78BFA');
   });
@@ -855,7 +859,7 @@ describe('04-cockpit-hud FR3: Android P2 stripped deficit layout', () => {
     expect(aiText).toBeUndefined();
   });
 
-  it('FR3-A-5 — MediumWidget paceBadge=behind, no approvals → does NOT render BL label', () => {
+  it('FR3-A-5 — MediumWidget paceBadge=behind, no approvals → does NOT render BrainLift bar label (01-widget-polish: label renamed from BL to BrainLift)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, {
         data: makeData({ paceBadge: 'behind', approvalItems: [], myRequests: [], isManager: false }),
@@ -863,7 +867,8 @@ describe('04-cockpit-hud FR3: Android P2 stripped deficit layout', () => {
       })
     );
     const texts = getTextWidgets(tree);
-    const blText = texts.find((t) => t.props.text === 'BL');
+    // P2 stripped deficit mode does not show the BrainLift bar
+    const blText = texts.find((t) => t.props.text === 'BrainLift');
     expect(blText).toBeUndefined();
   });
 
@@ -926,7 +931,7 @@ describe('04-cockpit-hud FR3: Android P2 stripped deficit layout', () => {
     expect(itemText).toBeDefined();
   });
 
-  it('FR3-A-9 (edge) — paceBadge=on_track, no approvals → P3 hours mode, AI: label shown', () => {
+  it('FR3-A-9 (edge) — paceBadge=on_track, no approvals → P3 hours mode, AI Usage: label shown (01-widget-polish: renamed from "AI:" to "AI Usage:")', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, {
         data: makeData({ paceBadge: 'on_track', approvalItems: [], myRequests: [], isManager: false }),
@@ -934,7 +939,7 @@ describe('04-cockpit-hud FR3: Android P2 stripped deficit layout', () => {
       })
     );
     const texts = getTextWidgets(tree);
-    const aiText = texts.find((t) => t.props.text && t.props.text.startsWith('AI:'));
+    const aiText = texts.find((t) => t.props.text && t.props.text.startsWith('AI Usage:'));
     expect(aiText).toBeDefined();
   });
 });
@@ -986,8 +991,8 @@ describe('04-cockpit-hud FR5: Priority ordering P1 > P2 > P3 (Android)', () => {
       })
     );
     const texts = getTextWidgets(tree);
-    // P3 hours mode: AI: label present, no ⚠ warning
-    const aiText = texts.find((t) => t.props.text && t.props.text.startsWith('AI:'));
+    // P3 hours mode: AI Usage: label present (01-widget-polish: renamed from "AI:"), no ⚠ warning
+    const aiText = texts.find((t) => t.props.text && t.props.text.startsWith('AI Usage:'));
     expect(aiText).toBeDefined();
     const warningText = texts.find((t) => t.props.text && t.props.text.startsWith('⚠'));
     expect(warningText).toBeUndefined();
