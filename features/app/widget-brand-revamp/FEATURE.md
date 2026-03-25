@@ -106,6 +106,12 @@ Mesh simulation approach: `ZStack` base with 3 overlapping `Circle()` shapes fil
 - `hourglassws/src/__tests__/widgets/android/HourglassWidget.test.tsx` — new: 67 unit tests for all FRs
 - `hourglassws/src/types/modules.d.ts` — added SvgWidget type declaration
 
+### 04-cockpit-hud
+- `hourglassws/src/widgets/bridge.ts` — PACE_COLORS updated, P2 mode added to buildSmall/buildMedium/buildLarge, hero font modifiers added
+- `hourglassws/src/widgets/android/HourglassWidget.tsx` — badgeColor() updated, P2 isPaceMode branch added to MediumWidget
+- `hourglassws/src/widgets/__tests__/widgetLayoutJs.test.ts` — FR1-FR5 tests added (55 new tests); pre-existing color tests updated
+- `hourglassws/src/__tests__/widgets/android/HourglassWidget.test.tsx` — FR1/FR3/FR5 tests added (23 new tests); pre-existing badge color tests updated
+
 ## Changelog
 
 | Date | Spec | Description |
@@ -113,4 +119,4 @@ Mesh simulation approach: `ZStack` base with 3 overlapping `Circle()` shapes fil
 | 2026-03-24 | [01-data-extensions](specs/01-data-extensions/spec.md) | Add paceBadge, weekDelta, brainliftTarget fields to WidgetData with full call-chain wiring — **Complete** |
 | 2026-03-24 | [02-ios-visual](specs/02-ios-visual/spec.md) | Full WIDGET_LAYOUT_JS redesign: mesh bg simulation, glass panels, pace badge, trend deltas, brainliftTarget-driven progress bars, brand color compliance across all sizes — **Complete** |
 | 2026-03-24 | [03-android-visual](specs/03-android-visual/spec.md) | Android HourglassWidget brand redesign: SVG mesh bg, glass panels, pace badge, trend deltas, BrainLift bar, urgency mode — **Complete** |
-| 2026-03-25 | [04-cockpit-hud](specs/04-cockpit-hud/spec.md) | Dynamic 3-priority HUD: desaturated dark glass color tokens, P2 stripped deficit layout (iOS+Android), iOS monospaced/heavy hero typography — **Spec** |
+| 2026-03-25 | [04-cockpit-hud](specs/04-cockpit-hud/spec.md) | Dynamic 3-priority HUD: desaturated dark glass color tokens, P2 stripped deficit layout (iOS+Android), iOS monospaced/heavy hero typography — **Complete** |
