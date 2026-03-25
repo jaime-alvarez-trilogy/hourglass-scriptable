@@ -34,9 +34,15 @@ declare module 'react-native-android-widget' {
     style?: WidgetStyle;
   }
 
+  interface SvgWidgetProps {
+    svg: string;
+    style?: WidgetStyle;
+  }
+
   export function FlexWidget(props: FlexWidgetProps): JSX.Element;
   export function TextWidget(props: TextWidgetProps): JSX.Element;
   export function ImageWidget(props: ImageWidgetProps): JSX.Element;
+  export function SvgWidget(props: SvgWidgetProps): JSX.Element;
   export function registerWidgetTaskHandler(handler: (props: unknown) => Promise<void>): void;
   export function updateWidget(params: unknown): Promise<void>;
 }
