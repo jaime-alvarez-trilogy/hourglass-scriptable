@@ -78,4 +78,15 @@ export interface WidgetData {
   myRequests: WidgetMyRequest[];
   /** Background tint color in action mode, or "" in hours mode */
   actionBg: string;
+
+  // ─── 01-data-extensions: brand revamp fields ─────────────────────────────
+
+  /** Pace state derived from hours vs expected progress; drives badge label + color */
+  paceBadge: 'crushed_it' | 'on_track' | 'behind' | 'critical' | 'none';
+  /** Week-over-week hours delta: "+2.1h" | "-3.4h" | "" (no history) */
+  weekDeltaHours: string;
+  /** Week-over-week earnings delta: "+$84" | "-$136" | "" (no history) */
+  weekDeltaEarnings: string;
+  /** BrainLift weekly target label — always "5h" */
+  brainliftTarget: string;
 }
