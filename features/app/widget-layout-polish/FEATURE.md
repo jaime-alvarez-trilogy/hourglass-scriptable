@@ -48,6 +48,12 @@ Android MediumWidget: replaces second hoursRemaining occurrence
 |------|-------------|--------|------------|------------|
 | 01-widget-polish | All layout, visual, and data fixes | — | — | M |
 
+## Changelog
+
+| Date | Spec | Description |
+|------|------|-------------|
+| 2026-03-25 | [01-widget-polish](specs/01-widget-polish/spec.md) | Spec and checklist created: Small content triage, iOS Large padding, Android SVG background, todayDelta field, progress bar polish |
+
 ## Success Criteria
 
 - [ ] iOS Small shows only `hoursDisplay` + urgency accent + `paceBadge` (no earnings, no hoursRemaining)
