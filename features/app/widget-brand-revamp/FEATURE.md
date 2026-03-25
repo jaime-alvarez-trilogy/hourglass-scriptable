@@ -87,8 +87,17 @@ Mesh simulation approach: `ZStack` base with 3 overlapping `Circle()` shapes fil
 | 02-ios-visual | Full WIDGET_LAYOUT_JS redesign: all sizes, mesh bg, glass panels, new fields | — | 01 | L |
 | 03-android-visual | Android HourglassWidget.tsx brand alignment + new fields | — | 01 | M |
 
+## Files Touched
+
+### 01-data-extensions
+- `hourglassws/src/widgets/types.ts` — extended `WidgetData` interface
+- `hourglassws/src/widgets/bridge.ts` — `buildWidgetData` + `updateWidgetData` extended
+- `hourglassws/src/hooks/useWidgetSync.ts` — 7th param added
+- `hourglassws/app/(tabs)/_layout.tsx` — `useWeeklyHistory` wired, `prevWeekSnapshot` derived
+- `hourglassws/src/lib/widgetBridge.ts` — annotated (no functional change)
+
 ## Changelog
 
 | Date | Spec | Description |
 |------|------|-------------|
-| 2026-03-24 | [01-data-extensions](specs/01-data-extensions/spec.md) | Add paceBadge, weekDelta, brainliftTarget fields to WidgetData with full call-chain wiring |
+| 2026-03-24 | [01-data-extensions](specs/01-data-extensions/spec.md) | Add paceBadge, weekDelta, brainliftTarget fields to WidgetData with full call-chain wiring — **Complete** |
