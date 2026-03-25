@@ -77,25 +77,19 @@ describe('FR2: Home screen (index.tsx) — mesh wiring', () => {
     expect(source).toContain('getApprovalMeshState(approvalItems.length)');
   });
 
-  it('SC2.3 — AnimatedMeshBackground receives pendingApprovals prop', () => {
-    expect(source).toContain('pendingApprovals');
-    expect(source).toContain('AnimatedMeshBackground');
+  it('SC2.3 — AnimatedMeshBackground receives pendingApprovals={approvalItems.length}', () => {
+    // Must appear as a JSX prop, not just in comments or imports
+    expect(source).toMatch(/pendingApprovals=\{approvalItems\.length\}/);
   });
 
   it('SC2.4 — earningsPace is conditionally suppressed when approvalMeshState is not null', () => {
-    // Pattern: earningsPace={approvalMeshState === null ? ... : null}
-    // or equivalent conditional
-    const hasConditionalEarnings =
-      source.includes('approvalMeshState === null') ||
-      source.includes('approvalMeshState == null') ||
-      (source.includes('approvalMeshState') && source.includes('earningsPace'));
-    expect(hasConditionalEarnings).toBe(true);
+    // Must use the null-conditional pattern: approvalMeshState === null ? ... : null
+    expect(source).toMatch(/earningsPace=\{approvalMeshState\s*===\s*null\s*\?/);
   });
 
-  it('SC2.5 — panelState is passed to AnimatedMeshBackground', () => {
-    // The panelState prop comes from approvalMeshState
-    expect(source).toContain('panelState');
-    expect(source).toContain('approvalMeshState');
+  it('SC2.5 — panelState={approvalMeshState} is passed to AnimatedMeshBackground', () => {
+    // Must be the JSX prop assignment, not just variable mentions
+    expect(source).toMatch(/panelState=\{approvalMeshState\}/);
   });
 
   it('SC2.6 — pendingApprovals={approvalItems.length} is always passed', () => {
@@ -127,16 +121,12 @@ describe('FR3: Overview screen (overview.tsx) — mesh wiring', () => {
     expect(source).toContain('getApprovalMeshState(approvalItems.length)');
   });
 
-  it('SC3.3 — AnimatedMeshBackground receives pendingApprovals prop', () => {
-    expect(source).toContain('pendingApprovals');
+  it('SC3.3 — AnimatedMeshBackground receives pendingApprovals={approvalItems.length}', () => {
+    expect(source).toMatch(/pendingApprovals=\{approvalItems\.length\}/);
   });
 
-  it('SC3.4 — earningsPace is propagated when approvalMeshState is null', () => {
-    // Either explicit conditional or earningsPace still present in updated call
-    const hasEarningsPace =
-      source.includes('earningsPace') &&
-      source.includes('approvalMeshState');
-    expect(hasEarningsPace).toBe(true);
+  it('SC3.4 — earningsPace conditionally propagated: approvalMeshState === null ? earningsPace : null', () => {
+    expect(source).toMatch(/earningsPace=\{approvalMeshState\s*===\s*null\s*\?/);
   });
 
   it('SC3.5 — pendingApprovals={approvalItems.length} is always passed', () => {
@@ -285,21 +275,20 @@ describe('FR5: resolveFloorGlowColor — source checks (internal helper)', () =>
     source = fs.readFileSync(MESH_FILE, 'utf8');
   });
 
-  it('SC5.4 — source references warnAmber #FCD34D (Monday color)', () => {
-    // Either via colors.warnAmber reference or direct hex
-    const hasAmber =
-      source.includes('colors.warnAmber') ||
-      source.includes('warnAmber') ||
-      source.toLowerCase().includes('fcd34d');
-    expect(hasAmber).toBe(true);
+  it('SC5.4 — resolveFloorGlowColor body references warnAmber for non-end-of-week', () => {
+    // Extract the resolveFloorGlowColor function body and check it references warnAmber
+    const fnStart = source.indexOf('function resolveFloorGlowColor');
+    expect(fnStart).toBeGreaterThan(-1);
+    // Function body is bounded by the closing brace — take a generous window
+    const fnBody = source.substring(fnStart, fnStart + 500);
+    expect(fnBody.includes('warnAmber')).toBe(true);
   });
 
-  it('SC5.5-6 — source references desatCoral #F87171 (Thursday/Sunday color)', () => {
-    const hasCoral =
-      source.includes('colors.desatCoral') ||
-      source.includes('desatCoral') ||
-      source.toLowerCase().includes('f87171');
-    expect(hasCoral).toBe(true);
+  it('SC5.5-6 — resolveFloorGlowColor body references desatCoral for end-of-week', () => {
+    const fnStart = source.indexOf('function resolveFloorGlowColor');
+    expect(fnStart).toBeGreaterThan(-1);
+    const fnBody = source.substring(fnStart, fnStart + 500);
+    expect(fnBody.includes('desatCoral')).toBe(true);
   });
 
   it('SC5.7 — resolveFloorGlowColor is NOT exported from AnimatedMeshBackground', () => {
