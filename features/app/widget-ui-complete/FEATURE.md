@@ -95,4 +95,4 @@ Stacked proportional `RoundedRectangle` shapes inside an `HStack`, one column pe
 | Date | Spec | Description |
 |------|------|-------------|
 | 2026-03-25 | [01-widget-visual-ios](specs/01-widget-visual-ios/spec.md) | isFuture data field + iOS glass cards + gradient bg + Large bar chart — Complete |
-| 2026-03-25 | [02-widget-visual-android](specs/02-widget-visual-android/spec.md) | Android GlassPanel opacity + Medium bar chart via buildBarChartSvg |
+| 2026-03-25 | [02-widget-visual-android](specs/02-widget-visual-android/spec.md) | Android GlassPanel opacity + Medium bar chart via buildBarChartSvg — Complete |
