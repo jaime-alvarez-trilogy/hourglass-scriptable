@@ -89,3 +89,9 @@ Stacked proportional `RoundedRectangle` shapes inside an `HStack`, one column pe
 - [ ] Android Medium Hours mode shows Mon–Sun bar chart via SvgWidget inline SVG; future bars muted
 - [ ] Android GlassPanel inner background is visually distinct from `#0D0C14` base (opacity ~87%)
 - [ ] All existing widget tests still pass; new bar chart functions have unit tests
+
+## Changelog
+
+| Date | Spec | Description |
+|------|------|-------------|
+| 2026-03-25 | [01-widget-visual-ios](specs/01-widget-visual-ios/spec.md) | isFuture data field + iOS glass cards + gradient bg + Large bar chart |
