@@ -86,6 +86,7 @@ Mesh simulation approach: `ZStack` base with 3 overlapping `Circle()` shapes fil
 | 01-data-extensions | Add new WidgetData fields + computation + call-chain wiring | 02, 03 | — | S |
 | 02-ios-visual | Full WIDGET_LAYOUT_JS redesign: all sizes, mesh bg, glass panels, new fields | — | 01 | L |
 | 03-android-visual | Android HourglassWidget.tsx brand alignment + new fields | — | 01 | M |
+| 04-cockpit-hud | Dynamic 3-priority HUD: P2 stripped deficit mode, desaturated dark glass colors, iOS monospaced/heavy hero typography | — | 02, 03 | M |
 
 ## Files Touched
 
@@ -112,3 +113,4 @@ Mesh simulation approach: `ZStack` base with 3 overlapping `Circle()` shapes fil
 | 2026-03-24 | [01-data-extensions](specs/01-data-extensions/spec.md) | Add paceBadge, weekDelta, brainliftTarget fields to WidgetData with full call-chain wiring — **Complete** |
 | 2026-03-24 | [02-ios-visual](specs/02-ios-visual/spec.md) | Full WIDGET_LAYOUT_JS redesign: mesh bg simulation, glass panels, pace badge, trend deltas, brainliftTarget-driven progress bars, brand color compliance across all sizes — **Complete** |
 | 2026-03-24 | [03-android-visual](specs/03-android-visual/spec.md) | Android HourglassWidget brand redesign: SVG mesh bg, glass panels, pace badge, trend deltas, BrainLift bar, urgency mode — **Complete** |
+| 2026-03-25 | [04-cockpit-hud](specs/04-cockpit-hud/spec-research.md) | Dynamic 3-priority HUD: desaturated dark glass color tokens, P2 stripped deficit layout (iOS+Android), iOS monospaced/heavy hero typography — **Research** |
