@@ -12,11 +12,14 @@
 //   - ENABLE_NATIVE_TABS in app.json extra toggles NativeTabs vs legacy Tabs.
 //   - TAB_SCREENS shared constant eliminates duplication between render paths.
 //   - HapticTab removed — native tab bars handle haptics automatically.
+//
+// FR7 (01-data-extensions): useWeeklyHistory wired — derives prevWeekSnapshot for
+//   week-over-week delta computation in widget display.
 
-import { unstable_NativeTabs as NativeTabs } from 'expo-router/unstable-native-tabs';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { Tabs } from 'expo-router';
 import Constants from 'expo-constants';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -28,6 +31,8 @@ import { useAIData } from '@/src/hooks/useAIData';
 import { useApprovalItems } from '@/src/hooks/useApprovalItems';
 import { useConfig } from '@/src/hooks/useConfig';
 import { useWidgetSync } from '@/src/hooks/useWidgetSync';
+import { useWeeklyHistory } from '@/src/hooks/useWeeklyHistory';
+import { getMondayOfWeek } from '@/src/lib/ai';
 
 // ─── Feature flag ─────────────────────────────────────────────────────────────
 // Read at module load time. Toggle in app.json expo.extra to switch renderers
@@ -54,7 +59,17 @@ export default function TabLayout() {
   const { data: aiData } = useAIData();
   const { items } = useApprovalItems();
   const { config } = useConfig();
-  useWidgetSync(hoursData, aiData, items.length, config, items);
+
+  // FR7 (01-data-extensions): derive previous week snapshot for delta fields
+  const { snapshots } = useWeeklyHistory();
+  const prevWeekSnapshot = useMemo(() => {
+    // Use en-CA locale to get YYYY-MM-DD in local timezone without UTC shift
+    const thisMonday = getMondayOfWeek(new Date().toLocaleDateString('en-CA'));
+    const prev = [...snapshots].reverse().find(s => s.weekStart < thisMonday);
+    return prev ? { hours: prev.hours, earnings: prev.earnings } : null;
+  }, [snapshots]);
+
+  useWidgetSync(hoursData, aiData, items.length, config, items, undefined, prevWeekSnapshot);
 
   // Approvals badge: show count when pending > 0, omit otherwise
   const approvalBadge = items.length > 0 ? items.length : undefined;
@@ -62,42 +77,31 @@ export default function TabLayout() {
   if (USE_NATIVE_TABS) {
     // ── NativeTabs path ─────────────────────────────────────────────────────
     // Compiles to UITabBarController (iOS) / BottomNavigationView (Android).
-    // tabBarStyle and tabBarBackground are NOT supported — native theming handles it.
     // iOS 26+: system automatically applies UIGlassEffect to UITabBarController.
+    // API: NativeTabs.Trigger (not .Screen) with Icon/Label/Badge children.
     return (
       <View style={{ flex: 1 }}>
-        <NativeTabs
-          screenOptions={{
-            headerShown: false,
-            tabBarActiveTintColor: colors.violet,
-            tabBarInactiveTintColor: colors.textMuted,
-          }}
-        >
-          {TAB_SCREENS.map((screen) => {
-            if (screen.href === null) {
-              // Hidden tab (explore) — not shown in tab bar
-              return (
-                <NativeTabs.Screen
-                  key={screen.name}
-                  name={screen.name}
-                  options={{ href: null }}
-                />
-              );
-            }
-            return (
-              <NativeTabs.Screen
-                key={screen.name}
-                name={screen.name}
-                options={{
-                  title: screen.title,
-                  tabBarIcon: ({ color }: { color: string }) => (
-                    <IconSymbol size={28} name={screen.icon as any} color={color} />
-                  ),
-                  ...(screen.name === 'approvals' && { tabBarBadge: approvalBadge }),
-                }}
-              />
-            );
-          })}
+        <NativeTabs tintColor={colors.violet}>
+          <NativeTabs.Trigger name="index">
+            <NativeTabs.Trigger.Icon sf="house.fill" />
+            <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+          </NativeTabs.Trigger>
+          <NativeTabs.Trigger name="overview">
+            <NativeTabs.Trigger.Icon sf="chart.bar.fill" />
+            <NativeTabs.Trigger.Label>Overview</NativeTabs.Trigger.Label>
+          </NativeTabs.Trigger>
+          <NativeTabs.Trigger name="ai">
+            <NativeTabs.Trigger.Icon sf="sparkles" />
+            <NativeTabs.Trigger.Label>AI</NativeTabs.Trigger.Label>
+          </NativeTabs.Trigger>
+          <NativeTabs.Trigger name="approvals">
+            <NativeTabs.Trigger.Icon sf="checkmark.circle.fill" />
+            <NativeTabs.Trigger.Label>Requests</NativeTabs.Trigger.Label>
+            {approvalBadge != null && (
+              <NativeTabs.Trigger.Badge>{String(approvalBadge)}</NativeTabs.Trigger.Badge>
+            )}
+          </NativeTabs.Trigger>
+          <NativeTabs.Trigger name="explore" hidden />
         </NativeTabs>
         <NoiseOverlay />
       </View>
