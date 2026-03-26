@@ -112,3 +112,4 @@ No changes to `bridge.ts`, `types.ts`, or test fixtures.
 
 | Date | Spec | Description |
 |------|------|-------------|
+| 2026-03-26 | [02-android-hud-layout](specs/02-android-hud-layout/spec.md) | Android priority mode unification, AI Usage label fix, todayDelta footer, fontWeight audit |
