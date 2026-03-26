@@ -210,6 +210,7 @@ let SmallWidgetFn: any;
 let MediumWidgetFn: any;
 let LargeWidgetFn: any;
 let IosBarChartFn: any;
+let getPriorityFn: any;
 
 beforeAll(() => {
   const mod = require('../../widgets/ios/HourglassWidget');
@@ -219,6 +220,7 @@ beforeAll(() => {
   MediumWidgetFn = mod.MediumWidget;
   LargeWidgetFn  = mod.LargeWidget;
   IosBarChartFn  = mod.IosBarChart;
+  getPriorityFn  = mod.getPriority;
 });
 
 // ─── FR2: iOS glass card layout ───────────────────────────────────────────────
@@ -453,5 +455,347 @@ describe('FR4 — iOS Large bar chart', () => {
       return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].includes(content);
     });
     expect(dayLabels).toHaveLength(7);
+  });
+});
+
+// ─── Helpers for 01-ios-hud-layout tests ──────────────────────────────────────
+
+/** Build an approvalItems fixture */
+function makeApprovalItems(count: number): any[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `item-${i}`,
+    name: `Worker ${i + 1}`,
+    hours: `${i + 1}.0h`,
+    category: 'MANUAL',
+  }));
+}
+
+/** Build fixture for P1 (manager with pending approvals) */
+function makeP1Data(overrides: Record<string, unknown> = {}): any {
+  return makeWidgetData({
+    isManager: true,
+    pendingCount: 3,
+    paceBadge: 'on_track',
+    urgency: 'high',
+    approvalItems: makeApprovalItems(3),
+    ...overrides,
+  });
+}
+
+/** Build fixture for P2 (behind/critical pace) */
+function makeP2Data(badge: 'behind' | 'critical' = 'behind'): any {
+  return makeWidgetData({
+    isManager: false,
+    pendingCount: 0,
+    paceBadge: badge,
+    urgency: badge === 'critical' ? 'critical' : 'high',
+    weekDeltaEarnings: '-$136',
+  });
+}
+
+/** Build fixture for P3 (default on_track) */
+function makeP3Data(todayDeltaOverride = '+1.2h'): any {
+  return makeWidgetData({
+    isManager: false,
+    pendingCount: 0,
+    paceBadge: 'on_track',
+    urgency: 'none',
+    todayDelta: todayDeltaOverride,
+  });
+}
+
+/** Collect all Text node contents as flat string array */
+function collectTextContents(tree: any): string[] {
+  const nodes = collectNodes(tree, 'Text');
+  return nodes.map((t: any) =>
+    Array.isArray(t.children) ? t.children.join('') : String(t.children ?? '')
+  );
+}
+
+/** Check whether any text content contains a substring */
+function hasText(tree: any, substring: string): boolean {
+  return collectTextContents(tree).some((s) => s.includes(substring));
+}
+
+// ─── FR1 — getPriority helper ──────────────────────────────────────────────────
+
+describe('FR1 — getPriority helper', () => {
+  it('FR1.1 — SC1.1: isManager=true, pendingCount=3 → approvals', () => {
+    const props = makeWidgetData({ isManager: true, pendingCount: 3, paceBadge: 'on_track' });
+    expect(getPriorityFn(props)).toBe('approvals');
+  });
+
+  it('FR1.2 — SC1.2: paceBadge=critical → deficit', () => {
+    const props = makeWidgetData({ isManager: false, pendingCount: 0, paceBadge: 'critical' });
+    expect(getPriorityFn(props)).toBe('deficit');
+  });
+
+  it('FR1.3 — SC1.3: paceBadge=behind → deficit', () => {
+    const props = makeWidgetData({ isManager: false, pendingCount: 0, paceBadge: 'behind' });
+    expect(getPriorityFn(props)).toBe('deficit');
+  });
+
+  it('FR1.4 — SC1.4: paceBadge=on_track, pendingCount=0 → default', () => {
+    const props = makeWidgetData({ isManager: false, pendingCount: 0, paceBadge: 'on_track' });
+    expect(getPriorityFn(props)).toBe('default');
+  });
+
+  it('FR1.5 — SC1.5: paceBadge=crushed_it → default', () => {
+    const props = makeWidgetData({ isManager: false, pendingCount: 0, paceBadge: 'crushed_it' });
+    expect(getPriorityFn(props)).toBe('default');
+  });
+
+  it('FR1.6 — SC1.6: paceBadge=none → default', () => {
+    const props = makeWidgetData({ isManager: false, pendingCount: 0, paceBadge: 'none' });
+    expect(getPriorityFn(props)).toBe('default');
+  });
+
+  it('FR1.7 — SC1.7: isManager=true, pendingCount=3, paceBadge=critical → approvals (P1 beats P2)', () => {
+    const props = makeWidgetData({ isManager: true, pendingCount: 3, paceBadge: 'critical' });
+    expect(getPriorityFn(props)).toBe('approvals');
+  });
+
+  it('FR1.8 — SC1.8: isManager=true, pendingCount=0, paceBadge=behind → deficit', () => {
+    const props = makeWidgetData({ isManager: true, pendingCount: 0, paceBadge: 'behind' });
+    expect(getPriorityFn(props)).toBe('deficit');
+  });
+});
+
+// ─── FR2 — SmallWidget hero font ──────────────────────────────────────────────
+
+describe('FR2 — SmallWidget hero font', () => {
+  it('FR2.1 — SC2.1: hero Text has font.weight === heavy', () => {
+    const tree = renderWidget(React.createElement(SmallWidgetFn, { props: makeWidgetData() }));
+    const texts = collectNodes(tree, 'Text');
+    // Hero text renders hoursDisplay — find the Text node containing '32.5h'
+    const heroText = texts.find((t: any) => {
+      const content = Array.isArray(t.children) ? t.children.join('') : String(t.children ?? '');
+      return content.includes('32.5h');
+    });
+    expect(heroText).toBeDefined();
+    expect(heroText.props.font.weight).toBe('heavy');
+  });
+
+  it('FR2.2 — SC2.2: hero Text has font.design === monospaced', () => {
+    const tree = renderWidget(React.createElement(SmallWidgetFn, { props: makeWidgetData() }));
+    const texts = collectNodes(tree, 'Text');
+    const heroText = texts.find((t: any) => {
+      const content = Array.isArray(t.children) ? t.children.join('') : String(t.children ?? '');
+      return content.includes('32.5h');
+    });
+    expect(heroText).toBeDefined();
+    expect(heroText.props.font.design).toBe('monospaced');
+  });
+
+  it('FR2.3 — SC2.3: SmallWidget still renders hoursDisplay text', () => {
+    const tree = renderWidget(React.createElement(SmallWidgetFn, { props: makeWidgetData() }));
+    expect(hasText(tree, '32.5h')).toBe(true);
+  });
+
+  it('FR2.4 — SC2.4: SmallWidget shows pace badge text for on_track', () => {
+    const tree = renderWidget(React.createElement(SmallWidgetFn, { props: makeWidgetData({ paceBadge: 'on_track' }) }));
+    expect(hasText(tree, 'ON TRACK')).toBe(true);
+  });
+
+  it('FR2.5 — SC2.5: SmallWidget shows manager pending badge when isManager=true and pendingCount > 0', () => {
+    const tree = renderWidget(React.createElement(SmallWidgetFn, { props: makeWidgetData({ isManager: true, pendingCount: 2 }) }));
+    expect(hasText(tree, 'pending')).toBe(true);
+  });
+});
+
+// ─── FR3 — MediumWidget priority layouts ──────────────────────────────────────
+
+describe('FR3 — MediumWidget priority layouts', () => {
+  describe('P1 (approvals mode)', () => {
+    it('FR3.1 — SC3.1: P1 renders pendingCount text', () => {
+      const tree = renderWidget(React.createElement(MediumWidgetFn, { props: makeP1Data() }));
+      // pendingCount=3 → should show "3" somewhere in the approval context
+      const contents = collectTextContents(tree);
+      const hasPending = contents.some((s) => s.includes('3') && (s.includes('item') || s.includes('APPROVAL') || s.includes('pending')));
+      expect(hasPending).toBe(true);
+    });
+
+    it('FR3.2 — SC3.2: P1 renders up to 2 approvalItem names', () => {
+      const tree = renderWidget(React.createElement(MediumWidgetFn, { props: makeP1Data() }));
+      // approvalItems has 3 items but only 2 shown on Medium
+      expect(hasText(tree, 'Worker 1')).toBe(true);
+      expect(hasText(tree, 'Worker 2')).toBe(true);
+      // Worker 3 should NOT appear (max 2)
+      expect(hasText(tree, 'Worker 3')).toBe(false);
+    });
+
+    it('FR3.3 — SC3.3: P1 does NOT render props.earnings text', () => {
+      const tree = renderWidget(React.createElement(MediumWidgetFn, { props: makeP1Data() }));
+      expect(hasText(tree, '$1,300')).toBe(false);
+    });
+
+    it('FR3.4 — SC3.4: P1 does NOT render props.aiPct text', () => {
+      const tree = renderWidget(React.createElement(MediumWidgetFn, { props: makeP1Data() }));
+      expect(hasText(tree, '71%')).toBe(false);
+    });
+  });
+
+  describe('P2 (deficit mode)', () => {
+    it('FR3.5 — SC3.5: P2 renders props.hoursDisplay text', () => {
+      const tree = renderWidget(React.createElement(MediumWidgetFn, { props: makeP2Data() }));
+      expect(hasText(tree, '32.5h')).toBe(true);
+    });
+
+    it('FR3.6 — SC3.6: P2 renders props.hoursRemaining text', () => {
+      const tree = renderWidget(React.createElement(MediumWidgetFn, { props: makeP2Data() }));
+      expect(hasText(tree, '7.5h left')).toBe(true);
+    });
+
+    it('FR3.7 — SC3.7: P2 does NOT render props.earnings text', () => {
+      const tree = renderWidget(React.createElement(MediumWidgetFn, { props: makeP2Data() }));
+      expect(hasText(tree, '$1,300')).toBe(false);
+    });
+
+    it('FR3.8 — SC3.8: P2 does NOT render props.aiPct text', () => {
+      const tree = renderWidget(React.createElement(MediumWidgetFn, { props: makeP2Data() }));
+      expect(hasText(tree, '71%')).toBe(false);
+    });
+  });
+
+  describe('P3 (default mode)', () => {
+    it('FR3.9 — SC3.9: P3 renders two RoundedRectangle glass cards', () => {
+      const tree = renderWidget(React.createElement(MediumWidgetFn, { props: makeP3Data() }));
+      const rr = collectNodes(tree, 'RoundedRectangle');
+      expect(rr.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('FR3.10 — SC3.10: P3 today row contains todayDelta when non-empty', () => {
+      const tree = renderWidget(React.createElement(MediumWidgetFn, { props: makeP3Data('+1.2h') }));
+      expect(hasText(tree, '+1.2h')).toBe(true);
+    });
+
+    it('FR3.11 — SC3.11: P3 today row falls back to props.today when todayDelta is ""', () => {
+      const tree = renderWidget(React.createElement(MediumWidgetFn, { props: makeP3Data('') }));
+      // Falls back to props.today = '6.2h'
+      expect(hasText(tree, '6.2h')).toBe(true);
+    });
+  });
+});
+
+// ─── FR4 — LargeWidget priority layouts + bottom padding ──────────────────────
+
+describe('FR4 — LargeWidget priority layouts + bottom padding', () => {
+  it('FR4.new.1 — SC4.1: outer VStack bottom padding equals 28', () => {
+    const tree = renderWidget(React.createElement(LargeWidgetFn, { props: makeWidgetData() }));
+    // Find the outermost VStack (direct child of ZStack root)
+    const vstacks = collectNodes(tree, 'VStack');
+    const outerVStack = vstacks[0];
+    const padding = outerVStack?.props?.padding;
+    // Padding may be a number or an object with bottom key
+    if (typeof padding === 'number') {
+      // scalar — does not satisfy bottom=28
+      expect(padding).toBe(28); // will fail if still 16
+    } else {
+      expect(padding?.bottom).toBe(28);
+    }
+  });
+
+  describe('P1 (approvals mode)', () => {
+    it('FR4.new.2 — SC4.2: P1 renders up to 3 approvalItem names', () => {
+      const tree = renderWidget(React.createElement(LargeWidgetFn, { props: makeP1Data() }));
+      expect(hasText(tree, 'Worker 1')).toBe(true);
+      expect(hasText(tree, 'Worker 2')).toBe(true);
+      expect(hasText(tree, 'Worker 3')).toBe(true);
+    });
+
+    it('FR4.new.3 — SC4.3: P1 does NOT render bar chart day labels', () => {
+      const data = makeP1Data({ daily: makeDailyFor('none') });
+      const tree = renderWidget(React.createElement(LargeWidgetFn, { props: data }));
+      const texts = collectNodes(tree, 'Text');
+      const dayLabels = texts.filter((t: any) => {
+        const content = Array.isArray(t.children) ? t.children.join('') : String(t.children ?? '');
+        return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].includes(content);
+      });
+      expect(dayLabels).toHaveLength(0);
+    });
+  });
+
+  describe('P2 (deficit mode)', () => {
+    it('FR4.new.4 — SC4.4: P2 renders props.hoursRemaining text', () => {
+      const tree = renderWidget(React.createElement(LargeWidgetFn, { props: makeP2Data() }));
+      expect(hasText(tree, '7.5h left')).toBe(true);
+    });
+
+    it('FR4.new.5 — SC4.5: P2 does NOT render bar chart day labels', () => {
+      const data = makeP2Data();
+      const tree = renderWidget(React.createElement(LargeWidgetFn, { props: data }));
+      const texts = collectNodes(tree, 'Text');
+      const dayLabels = texts.filter((t: any) => {
+        const content = Array.isArray(t.children) ? t.children.join('') : String(t.children ?? '');
+        return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].includes(content);
+      });
+      expect(dayLabels).toHaveLength(0);
+    });
+  });
+
+  describe('P3 (default mode)', () => {
+    it('FR4.new.6 — SC4.6: P3 renders bar chart with 7 day-label Text nodes', () => {
+      const tree = renderWidget(React.createElement(LargeWidgetFn, { props: makeP3Data() }));
+      const texts = collectNodes(tree, 'Text');
+      const dayLabels = texts.filter((t: any) => {
+        const content = Array.isArray(t.children) ? t.children.join('') : String(t.children ?? '');
+        return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].includes(content);
+      });
+      expect(dayLabels).toHaveLength(7);
+    });
+
+    it('FR4.new.7 — SC4.7: P3 hero font has weight heavy and design monospaced', () => {
+      const tree = renderWidget(React.createElement(LargeWidgetFn, { props: makeP3Data() }));
+      const texts = collectNodes(tree, 'Text');
+      const heroText = texts.find((t: any) => {
+        const content = Array.isArray(t.children) ? t.children.join('') : String(t.children ?? '');
+        return content.includes('32.5h');
+      });
+      expect(heroText).toBeDefined();
+      expect(heroText.props.font.weight).toBe('heavy');
+      expect(heroText.props.font.design).toBe('monospaced');
+    });
+
+    it('FR4.new.7b — SC4.7: P2 hero font has weight heavy and design monospaced', () => {
+      const tree = renderWidget(React.createElement(LargeWidgetFn, { props: makeP2Data() }));
+      const texts = collectNodes(tree, 'Text');
+      const heroText = texts.find((t: any) => {
+        const content = Array.isArray(t.children) ? t.children.join('') : String(t.children ?? '');
+        return content.includes('32.5h');
+      });
+      expect(heroText).toBeDefined();
+      expect(heroText.props.font.weight).toBe('heavy');
+      expect(heroText.props.font.design).toBe('monospaced');
+    });
+  });
+});
+
+// ─── FR5 — Today row todayDelta fallback ──────────────────────────────────────
+
+describe('FR5 — Today row todayDelta fallback', () => {
+  it('FR5.1 — SC5.1: MediumWidget P3 today row includes todayDelta when non-empty', () => {
+    const data = makeP3Data('+1.2h');
+    const tree = renderWidget(React.createElement(MediumWidgetFn, { props: data }));
+    expect(hasText(tree, '+1.2h')).toBe(true);
+  });
+
+  it('FR5.2 — SC5.2: MediumWidget P3 today row shows props.today when todayDelta is ""', () => {
+    const data = makeP3Data('');
+    const tree = renderWidget(React.createElement(MediumWidgetFn, { props: data }));
+    // today = '6.2h' from makeWidgetData default; todayDelta="" so fallback to today
+    expect(hasText(tree, '6.2h')).toBe(true);
+    // Should not show the empty string as a visible separate element causing issues
+  });
+
+  it('FR5.3 — SC5.3: LargeWidget P3 today row includes todayDelta when non-empty', () => {
+    const data = makeP3Data('+1.2h');
+    const tree = renderWidget(React.createElement(LargeWidgetFn, { props: data }));
+    expect(hasText(tree, '+1.2h')).toBe(true);
+  });
+
+  it('FR5.4 — SC5.4: LargeWidget P3 today row shows props.today when todayDelta is ""', () => {
+    const data = makeP3Data('');
+    const tree = renderWidget(React.createElement(LargeWidgetFn, { props: data }));
+    expect(hasText(tree, '6.2h')).toBe(true);
   });
 });
