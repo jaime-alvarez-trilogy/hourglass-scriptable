@@ -87,4 +87,4 @@ All four specs are independent and can run in parallel.
 | 2026-04-02 | [01-atmospheric-background](specs/01-atmospheric-background/spec.md) | Complete: Replace two-circle WidgetBackground with single top-center elliptical glow (250×200, blur=60) |
 | 2026-04-02 | [02-glass-card](specs/02-glass-card/spec.md) | Spec: IosGlassCard fill 75%, specular edge 15%, remove borderColor prop |
 | 2026-04-02 | [03-typography-layout](specs/03-typography-layout/spec.md) | Spec: Fix "left left" bridge bug, LargeWidget P3 layout restructure, StatusPill bold |
-| 2026-04-02 | [04-pill-chart](specs/04-pill-chart/spec.md) | Spec: StatusPill Capsule shape, IosBarChart cornerRadius 3→6, update widgetVisualIos mock |
+| 2026-04-02 | [04-pill-chart](specs/04-pill-chart/spec.md) | Complete: StatusPill Capsule shape, IosBarChart cornerRadius 3→6, update widgetVisualIos mock |
