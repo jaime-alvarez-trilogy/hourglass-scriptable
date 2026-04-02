@@ -26,7 +26,7 @@ import type { WidgetData, WidgetDailyEntry } from '../types';
 
 // SwiftUI component imports (expo-widgets JSX subset)
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { VStack, HStack, ZStack, Text, Spacer, Rectangle, RoundedRectangle, Circle } = require('@expo/ui/swift-ui');
+const { VStack, HStack, ZStack, Text, Spacer, Rectangle, RoundedRectangle, Circle, Capsule } = require('@expo/ui/swift-ui');
 
 // ─── Urgency color mapping ────────────────────────────────────────────────────
 
@@ -141,9 +141,9 @@ function StatusPill({ paceBadge }: { paceBadge: string }) {
 
   return (
     <ZStack>
-      <RoundedRectangle fill={color + '15'} cornerRadius={10} />
-      <RoundedRectangle cornerRadius={10} stroke={color + '80'} strokeWidth={1} />
-      <Text font={{ size: 10, weight: 'semibold' }} foregroundStyle={color} padding={6}>
+      <Capsule fill={color + '1A'} height={22} />
+      <Capsule stroke={color} strokeWidth={0.5} height={22} />
+      <Text font={{ size: 10, weight: 'bold' }} foregroundStyle={color} padding={{ leading: 10, trailing: 10 }}>
         {label}
       </Text>
     </ZStack>
@@ -200,7 +200,7 @@ export function IosBarChart({ daily, accent }: { daily: WidgetDailyEntry[]; acce
         return (
           <VStack spacing={2} key={entry.day + i}>
             <Spacer />
-            <RoundedRectangle fill={barColor} cornerRadius={3} height={barHeight} />
+            <RoundedRectangle fill={barColor} cornerRadius={6} height={barHeight} />
             <Text font={{ size: 10 }} foregroundStyle={COLORS.textMuted}>
               {entry.day}
             </Text>
