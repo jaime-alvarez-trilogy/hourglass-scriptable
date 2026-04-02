@@ -1,4 +1,4 @@
-// FR4: iOS Widget Component (expo-widgets, SDK 55)
+// iOS Widget Component (expo-widgets, SDK 55)
 // Built with @expo/ui/swift-ui — compiles to SwiftUI at build time.
 // Supports three sizes: systemSmall, systemMedium, systemLarge.
 //
@@ -13,19 +13,41 @@
 //
 // 01-ios-hud-layout:
 //   FR1: getPriority helper — P1 (approvals), P2 (deficit), P3 (default)
-//   FR2: SmallWidget hero font weight: 'heavy', design: 'monospaced'
+//   FR2: SmallWidget hero font weight: 'bold', design: 'rounded'
 //   FR3: MediumWidget priority-branched layouts
 //   FR4: LargeWidget priority-branched layouts + bottom padding fix
 //   FR5: Today row uses todayDelta with fallback to today
+//
+// 02-gauntlet-redesign: Synthesised from 7-model gauntlet run #002.
+//   Premium dark glass aesthetic: GlassCard, StatusPill, SectionLabel, MetricView,
+//   semantic border tints per card type. Structural constraints preserved for tests.
 
 import type { WidgetData, WidgetDailyEntry } from '../types';
 
 // SwiftUI component imports (expo-widgets JSX subset)
-// These are resolved at build time by the expo-widgets plugin
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { VStack, HStack, ZStack, Text, Spacer, Rectangle, RoundedRectangle } = require('@expo/ui/swift-ui');
+const { VStack, HStack, ZStack, Text, Spacer, Rectangle, RoundedRectangle, Circle } = require('@expo/ui/swift-ui');
 
-// ─── Urgency color mapping ─────────────────────────────────────────────────────
+// ─── Urgency color mapping ────────────────────────────────────────────────────
+
+const URGENCY_ACCENT: Record<string, string> = {
+  none:     '#00FF88',  // test-locked — used as bar chart today-bar accent
+  low:      '#F5C842',
+  high:     '#F59E0B',  // brand warning amber
+  critical: '#F43F5E',  // brand critical rose
+  expired:  '#6B6B6B',
+};
+
+// FR3: gradient background tint colours (8-char hex = RRGGBBAA, ~12% opacity)
+const URGENCY_TINTS: Record<string, string> = {
+  none:     '#0D0C1433',
+  low:      '#F5C84220',
+  high:     '#F59E0B20',
+  critical: '#F43F5E20',
+  expired:  '#6B6B6B20',
+};
+
+// ─── Pace badge ───────────────────────────────────────────────────────────────
 
 const PACE_LABELS: Record<string, string> = {
   crushed_it: 'CRUSHED IT',
@@ -34,37 +56,25 @@ const PACE_LABELS: Record<string, string> = {
   critical:   'CRITICAL',
 };
 
-const URGENCY_ACCENT: Record<string, string> = {
-  none: '#00FF88',
-  low: '#F5C842',
-  high: '#FF6B00',
-  critical: '#FF2D55',
-  expired: '#6B6B6B',
+// ─── Design system constants ──────────────────────────────────────────────────
+
+const COLORS = {
+  bgDark:        '#0B0D13',
+  surface:       '#1C1E26CC', // 80% opacity glass
+  borderSubtle:  '#FFFFFF1A', // 10% white — etched-glass look
+  textSecondary: '#A0A0A0',
+  textMuted:     '#757575',
+  gold:          '#E8C97A',   // earnings only
+  cyan:          '#00C2FF',   // AI%
+  violet:        '#A78BFA',   // BrainLift
+  barPast:       '#4A4A6A',
+  barFuture:     '#2F2E41',
 };
 
-// FR3: gradient background tint colours (8-char hex = RRGGBBAA, ~12% opacity)
-const URGENCY_TINTS: Record<string, string> = {
-  none:     '#0D0C1433',  // near-transparent base tint
-  low:      '#F5C84220',  // gold tint ~12%
-  high:     '#FF6B0020',  // orange tint ~12%
-  critical: '#FF2D5520',  // red tint ~12%
-  expired:  '#6B6B6B20',  // grey tint ~12%
-};
-
-// FR2: glass card colours
-const CARD_BG     = '#1F1E2C';
-const CARD_BORDER = '#2F2E41';
-
-// FR4: bar chart constants
-const MAX_BAR_HEIGHT = 100;
-const BAR_PAST  = '#4A4A6A';
-const BAR_MUTED = '#2F2E41';
+// Bar chart height constant (60pt gives breathing room within widget frame)
+const MAX_BAR_HEIGHT = 60;
 
 // ─── FR1 (01-ios-hud-layout): Priority mode helper ───────────────────────────
-// Returns the display priority mode for Medium/Large widgets:
-//   'approvals' — P1: manager with pending approvals (most actionable)
-//   'deficit'   — P2: pace is behind or critical
-//   'default'   — P3: on track / normal state
 
 export function getPriority(props: WidgetData): 'approvals' | 'deficit' | 'default' {
   if (props.isManager && props.pendingCount > 0) return 'approvals';
@@ -85,20 +95,109 @@ function formatCachedTime(cachedAt: number): string {
   return `${h}:${m}`;
 }
 
-// ─── FR2: Glass card component ────────────────────────────────────────────────
+// ─── Reusable UI components ───────────────────────────────────────────────────
 
-function IosGlassCard({ children }: { children: React.ReactNode }) {
+// Atmospheric widget background: dark base + accent glow (top-right) + blue glow (bottom-left)
+// Replaces the two-Rectangle urgency tint pattern. Urgency is expressed via accent color.
+function WidgetBackground({ accent }: { accent: string }) {
   return (
     <ZStack>
-      <RoundedRectangle fill={CARD_BG} cornerRadius={12} stroke={CARD_BORDER} strokeWidth={1} />
-      <VStack padding={10}>
+      <Rectangle fill={COLORS.bgDark} />
+      {/* Top-right accent glow */}
+      <VStack>
+        <HStack>
+          <Spacer />
+          <Circle fill={accent} width={160} height={160} opacity={0.15} blur={50} />
+        </HStack>
+        <Spacer />
+      </VStack>
+      {/* Bottom-left blue glow */}
+      <VStack>
+        <Spacer />
+        <HStack>
+          <Circle fill="#3B82F6" width={100} height={100} opacity={0.08} blur={40} />
+          <Spacer />
+        </HStack>
+      </VStack>
+    </ZStack>
+  );
+}
+
+// Premium glass card: translucent surface + etched border + optional semantic border tint
+function IosGlassCard({
+  children,
+  borderColor = COLORS.borderSubtle,
+}: {
+  children: React.ReactNode;
+  borderColor?: string;
+}) {
+  return (
+    <ZStack>
+      <RoundedRectangle fill={COLORS.surface} cornerRadius={16} />
+      <RoundedRectangle cornerRadius={16} stroke={borderColor} strokeWidth={0.5} />
+      <VStack padding={14} alignment="leading" spacing={4}>
         {children}
       </VStack>
     </ZStack>
   );
 }
 
-// ─── FR4: Bar chart component ─────────────────────────────────────────────────
+// Status pill: translucent fill + colored border + label
+// Uses brand semantic colors directly (not routed through URGENCY_ACCENT).
+function StatusPill({ paceBadge }: { paceBadge: string }) {
+  const label = PACE_LABELS[paceBadge] ?? 'ON TRACK';
+  const PACE_COLORS: Record<string, string> = {
+    crushed_it: '#F5C842',  // gold/amber — exceeded target
+    on_track:   '#10B981',  // brand success emerald
+    behind:     '#F59E0B',  // brand warning amber
+    critical:   '#F43F5E',  // brand critical rose
+    none:       '#10B981',  // default — treat as on-track
+  };
+  const color = PACE_COLORS[paceBadge] ?? PACE_COLORS.none;
+
+  return (
+    <ZStack>
+      <RoundedRectangle fill={color + '15'} cornerRadius={10} />
+      <RoundedRectangle cornerRadius={10} stroke={color + '80'} strokeWidth={1} />
+      <Text font={{ size: 10, weight: 'semibold' }} foregroundStyle={color} padding={6}>
+        {label}
+      </Text>
+    </ZStack>
+  );
+}
+
+// Small-caps section label
+function SectionLabel({ text }: { text: string }) {
+  return (
+    <Text font={{ size: 10, weight: 'semibold' }} foregroundStyle={COLORS.textSecondary}>
+      {text.toUpperCase()}
+    </Text>
+  );
+}
+
+// Value + label pair stacked vertically
+function MetricView({
+  label,
+  value,
+  valueColor,
+  size = 24,
+}: {
+  label: string;
+  value: string;
+  valueColor: string;
+  size?: number;
+}) {
+  return (
+    <VStack alignment="leading" spacing={2}>
+      <SectionLabel text={label} />
+      <Text font={{ size, weight: 'bold', design: 'rounded' }} foregroundStyle={valueColor}>
+        {value}
+      </Text>
+    </VStack>
+  );
+}
+
+// ─── FR4: Bar chart ───────────────────────────────────────────────────────────
 // Exported for unit testing.
 
 export function IosBarChart({ daily, accent }: { daily: WidgetDailyEntry[]; accent: string }) {
@@ -106,19 +205,19 @@ export function IosBarChart({ daily, accent }: { daily: WidgetDailyEntry[]; acce
 
   return (
     <HStack spacing={4}>
-      {daily.map((entry) => {
+      {daily.map((entry, i) => {
         const barHeight = maxHours > 0 ? (entry.hours / maxHours) * MAX_BAR_HEIGHT : 0;
         const barColor = entry.isToday
           ? accent
           : entry.isFuture || entry.hours === 0
-            ? BAR_MUTED
-            : BAR_PAST;
+            ? COLORS.barFuture
+            : COLORS.barPast;
 
         return (
-          <VStack spacing={2} key={entry.day}>
+          <VStack spacing={2} key={entry.day + i}>
             <Spacer />
             <RoundedRectangle fill={barColor} cornerRadius={3} height={barHeight} />
-            <Text font={{ size: 10 }} foregroundStyle="#777777">
+            <Text font={{ size: 10 }} foregroundStyle={COLORS.textMuted}>
               {entry.day}
             </Text>
           </VStack>
@@ -128,49 +227,35 @@ export function IosBarChart({ daily, accent }: { daily: WidgetDailyEntry[]; acce
   );
 }
 
-// ─── Small widget ─────────────────────────────────────────────────────────────
-// Shows: weekly hours total, pace badge, stale indicator
-// 01-ios-hud-layout FR2: hero font updated to weight: 'heavy', design: 'monospaced'
+// ─── Small Widget ─────────────────────────────────────────────────────────────
+// Shows: weekly hours (hero), pace badge, stale indicator.
+// Does NOT render earnings or hoursRemaining (content triage for small size).
+// 01-ios-hud-layout FR2: hero font weight: 'bold', design: 'rounded'
 
 function SmallWidget({ props }: { props: WidgetData }) {
   const accent = URGENCY_ACCENT[props.urgency] ?? URGENCY_ACCENT.none;
-  const tint   = URGENCY_TINTS[props.urgency]  ?? URGENCY_TINTS.none;
 
   return (
     <ZStack>
-      {/* FR3: gradient background layers */}
-      <Rectangle fill="#0D0C14" />
-      <Rectangle fill={tint} />
+      {/* Atmospheric background: base + accent glow + blue glow */}
+      <WidgetBackground accent={accent} />
 
-      <VStack padding={12}>
-        {/* Hours total — FR2: weight 'heavy', design 'monospaced' */}
+      <VStack padding={14} alignment="leading" spacing={6}>
+        <SectionLabel text="THIS WEEK" />
+        {/* 01-ios-widget-redesign FR5: weight 'bold', design 'rounded' */}
         <Text
-          font={{ size: 28, weight: 'heavy', design: 'monospaced' }}
+          font={{ size: 32, weight: 'bold', design: 'rounded' }}
           foregroundStyle={accent}
         >
           {props.hoursDisplay}
         </Text>
-
         <Spacer />
-
-        {/* Pace status */}
-        {PACE_LABELS[props.paceBadge] && (
-          <Text
-            font={{ size: 12 }}
-            foregroundStyle={accent}
-          >
-            {PACE_LABELS[props.paceBadge]}
-          </Text>
-        )}
-
-        {/* Stale indicator */}
+        <StatusPill paceBadge={props.paceBadge} />
         {isStale(props.cachedAt) && (
-          <Text font={{ size: 10 }} foregroundStyle="#FF9500">
-            Cached: {formatCachedTime(props.cachedAt)}
+          <Text font={{ size: 9 }} foregroundStyle="#FF9500">
+            Cached {formatCachedTime(props.cachedAt)}
           </Text>
         )}
-
-        {/* Manager badge */}
         {props.isManager && props.pendingCount > 0 && (
           <Text font={{ size: 11 }} foregroundStyle="#FF3B30">
             {props.pendingCount} pending
@@ -181,111 +266,117 @@ function SmallWidget({ props }: { props: WidgetData }) {
   );
 }
 
-// ─── Medium widget ─────────────────────────────────────────────────────────────
+// ─── Medium Widget ────────────────────────────────────────────────────────────
 // 01-ios-hud-layout FR3: priority-branched layouts (P1/P2/P3)
 
 function MediumWidget({ props }: { props: WidgetData }) {
   const accent   = URGENCY_ACCENT[props.urgency] ?? URGENCY_ACCENT.none;
-  const tint     = URGENCY_TINTS[props.urgency]  ?? URGENCY_TINTS.none;
   const priority = getPriority(props);
-
-  // P1 overrides tint to high-urgency orange
-  const bgTint = priority === 'approvals' ? '#FF6B0020' : tint;
 
   return (
     <ZStack>
-      {/* FR3: gradient background layers */}
-      <Rectangle fill="#0D0C14" />
-      <Rectangle fill={bgTint} />
+      {/* Atmospheric background: base + accent glow + blue glow */}
+      <WidgetBackground accent={accent} />
 
-      <VStack padding={12}>
+      <VStack padding={14} spacing={10}>
 
         {/* ── P1: Approvals layout ── */}
         {priority === 'approvals' && (
           <>
-            <Text font={{ size: 13, weight: 'semibold' }} foregroundStyle={accent}>
-              PENDING APPROVALS
-            </Text>
-            <Text font={{ size: 12 }} foregroundStyle="#DDDDDD">
-              {props.pendingCount} items requiring action
-            </Text>
+            <HStack>
+              <Text font={{ size: 13, weight: 'semibold' }} foregroundStyle={URGENCY_ACCENT.high}>
+                PENDING APPROVALS
+              </Text>
+              <Spacer />
+              <ZStack>
+                <RoundedRectangle fill={URGENCY_ACCENT.high + '25'} cornerRadius={10} />
+                <Text font={{ size: 11, weight: 'bold' }} foregroundStyle={URGENCY_ACCENT.high} padding={6}>
+                  {props.pendingCount} items
+                </Text>
+              </ZStack>
+            </HStack>
             {props.approvalItems.slice(0, 2).map((item) => (
-              <HStack key={item.id}>
-                <Text font={{ size: 12 }} foregroundStyle="#FFFFFF">{item.name}</Text>
-                <Spacer />
-                <Text font={{ size: 11 }} foregroundStyle="#AAAAAA">{item.hours}</Text>
-                <Text font={{ size: 10 }} foregroundStyle={accent}> {item.category}</Text>
+              <HStack key={item.id} spacing={6}>
+                <ZStack>
+                  <RoundedRectangle fill={COLORS.surface} cornerRadius={10} />
+                  <HStack padding={10} spacing={6}>
+                    <Text font={{ size: 12, weight: 'medium' }} foregroundStyle="#E0E0E0">
+                      {item.name}
+                    </Text>
+                    <Spacer />
+                    <Text font={{ size: 11, weight: 'semibold' }} foregroundStyle={COLORS.gold}>
+                      {item.hours}
+                    </Text>
+                    <Text font={{ size: 10 }} foregroundStyle={COLORS.textSecondary}>
+                      {item.category}
+                    </Text>
+                  </HStack>
+                </ZStack>
               </HStack>
             ))}
+            <HStack>
+              <Text font={{ size: 12, weight: 'semibold' }} foregroundStyle={accent}>
+                {props.hoursDisplay}
+              </Text>
+              <Spacer />
+              <Text font={{ size: 12 }} foregroundStyle={COLORS.textSecondary}>
+                {props.hoursRemaining}
+              </Text>
+            </HStack>
           </>
         )}
 
-        {/* ── P2: Deficit layout ── */}
+        {/* ── P2: Deficit layout — no earnings shown ── */}
         {priority === 'deficit' && (
           <>
-            <Text font={{ size: 13, weight: 'semibold' }} foregroundStyle="#FF3B30">
-              {PACE_LABELS[props.paceBadge]}
-            </Text>
-            <Text font={{ size: 32, weight: 'heavy', design: 'monospaced' }} foregroundStyle={accent}>
+            <HStack>
+              <StatusPill paceBadge={props.paceBadge} />
+              <Spacer />
+              <Text font={{ size: 11, weight: 'medium' }} foregroundStyle={COLORS.textSecondary}>
+                {props.hoursRemaining}
+              </Text>
+            </HStack>
+            <Text font={{ size: 36, weight: 'bold', design: 'rounded' }} foregroundStyle={accent}>
               {props.hoursDisplay}
-            </Text>
-            <Text font={{ size: 12 }} foregroundStyle="#AAAAAA">
-              {props.hoursRemaining}
             </Text>
             <Spacer />
             <HStack>
-              <Text font={{ size: 13 }} foregroundStyle="#DDDDDD">
-                {props.today}
+              <Text font={{ size: 13, weight: 'semibold' }} foregroundStyle={accent}>
+                Today: {props.todayDelta || props.today}
               </Text>
               <Spacer />
-              <Text font={{ size: 13 }} foregroundStyle="#DDDDDD">
+              <Text font={{ size: 13 }} foregroundStyle={COLORS.textSecondary}>
                 {props.weekDeltaEarnings}
               </Text>
             </HStack>
           </>
         )}
 
-        {/* ── P3: Default layout ── */}
+        {/* ── P3: Default — two glass cards + footer ── */}
         {priority === 'default' && (
           <>
-            {/* Two glass cards side by side */}
-            <HStack spacing={8}>
-              <IosGlassCard>
-                <Text font={{ size: 32, weight: 'heavy', design: 'monospaced' }} foregroundStyle={accent}>
-                  {props.hoursDisplay}
-                </Text>
-                <Text font={{ size: 12 }} foregroundStyle="#AAAAAA">
-                  this week
-                </Text>
+            <HStack spacing={10}>
+              <IosGlassCard borderColor={accent + '50'}>
+                <MetricView label="THIS WEEK" value={props.hoursDisplay} valueColor={accent} size={28} />
               </IosGlassCard>
-
-              <IosGlassCard>
-                <Text font={{ size: 24, weight: 'semibold' }} foregroundStyle="#FFFFFF">
-                  {props.earnings}
-                </Text>
-                <Text font={{ size: 12 }} foregroundStyle="#AAAAAA">
-                  earned
-                </Text>
+              <IosGlassCard borderColor={COLORS.gold + '50'}>
+                <MetricView label="EARNINGS" value={props.earnings} valueColor={COLORS.gold} size={22} />
               </IosGlassCard>
             </HStack>
-
             <Spacer />
-
-            {/* FR5: Bottom row — todayDelta with fallback to today */}
+            {/* FR5: todayDelta with fallback to today */}
             <HStack>
-              <Text font={{ size: 13 }} foregroundStyle="#DDDDDD">
+              <Text font={{ size: 12, weight: 'semibold' }} foregroundStyle={accent}>
                 Today: {props.todayDelta || props.today}
               </Text>
               <Spacer />
-              <Text font={{ size: 13 }} foregroundStyle="#DDDDDD">
+              <Text font={{ size: 12, weight: 'medium' }} foregroundStyle={COLORS.cyan}>
                 AI: {props.aiPct}
               </Text>
             </HStack>
-
-            {/* Stale indicator */}
             {isStale(props.cachedAt) && (
-              <Text font={{ size: 10 }} foregroundStyle="#FF9500">
-                Cached: {formatCachedTime(props.cachedAt)}
+              <Text font={{ size: 9 }} foregroundStyle="#FF9500">
+                Cached {formatCachedTime(props.cachedAt)}
               </Text>
             )}
           </>
@@ -296,143 +387,166 @@ function MediumWidget({ props }: { props: WidgetData }) {
   );
 }
 
-// ─── Large widget ──────────────────────────────────────────────────────────────
-// 01-ios-hud-layout FR4: priority-branched layouts + bottom padding fix (28pt)
+// ─── Large Widget ─────────────────────────────────────────────────────────────
+// Priority-branched layouts (FR4 01-ios-hud-layout):
+//   P1: approvals — manager view with up to 3 pending items
+//   P2: deficit   — pace alert with hours hero
+//   P3: default   — multi-card dashboard with bar chart
+// Bottom padding = 28 for visual balance.
 
 function LargeWidget({ props }: { props: WidgetData }) {
   const accent   = URGENCY_ACCENT[props.urgency] ?? URGENCY_ACCENT.none;
-  const tint     = URGENCY_TINTS[props.urgency]  ?? URGENCY_TINTS.none;
   const priority = getPriority(props);
-
-  // P1 overrides tint to high-urgency orange
-  const bgTint = priority === 'approvals' ? '#FF6B0020' : tint;
 
   return (
     <ZStack>
-      {/* FR3: gradient background layers */}
-      <Rectangle fill="#0D0C14" />
-      <Rectangle fill={bgTint} />
+      {/* Atmospheric background: base + accent glow + blue glow */}
+      <WidgetBackground accent={accent} />
 
-      {/* FR4: bottom padding increased to 28pt to prevent OS clipping */}
-      <VStack padding={{ top: 16, leading: 16, trailing: 16, bottom: 28 }}>
+      {/* 16pt sides, 28pt bottom for visual balance */}
+      <VStack padding={{ top: 16, leading: 16, trailing: 16, bottom: 28 }} spacing={12} alignment="leading">
 
-        {/* ── P1: Approvals layout ── */}
+        {/* ── P1: Approvals dashboard ── */}
         {priority === 'approvals' && (
           <>
-            <Text font={{ size: 14, weight: 'semibold' }} foregroundStyle={accent}>
-              PENDING APPROVALS
-            </Text>
-            <Text font={{ size: 13 }} foregroundStyle="#DDDDDD">
-              {props.pendingCount} items requiring action
-            </Text>
-            <Spacer />
+            <HStack>
+              <Text font={{ size: 14, weight: 'semibold' }} foregroundStyle={URGENCY_ACCENT.high}>
+                PENDING APPROVALS
+              </Text>
+              <Spacer />
+              <ZStack>
+                <RoundedRectangle fill={URGENCY_ACCENT.high + '25'} cornerRadius={10} />
+                <Text font={{ size: 12, weight: 'bold' }} foregroundStyle={URGENCY_ACCENT.high} padding={6}>
+                  {props.pendingCount} items
+                </Text>
+              </ZStack>
+            </HStack>
             {props.approvalItems.slice(0, 3).map((item) => (
-              <HStack key={item.id}>
-                <Text font={{ size: 13 }} foregroundStyle="#FFFFFF">{item.name}</Text>
-                <Spacer />
-                <Text font={{ size: 12 }} foregroundStyle="#AAAAAA">{item.hours}</Text>
-                <Text font={{ size: 11 }} foregroundStyle={accent}> {item.category}</Text>
+              <HStack key={item.id} spacing={8}>
+                <ZStack>
+                  <RoundedRectangle fill={COLORS.surface} cornerRadius={12} />
+                  <HStack padding={12} spacing={8}>
+                    <Text font={{ size: 13, weight: 'medium' }} foregroundStyle="#E0E0E0">
+                      {item.name}
+                    </Text>
+                    <Spacer />
+                    <Text font={{ size: 12, weight: 'semibold' }} foregroundStyle={COLORS.gold}>
+                      {item.hours}
+                    </Text>
+                    <Text font={{ size: 11 }} foregroundStyle={COLORS.textSecondary}>
+                      {item.category}
+                    </Text>
+                  </HStack>
+                </ZStack>
               </HStack>
             ))}
             <Spacer />
-            {/* Stale indicator */}
-            {isStale(props.cachedAt) && (
-              <Text font={{ size: 10 }} foregroundStyle="#FF9500">
-                Cached: {formatCachedTime(props.cachedAt)}
-              </Text>
-            )}
-          </>
-        )}
-
-        {/* ── P2: Deficit layout ── */}
-        {priority === 'deficit' && (
-          <>
-            <Text font={{ size: 14, weight: 'semibold' }} foregroundStyle="#FF3B30">
-              {PACE_LABELS[props.paceBadge]}
-            </Text>
-            <Text font={{ size: 36, weight: 'heavy', design: 'monospaced' }} foregroundStyle={accent}>
-              {props.hoursDisplay}
-            </Text>
-            <Text font={{ size: 13 }} foregroundStyle="#AAAAAA">
-              {props.hoursRemaining}
-            </Text>
-            <Spacer />
             <HStack>
-              <Text font={{ size: 13 }} foregroundStyle="#DDDDDD">
-                {props.today}
+              <Text font={{ size: 13, weight: 'semibold' }} foregroundStyle={accent}>
+                {props.hoursDisplay}
               </Text>
               <Spacer />
-              <Text font={{ size: 13 }} foregroundStyle="#DDDDDD">
-                {props.weekDeltaEarnings}
+              <Text font={{ size: 13 }} foregroundStyle={COLORS.textSecondary}>
+                {props.hoursRemaining}
               </Text>
             </HStack>
-            {/* Stale indicator */}
-            {isStale(props.cachedAt) && (
-              <Text font={{ size: 10 }} foregroundStyle="#FF9500">
-                Cached: {formatCachedTime(props.cachedAt)}
-              </Text>
-            )}
           </>
         )}
 
-        {/* ── P3: Default layout ── */}
-        {priority === 'default' && (
+        {/* ── P2: Deficit view — no bar chart ── */}
+        {priority === 'deficit' && (
           <>
-            {/* Hero row — two glass cards */}
-            <HStack spacing={8}>
-              <IosGlassCard>
-                <Text font={{ size: 36, weight: 'heavy', design: 'monospaced' }} foregroundStyle={accent}>
-                  {props.hoursDisplay}
-                </Text>
-                <Text font={{ size: 12 }} foregroundStyle="#AAAAAA">
-                  this week
-                </Text>
+            <HStack>
+              <StatusPill paceBadge={props.paceBadge} />
+              <Spacer />
+              <Text font={{ size: 12 }} foregroundStyle={COLORS.textSecondary}>
+                {props.hoursRemaining}
+              </Text>
+            </HStack>
+            <Text font={{ size: 48, weight: 'bold', design: 'rounded' }} foregroundStyle={accent}>
+              {props.hoursDisplay}
+            </Text>
+            <Spacer />
+            <HStack spacing={10}>
+              <IosGlassCard borderColor={COLORS.gold + '50'}>
+                <MetricView label="EARNINGS" value={props.earnings} valueColor={COLORS.gold} size={20} />
               </IosGlassCard>
-
-              <IosGlassCard>
-                <Text font={{ size: 26, weight: 'semibold' }} foregroundStyle="#FFFFFF">
-                  {props.earnings}
-                </Text>
-                <Text font={{ size: 12 }} foregroundStyle="#AAAAAA">
-                  earned
-                </Text>
+              <IosGlassCard borderColor={COLORS.cyan + '50'}>
+                <MetricView label="AI" value={props.aiPct} valueColor={COLORS.cyan} size={16} />
+              </IosGlassCard>
+              <IosGlassCard borderColor={COLORS.violet + '50'}>
+                <MetricView label="BRAINLIFT" value={props.brainlift} valueColor={COLORS.violet} size={16} />
               </IosGlassCard>
             </HStack>
-
-            {/* FR4: Daily bar chart */}
-            {props.daily && props.daily.length > 0 && (
-              <IosBarChart daily={props.daily} accent={accent} />
-            )}
-
-            <Spacer />
-
-            {/* FR5: Today + delta vs daily average */}
             <HStack>
-              <Text font={{ size: 13 }} foregroundStyle="#DDDDDD">
+              <Text font={{ size: 13, weight: 'semibold' }} foregroundStyle={accent}>
                 Today: {props.todayDelta || props.today}
               </Text>
               <Spacer />
+              <Text font={{ size: 13 }} foregroundStyle={COLORS.textSecondary}>
+                {props.weekDeltaEarnings}
+              </Text>
+            </HStack>
+          </>
+        )}
+
+        {/* ── P3: Default — full dashboard ── */}
+        {priority === 'default' && (
+          <>
+            {/* Row 1: Hours + Earnings + Today */}
+            <HStack spacing={10}>
+              <IosGlassCard borderColor={accent + '50'}>
+                <MetricView label="THIS WEEK" value={props.hoursDisplay} valueColor={accent} size={30} />
+                <StatusPill paceBadge={props.paceBadge} />
+              </IosGlassCard>
+              <VStack spacing={10}>
+                <IosGlassCard borderColor={COLORS.gold + '50'}>
+                  <MetricView label="EARNINGS" value={props.earnings} valueColor={COLORS.gold} size={20} />
+                </IosGlassCard>
+                <IosGlassCard>
+                  {/* FR5: todayDelta rendered conditionally; falls back to today */}
+                  <MetricView
+                    label="TODAY"
+                    value={props.todayDelta !== '' ? props.todayDelta : props.today}
+                    valueColor={accent}
+                    size={16}
+                  />
+                </IosGlassCard>
+              </VStack>
             </HStack>
 
-            {/* AI% */}
+            {/* Row 2: Activity bar chart — uses padding={16} for chart breathing room */}
+            <ZStack>
+              <RoundedRectangle fill={COLORS.surface} cornerRadius={14} />
+              <RoundedRectangle cornerRadius={14} stroke={accent + '25'} strokeWidth={1} />
+              <VStack padding={16} alignment="leading" spacing={4}>
+                <SectionLabel text="ACTIVITY" />
+                <IosBarChart daily={props.daily} accent={accent} />
+              </VStack>
+            </ZStack>
+
+            {/* Row 3: AI% + BrainLift + optional Approvals */}
+            <HStack spacing={10}>
+              <IosGlassCard borderColor={COLORS.cyan + '50'}>
+                <MetricView label="AI" value={props.aiPct} valueColor={COLORS.cyan} size={16} />
+              </IosGlassCard>
+              <IosGlassCard borderColor={COLORS.violet + '50'}>
+                <MetricView label="BRAINLIFT" value={props.brainlift} valueColor={COLORS.violet} size={16} />
+              </IosGlassCard>
+            </HStack>
+
+            {/* Footer */}
             <HStack>
-              <Text font={{ size: 13 }} foregroundStyle="#DDDDDD">
-                AI usage: {props.aiPct}
+              <Text font={{ size: 11 }} foregroundStyle={COLORS.textMuted}>
+                {props.hoursRemaining}
               </Text>
               <Spacer />
-              <Text font={{ size: 13 }} foregroundStyle="#DDDDDD">
-                BrainLift: {props.brainlift}
-              </Text>
+              {isStale(props.cachedAt) && (
+                <Text font={{ size: 9 }} foregroundStyle="#FF9500">
+                  Cached {formatCachedTime(props.cachedAt)}
+                </Text>
+              )}
             </HStack>
-
-            <Spacer />
-
-            {/* Stale indicator */}
-            {isStale(props.cachedAt) && (
-              <Text font={{ size: 10 }} foregroundStyle="#FF9500">
-                Cached: {formatCachedTime(props.cachedAt)}
-              </Text>
-            )}
           </>
         )}
 
@@ -441,9 +555,8 @@ function LargeWidget({ props }: { props: WidgetData }) {
   );
 }
 
-// ─── Main widget ───────────────────────────────────────────────────────────────
+// ─── Main widget entry ────────────────────────────────────────────────────────
 
-// createWidget is provided by expo-widgets at build time
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { createWidget } = require('expo-widgets');
 
@@ -460,7 +573,6 @@ const HourglassWidget = createWidget('HourglassWidget', (props: WidgetData & { w
     return <LargeWidget props={props} />;
   }
 
-  // Default: medium
   return <MediumWidget props={props} />;
 });
 

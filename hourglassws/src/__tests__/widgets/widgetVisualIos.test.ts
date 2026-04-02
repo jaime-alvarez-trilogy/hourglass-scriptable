@@ -761,17 +761,15 @@ describe('FR3 — MediumWidget priority layouts', () => {
 describe('FR4 — LargeWidget priority layouts + bottom padding', () => {
   it('FR4.new.1 — SC4.1: outer VStack bottom padding equals 28', () => {
     const tree = renderWidget(React.createElement(LargeWidgetFn, { props: makeWidgetData() }));
-    // Find the outermost VStack (direct child of ZStack root)
+    // Find the content VStack — it has object-form padding with bottom=28
     const vstacks = collectNodes(tree, 'VStack');
-    const outerVStack = vstacks[0];
-    const padding = outerVStack?.props?.padding;
-    // Padding may be a number or an object with bottom key
-    if (typeof padding === 'number') {
-      // scalar — does not satisfy bottom=28
-      expect(padding).toBe(28); // will fail if still 16
-    } else {
-      expect(padding?.bottom).toBe(28);
-    }
+    // Search all vstacks for one that has padding.bottom === 28
+    const contentVStack = vstacks.find((v: any) => {
+      const p = v?.props?.padding;
+      return typeof p === 'object' && p !== null && p.bottom === 28;
+    });
+    expect(contentVStack).toBeDefined();
+    expect(contentVStack.props.padding.bottom).toBe(28);
   });
 
   describe('P1 (approvals mode)', () => {
