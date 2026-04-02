@@ -180,20 +180,20 @@ describe('FR1 — buildMeshSvg', () => {
 });
 
 describe('FR1 — badgeColor', () => {
-  it('FR1.8 — crushed_it → #CEA435 (luxuryGold, updated in 04-cockpit-hud)', () => {
-    expect(badgeColor('crushed_it')).toBe('#CEA435');
+  it('FR1.8 — crushed_it → #F5C842 (brand gold, updated in 02-android-widget-redesign)', () => {
+    expect(badgeColor('crushed_it')).toBe('#F5C842');
   });
 
-  it('FR1.9 — on_track → #4ADE80 (successGreen, updated in 04-cockpit-hud)', () => {
-    expect(badgeColor('on_track')).toBe('#4ADE80');
+  it('FR1.9 — on_track → #10B981 (brand success, updated in 02-android-widget-redesign)', () => {
+    expect(badgeColor('on_track')).toBe('#10B981');
   });
 
-  it('FR1.10 — behind → #FCD34D (warnAmber, updated in 04-cockpit-hud)', () => {
-    expect(badgeColor('behind')).toBe('#FCD34D');
+  it('FR1.10 — behind → #F59E0B (brand warning, updated in 02-android-widget-redesign)', () => {
+    expect(badgeColor('behind')).toBe('#F59E0B');
   });
 
-  it('FR1.11 — critical → #F87171 (desatCoral, updated in 04-cockpit-hud)', () => {
-    expect(badgeColor('critical')).toBe('#F87171');
+  it('FR1.11 — critical → #F43F5E (brand critical, updated in 02-android-widget-redesign)', () => {
+    expect(badgeColor('critical')).toBe('#F43F5E');
   });
 
   it('FR1.12 — none → empty string', () => {
@@ -337,36 +337,36 @@ describe('FR2 — SVG mesh background layer', () => {
     expect(meshNode).toBeUndefined();
   });
 
-  it('FR2.5 — root FlexWidget backgroundColor is #0D0C14 (brand background)', () => {
+  it('FR2.5 — root FlexWidget backgroundColor is #0B0D13 (brand background, updated in 02-android-widget-redesign)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, { data: makeData(), widgetFamily: 'medium' })
     );
     expect(tree.type).toBe('FlexWidget');
-    expect(tree.props.style?.backgroundColor).toBe('#0D0C14');
+    expect(tree.props.style?.backgroundColor).toBe('#0B0D13');
   });
 });
 
 // ─── FR3: Glass panel cards ────────────────────────────────────────────────────
 
 describe('FR3 — Glass panel cards', () => {
-  it('FR3.1 — medium widget hours panel has outer backgroundColor #2F2E41 with borderRadius 13', () => {
+  it('FR3.1 — medium widget hours panel has outer backgroundColor #1C1E26 with borderRadius 16 (02-android-widget-redesign)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, { data: makeData({ weekDeltaHours: '' }), widgetFamily: 'medium' })
     );
     const flexes = getFlexWidgets(tree);
     const borderPanel = flexes.find(
-      (n) => n.props.style?.backgroundColor === '#2F2E41' && n.props.style?.borderRadius === 13
+      (n) => n.props.style?.backgroundColor === '#1C1E26' && n.props.style?.borderRadius === 16
     );
     expect(borderPanel).toBeDefined();
   });
 
-  it('FR3.2 — medium widget hours panel has inner backgroundColor #1F1E2C with borderRadius 12 (02-widget-visual-android: updated from #16151F)', () => {
+  it('FR3.2 — medium widget hours panel has inner backgroundColor #16151F with borderRadius 15 (02-android-widget-redesign)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, { data: makeData(), widgetFamily: 'medium' })
     );
     const flexes = getFlexWidgets(tree);
     const surfacePanel = flexes.find(
-      (n) => n.props.style?.backgroundColor === '#1F1E2C' && n.props.style?.borderRadius === 12
+      (n) => n.props.style?.backgroundColor === '#16151F' && n.props.style?.borderRadius === 15
     );
     expect(surfacePanel).toBeDefined();
   });
@@ -382,13 +382,13 @@ describe('FR3 — Glass panel cards', () => {
     expect(whitePanel).toBeUndefined();
   });
 
-  it('FR3.4 — small widget wraps content in glass panel (borderRadius 13 border, 12 surface)', () => {
+  it('FR3.4 — small widget wraps content in glass panel (borderRadius 16 border, 15 surface, updated in 02-android-widget-redesign)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, { data: makeData(), widgetFamily: 'small' })
     );
     const flexes = getFlexWidgets(tree);
     const borderPanel = flexes.find(
-      (n) => n.props.style?.backgroundColor === '#2F2E41' && n.props.style?.borderRadius === 13
+      (n) => n.props.style?.backgroundColor === '#1C1E26' && n.props.style?.borderRadius === 16
     );
     expect(borderPanel).toBeDefined();
   });
@@ -397,29 +397,29 @@ describe('FR3 — Glass panel cards', () => {
 // ─── FR4: Pace badge ───────────────────────────────────────────────────────────
 
 describe('FR4 — Pace badge', () => {
-  it('FR4.1 — paceBadge on_track → badge with backgroundColor #4ADE80 and text ON TRACK', () => {
+  it('FR4.1 — paceBadge on_track → badge with backgroundColor #10B981 and text ON TRACK (02-android-widget-redesign)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, { data: makeData({ paceBadge: 'on_track' }), widgetFamily: 'medium' })
     );
     const flexes = getFlexWidgets(tree);
-    const badge = flexes.find((n) => n.props.style?.backgroundColor === '#4ADE80');
+    const badge = flexes.find((n) => n.props.style?.backgroundColor === '#10B981');
     expect(badge).toBeDefined();
     const texts = getTextWidgets(badge);
     expect(texts.some((t) => t.props.text === 'ON TRACK')).toBe(true);
   });
 
-  it('FR4.2 — paceBadge crushed_it → badge with backgroundColor #CEA435 and text CRUSHED IT', () => {
+  it('FR4.2 — paceBadge crushed_it → badge with backgroundColor #F5C842 and text CRUSHED IT (02-android-widget-redesign)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, { data: makeData({ paceBadge: 'crushed_it' }), widgetFamily: 'medium' })
     );
     const flexes = getFlexWidgets(tree);
-    const badge = flexes.find((n) => n.props.style?.backgroundColor === '#CEA435');
+    const badge = flexes.find((n) => n.props.style?.backgroundColor === '#F5C842');
     expect(badge).toBeDefined();
     const texts = getTextWidgets(badge);
     expect(texts.some((t) => t.props.text === 'CRUSHED IT')).toBe(true);
   });
 
-  it('FR4.3 — paceBadge behind → P2 warning text uses #FCD34D color and shows BEHIND PACE', () => {
+  it('FR4.3 — paceBadge behind → P2 warning text uses #F59E0B color and shows BEHIND PACE (02-android-widget-redesign)', () => {
     // behind triggers P2 mode (no approvals) → warning TextWidget, not PaceBadge capsule
     const tree = renderWidget(
       React.createElement(HourglassWidget, { data: makeData({ paceBadge: 'behind', approvalItems: [], myRequests: [] }), widgetFamily: 'medium' })
@@ -427,10 +427,10 @@ describe('FR4 — Pace badge', () => {
     const texts = getTextWidgets(tree);
     const warningText = texts.find((t) => t.props.text && t.props.text.includes('BEHIND PACE'));
     expect(warningText).toBeDefined();
-    expect(warningText!.props.style?.color).toBe('#FCD34D');
+    expect(warningText!.props.style?.color).toBe('#F59E0B');
   });
 
-  it('FR4.4 — paceBadge critical → P2 warning text uses #F87171 color and shows CRITICAL', () => {
+  it('FR4.4 — paceBadge critical → P2 warning text uses #F43F5E color and shows CRITICAL (02-android-widget-redesign)', () => {
     // critical triggers P2 mode (no approvals) → warning TextWidget, not PaceBadge capsule
     const tree = renderWidget(
       React.createElement(HourglassWidget, { data: makeData({ paceBadge: 'critical', approvalItems: [], myRequests: [] }), widgetFamily: 'medium' })
@@ -438,7 +438,7 @@ describe('FR4 — Pace badge', () => {
     const texts = getTextWidgets(tree);
     const warningText = texts.find((t) => t.props.text && t.props.text.includes('CRITICAL'));
     expect(warningText).toBeDefined();
-    expect(warningText!.props.style?.color).toBe('#F87171');
+    expect(warningText!.props.style?.color).toBe('#F43F5E');
   });
 
   it('FR4.5 — paceBadge none → no pace badge rendered (no text ON TRACK / BEHIND PACE / etc.)', () => {
@@ -785,21 +785,21 @@ describe('FR7 — Manager urgency mode', () => {
 
 // ─── 04-cockpit-hud: FR1 — badgeColor desaturated tokens (Android) ────────────
 
-describe('04-cockpit-hud FR1: badgeColor desaturated tokens (Android)', () => {
-  it('FR1-A-1 — badgeColor(crushed_it) === #CEA435 (luxuryGold)', () => {
-    expect(badgeColor('crushed_it')).toBe('#CEA435');
+describe('04-cockpit-hud FR1: badgeColor brand tokens (Android, updated in 02-android-widget-redesign)', () => {
+  it('FR1-A-1 — badgeColor(crushed_it) === #F5C842 (brand gold)', () => {
+    expect(badgeColor('crushed_it')).toBe('#F5C842');
   });
 
-  it('FR1-A-2 — badgeColor(on_track) === #4ADE80 (successGreen)', () => {
-    expect(badgeColor('on_track')).toBe('#4ADE80');
+  it('FR1-A-2 — badgeColor(on_track) === #10B981 (brand success)', () => {
+    expect(badgeColor('on_track')).toBe('#10B981');
   });
 
-  it('FR1-A-3 — badgeColor(behind) === #FCD34D (warnAmber)', () => {
-    expect(badgeColor('behind')).toBe('#FCD34D');
+  it('FR1-A-3 — badgeColor(behind) === #F59E0B (brand warning)', () => {
+    expect(badgeColor('behind')).toBe('#F59E0B');
   });
 
-  it('FR1-A-4 — badgeColor(critical) === #F87171 (desatCoral)', () => {
-    expect(badgeColor('critical')).toBe('#F87171');
+  it('FR1-A-4 — badgeColor(critical) === #F43F5E (brand critical)', () => {
+    expect(badgeColor('critical')).toBe('#F43F5E');
   });
 
   it('FR1-A-5 — badgeColor(none) still returns empty string', () => {
@@ -871,7 +871,7 @@ describe('04-cockpit-hud FR3: Android P2 stripped deficit layout', () => {
     expect(blText).toBeUndefined();
   });
 
-  it('FR3-A-6 — MediumWidget paceBadge=critical, no approvals → badge color is #F87171', () => {
+  it('FR3-A-6 — MediumWidget paceBadge=critical, no approvals → badge color is #F43F5E (02-android-widget-redesign)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, {
         data: makeData({ paceBadge: 'critical', approvalItems: [], myRequests: [], isManager: false }),
@@ -881,7 +881,7 @@ describe('04-cockpit-hud FR3: Android P2 stripped deficit layout', () => {
     const texts = getTextWidgets(tree);
     const warningText = texts.find((t) => t.props.text && t.props.text.includes('⚠'));
     expect(warningText).toBeDefined();
-    expect(warningText!.props.style?.color).toBe('#F87171');
+    expect(warningText!.props.style?.color).toBe('#F43F5E');
   });
 
   it('FR3-A-7 (edge) — paceBadge=behind + isManager=true + urgency=critical + pendingCount=3 → P1 approvals wins (not P2) (02-android-hud-layout: P1 shows ⚠ PENDING header, not countdown)', () => {
@@ -1026,8 +1026,8 @@ function makeDailyEntries(
 
 // ─── FR1: GlassPanel inner card opacity ────────────────────────────────────────
 
-describe('02-android FR1 — GlassPanel inner card opacity', () => {
-  it('FR1.1 — MediumWidget Hours mode renders an inner FlexWidget with backgroundColor #1F1E2C', () => {
+describe('02-android FR1 — GlassPanel inner card opacity (02-android-widget-redesign: updated colors)', () => {
+  it('FR1.1 — MediumWidget Hours mode renders an inner FlexWidget with backgroundColor #16151F (02-android-widget-redesign)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, {
         data: makeData({ isManager: false, paceBadge: 'on_track', approvalItems: [], myRequests: [] }),
@@ -1035,11 +1035,11 @@ describe('02-android FR1 — GlassPanel inner card opacity', () => {
       })
     );
     const flexes = getFlexWidgets(tree);
-    const innerCard = flexes.find((n) => n.props.style?.backgroundColor === '#1F1E2C');
+    const innerCard = flexes.find((n) => n.props.style?.backgroundColor === '#16151F');
     expect(innerCard).toBeDefined();
   });
 
-  it('FR1.2 — MediumWidget Hours mode retains outer FlexWidget with backgroundColor #2F2E41 (border trick)', () => {
+  it('FR1.2 — MediumWidget Hours mode retains outer FlexWidget with backgroundColor #1C1E26 (border trick, 02-android-widget-redesign)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, {
         data: makeData({ isManager: false, paceBadge: 'on_track', approvalItems: [], myRequests: [] }),
@@ -1047,11 +1047,11 @@ describe('02-android FR1 — GlassPanel inner card opacity', () => {
       })
     );
     const flexes = getFlexWidgets(tree);
-    const outerBorder = flexes.find((n) => n.props.style?.backgroundColor === '#2F2E41');
+    const outerBorder = flexes.find((n) => n.props.style?.backgroundColor === '#1C1E26');
     expect(outerBorder).toBeDefined();
   });
 
-  it('FR1.3 — old inner colour #16151F is not present in any FlexWidget', () => {
+  it('FR1.3 — old inner colour #1F1E2C is not present in any FlexWidget (02-android-widget-redesign)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, {
         data: makeData({ isManager: false, paceBadge: 'on_track', approvalItems: [], myRequests: [] }),
@@ -1059,11 +1059,11 @@ describe('02-android FR1 — GlassPanel inner card opacity', () => {
       })
     );
     const flexes = getFlexWidgets(tree);
-    const oldCard = flexes.find((n) => n.props.style?.backgroundColor === '#16151F');
+    const oldCard = flexes.find((n) => n.props.style?.backgroundColor === '#1F1E2C');
     expect(oldCard).toBeUndefined();
   });
 
-  it('FR1.4 — GlassPanel inner FlexWidget retains borderRadius: 12 and padding: 12 (structural unchanged)', () => {
+  it('FR1.4 — GlassPanel inner FlexWidget has borderRadius: 15 and padding: 12 (02-android-widget-redesign)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, {
         data: makeData({ isManager: false, paceBadge: 'on_track', approvalItems: [], myRequests: [] }),
@@ -1071,9 +1071,9 @@ describe('02-android FR1 — GlassPanel inner card opacity', () => {
       })
     );
     const flexes = getFlexWidgets(tree);
-    const innerCard = flexes.find((n) => n.props.style?.backgroundColor === '#1F1E2C');
+    const innerCard = flexes.find((n) => n.props.style?.backgroundColor === '#16151F');
     expect(innerCard).toBeDefined();
-    expect(innerCard!.props.style?.borderRadius).toBe(12);
+    expect(innerCard!.props.style?.borderRadius).toBe(15);
     expect(innerCard!.props.style?.padding).toBe(12);
   });
 });
@@ -1265,7 +1265,7 @@ describe('02-android FR3 — MediumWidget Hours mode bar chart integration', () 
     expect(barChartSvg!.props.svg).toContain('height="40"');
   });
 
-  it('FR3.4 — bar chart uses urgency accentColor (urgency=critical → #FF2D55 in bar chart svg)', () => {
+  it('FR3.4 — bar chart uses urgency accentColor (urgency=critical → #F43F5E in bar chart svg, 02-android-widget-redesign)', () => {
     const tree = renderWidget(
       React.createElement(HourglassWidget, {
         data: makeData({
@@ -1285,8 +1285,8 @@ describe('02-android FR3 — MediumWidget Hours mode bar chart integration', () 
       return (svg.match(/<rect/g) ?? []).length === 7;
     });
     expect(barChartSvg).toBeDefined();
-    // critical urgency → URGENCY_ACCENT.critical = '#FF2D55'
-    expect(barChartSvg!.props.svg).toContain('#FF2D55');
+    // critical urgency → URGENCY_ACCENT.critical = '#F43F5E' (02-android-widget-redesign)
+    expect(barChartSvg!.props.svg).toContain('#F43F5E');
   });
 
   it('FR3.5 — bar chart receives data.daily (SVG contains 7 bars from the daily array)', () => {
