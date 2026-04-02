@@ -90,3 +90,9 @@ Both specs are independent — same feature, different platform files.
 - Both platforms use the same color language (glass fill `#1C1E26CC`, base `#0B0D13`)
 - `MAX_BAR_HEIGHT = 60` in iOS; equivalent 60pt max in Android SVG chart
 - Hero fonts: `weight: 'bold'`, `design: 'rounded'`
+
+## Changelog
+
+| Date | Spec | Description |
+|------|------|-------------|
+| 2026-04-02 | [02-android-widget-redesign](specs/02-android-widget-redesign/spec.md) | Spec created: Android widget color alignment — URGENCY_ACCENT, badgeColor(), GlassPanel, root background |
