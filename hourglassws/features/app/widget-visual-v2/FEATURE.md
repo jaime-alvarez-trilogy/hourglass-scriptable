@@ -97,3 +97,4 @@ Both specs are independent — same feature, different platform files.
 |------|------|-------------|
 | 2026-04-02 | [01-ios-widget-redesign](specs/01-ios-widget-redesign/spec.md) | Spec created: WidgetBackground, IosGlassCard, MAX_BAR_HEIGHT=60, bold/rounded hero font, test updates |
 | 2026-04-02 | [02-android-widget-redesign](specs/02-android-widget-redesign/spec.md) | Spec created: Android widget color alignment — URGENCY_ACCENT, badgeColor(), GlassPanel, root background |
+| 2026-04-02 | [02-android-widget-redesign](specs/02-android-widget-redesign/spec.md) | **Complete**: test(FR1-FR5), feat(FR1-FR4), fix(stale comment) — 139/139 tests passing |
