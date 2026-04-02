@@ -44,7 +44,7 @@ function meshStateColor(urgency: WidgetUrgency, paceBadge: string): string {
  * Returns the background hex color for a pace badge capsule.
  * Returns '' for 'none' (no badge should render).
  */
-// 04-cockpit-hud: desaturated dark glass tokens (luxuryGold, successGreen, warnAmber, desatCoral)
+// 02-android-widget-redesign: brand semantic palette (gold, success, warning, critical)
 export function badgeColor(paceBadge: string): string {
   switch (paceBadge) {
     case 'crushed_it': return '#F5C842';
