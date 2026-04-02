@@ -178,10 +178,10 @@ describe('FR2: iOS LargeWidget padding', () => {
     expect(largeWidgetSrc).toContain('padding={16}');
   });
 
-  it('SC2.2: LargeWidget outer VStack uses object-form padding (padding={{ top: 16...})', () => {
-    // The outer VStack uses object-form padding {top:16, leading:16, trailing:16, bottom:28}
-    // not a scalar integer. This is more precise than a negative check.
-    expect(largeWidgetSrc).toContain('padding={{ top: 16');
+  it('SC2.2: LargeWidget outer VStack uses uniform padding (scalar 16, not object-form)', () => {
+    // 03-typography-layout FR5.4: changed from asymmetric bottom:28 to uniform padding={16}
+    // The outer VStack now uses scalar padding={16}, not object-form { top: 16, bottom: 28 }
+    expect(largeWidgetSrc).not.toContain('bottom: 28');
   });
 });
 
@@ -314,11 +314,12 @@ describe('FR4: iOS LargeWidget — Today row uses todayDelta not hoursRemaining'
   });
 
   it('SC4.12: todayDelta is rendered conditionally (guard for empty string)', () => {
-    // Must have a conditional render: todayDelta && ... or todayDelta !== ''
+    // Must have a conditional render: todayDelta && ... or todayDelta !== '' or || fallback
     const hasConditional =
       largeWidgetSrc.includes('todayDelta &&') ||
       largeWidgetSrc.includes("todayDelta !== ''") ||
-      largeWidgetSrc.includes('todayDelta.length > 0');
+      largeWidgetSrc.includes('todayDelta.length > 0') ||
+      largeWidgetSrc.includes('todayDelta ||');
     expect(hasConditional).toBe(true);
   });
 });
@@ -664,9 +665,9 @@ describe('03-typography-layout FR3: LargeWidget P3 hero row has two IosGlassCard
     largeP3HeroSrc = p3Start > -1 ? largeSrc.slice(p3Start) : largeSrc;
   });
 
-  it('FR3-1: P3 hero HStack contains "EARNED" label text', () => {
-    // The earnings card must show "EARNED"
-    expect(largeP3HeroSrc).toContain('"EARNED"');
+  it('FR3-1: P3 hero HStack contains EARNED label text', () => {
+    // The earnings card must show "EARNED" — either as JSX text or string literal
+    expect(largeP3HeroSrc).toMatch(/EARNED/);
   });
 
   it('FR3-2: P3 section has Text with font size 24 weight bold for earnings', () => {

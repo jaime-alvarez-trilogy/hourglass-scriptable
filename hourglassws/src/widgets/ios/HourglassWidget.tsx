@@ -387,8 +387,8 @@ function LargeWidget({ props }: { props: WidgetData }) {
       {/* Atmospheric background: base + accent glow + blue glow */}
       <WidgetBackground accent={accent} />
 
-      {/* 16pt sides, 28pt bottom for visual balance */}
-      <VStack padding={{ top: 16, leading: 16, trailing: 16, bottom: 28 }} spacing={12} alignment="leading">
+      {/* Uniform 16pt padding on all sides */}
+      <VStack padding={16} spacing={12} alignment="leading">
 
         {/* ── P1: Approvals dashboard ── */}
         {priority === 'approvals' && (
@@ -477,52 +477,46 @@ function LargeWidget({ props }: { props: WidgetData }) {
         {/* ── P3: Default — full dashboard ── */}
         {priority === 'default' && (
           <>
-            {/* Row 1: Hours + Earnings + Today */}
+            {/* Hero row: Hours card (with remaining) + Earnings card */}
             <HStack spacing={10}>
               <IosGlassCard>
-                <MetricView label="THIS WEEK" value={props.hoursDisplay} valueColor={accent} size={30} />
-                <StatusPill paceBadge={props.paceBadge} />
-              </IosGlassCard>
-              <VStack spacing={10}>
-                <IosGlassCard>
-                  <MetricView label="EARNINGS" value={props.earnings} valueColor={COLORS.gold} size={20} />
-                </IosGlassCard>
-                <IosGlassCard>
-                  {/* FR5: todayDelta rendered conditionally; falls back to today */}
-                  <MetricView
-                    label="TODAY"
-                    value={props.todayDelta !== '' ? props.todayDelta : props.today}
-                    valueColor={accent}
-                    size={16}
-                  />
-                </IosGlassCard>
-              </VStack>
-            </HStack>
-
-            {/* Row 2: Activity bar chart — uses padding={16} for chart breathing room */}
-            <ZStack>
-              <RoundedRectangle fill={COLORS.surface} cornerRadius={14} />
-              <RoundedRectangle cornerRadius={14} stroke={accent + '25'} strokeWidth={1} />
-              <VStack padding={16} alignment="leading" spacing={4}>
-                <SectionLabel text="ACTIVITY" />
-                <IosBarChart daily={props.daily} accent={accent} />
-              </VStack>
-            </ZStack>
-
-            {/* Row 3: AI% + BrainLift + optional Approvals */}
-            <HStack spacing={10}>
-              <IosGlassCard>
-                <MetricView label="AI" value={props.aiPct} valueColor={COLORS.cyan} size={16} />
+                <Text font={{ size: 32, weight: 'bold', design: 'rounded' }} foregroundStyle={accent}>
+                  {props.hoursDisplay}
+                </Text>
+                <Text font={{ size: 11, weight: 'medium' }} foregroundStyle="#94A3B8">
+                  {props.hoursRemaining.replace('left', '').trim()} remaining
+                </Text>
               </IosGlassCard>
               <IosGlassCard>
-                <MetricView label="BRAINLIFT" value={props.brainlift} valueColor={COLORS.violet} size={16} />
+                <Text font={{ size: 24, weight: 'bold' }} foregroundStyle={COLORS.gold}>
+                  {props.earnings}
+                </Text>
+                <Text font={{ size: 11, weight: 'medium' }} foregroundStyle={COLORS.textSecondary}>
+                  EARNED
+                </Text>
               </IosGlassCard>
             </HStack>
+
+            {/* StatusPill row */}
+            <HStack>
+              <StatusPill paceBadge={props.paceBadge} />
+              <Spacer />
+            </HStack>
+
+            {/* Activity chart section */}
+            <VStack alignment="leading" spacing={4}>
+              <Text font={{ size: 11, weight: 'bold' }} foregroundStyle="#64748B">
+                ACTIVITY
+              </Text>
+              <IosBarChart daily={props.daily} accent={accent} />
+            </VStack>
+
+            <Spacer />
 
             {/* Footer */}
             <HStack>
               <Text font={{ size: 11 }} foregroundStyle={COLORS.textMuted}>
-                {props.hoursRemaining}
+                Today: {props.todayDelta || props.today} {'\u2022'} AI: {props.aiPct}
               </Text>
               <Spacer />
               {isStale(props.cachedAt) && (
