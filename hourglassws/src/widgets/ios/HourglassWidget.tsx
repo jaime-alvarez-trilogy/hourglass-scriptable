@@ -97,45 +97,29 @@ function formatCachedTime(cachedAt: number): string {
 
 // ─── Reusable UI components ───────────────────────────────────────────────────
 
-// Atmospheric widget background: dark base + accent glow (top-right) + blue glow (bottom-left)
-// Replaces the two-Rectangle urgency tint pattern. Urgency is expressed via accent color.
+// Atmospheric widget background: dark base + single top-center accent glow.
+// Mirrors the main app header gradient — wide elliptical glow spreads across the top.
 function WidgetBackground({ accent }: { accent: string }) {
   return (
     <ZStack>
-      <Rectangle fill={COLORS.bgDark} />
-      {/* Top-right accent glow */}
+      <Rectangle fill="#0B0D13" />
+      {/* Top-center header glow — mirrors main app header gradient */}
       <VStack>
-        <HStack>
-          <Spacer />
-          <Circle fill={accent} width={160} height={160} opacity={0.15} blur={50} />
-        </HStack>
+        <Circle fill={accent} width={250} height={200} opacity={0.15} blur={60} />
         <Spacer />
-      </VStack>
-      {/* Bottom-left blue glow */}
-      <VStack>
-        <Spacer />
-        <HStack>
-          <Circle fill="#3B82F6" width={100} height={100} opacity={0.08} blur={40} />
-          <Spacer />
-        </HStack>
       </VStack>
     </ZStack>
   );
 }
 
-// Premium glass card: translucent surface + etched border + optional semantic border tint
-function IosGlassCard({
-  children,
-  borderColor = COLORS.borderSubtle,
-}: {
-  children: React.ReactNode;
-  borderColor?: string;
-}) {
+// Premium glass card: translucent surface + etched specular edge
+// Fill: 75% opacity (#1C1E26BF), stroke: 15% white (#FFFFFF26)
+function IosGlassCard({ children }: { children: React.ReactNode }) {
   return (
     <ZStack>
-      <RoundedRectangle fill={COLORS.surface} cornerRadius={16} />
-      <RoundedRectangle cornerRadius={16} stroke={borderColor} strokeWidth={0.5} />
-      <VStack padding={14} alignment="leading" spacing={4}>
+      <RoundedRectangle fill="#1C1E26BF" cornerRadius={16} />
+      <RoundedRectangle cornerRadius={16} stroke="#FFFFFF26" strokeWidth={0.5} />
+      <VStack padding={14} alignment="leading">
         {children}
       </VStack>
     </ZStack>
@@ -356,10 +340,10 @@ function MediumWidget({ props }: { props: WidgetData }) {
         {priority === 'default' && (
           <>
             <HStack spacing={10}>
-              <IosGlassCard borderColor={accent + '50'}>
+              <IosGlassCard>
                 <MetricView label="THIS WEEK" value={props.hoursDisplay} valueColor={accent} size={28} />
               </IosGlassCard>
-              <IosGlassCard borderColor={COLORS.gold + '50'}>
+              <IosGlassCard>
                 <MetricView label="EARNINGS" value={props.earnings} valueColor={COLORS.gold} size={22} />
               </IosGlassCard>
             </HStack>
@@ -468,13 +452,13 @@ function LargeWidget({ props }: { props: WidgetData }) {
             </Text>
             <Spacer />
             <HStack spacing={10}>
-              <IosGlassCard borderColor={COLORS.gold + '50'}>
+              <IosGlassCard>
                 <MetricView label="EARNINGS" value={props.earnings} valueColor={COLORS.gold} size={20} />
               </IosGlassCard>
-              <IosGlassCard borderColor={COLORS.cyan + '50'}>
+              <IosGlassCard>
                 <MetricView label="AI" value={props.aiPct} valueColor={COLORS.cyan} size={16} />
               </IosGlassCard>
-              <IosGlassCard borderColor={COLORS.violet + '50'}>
+              <IosGlassCard>
                 <MetricView label="BRAINLIFT" value={props.brainlift} valueColor={COLORS.violet} size={16} />
               </IosGlassCard>
             </HStack>
@@ -495,12 +479,12 @@ function LargeWidget({ props }: { props: WidgetData }) {
           <>
             {/* Row 1: Hours + Earnings + Today */}
             <HStack spacing={10}>
-              <IosGlassCard borderColor={accent + '50'}>
+              <IosGlassCard>
                 <MetricView label="THIS WEEK" value={props.hoursDisplay} valueColor={accent} size={30} />
                 <StatusPill paceBadge={props.paceBadge} />
               </IosGlassCard>
               <VStack spacing={10}>
-                <IosGlassCard borderColor={COLORS.gold + '50'}>
+                <IosGlassCard>
                   <MetricView label="EARNINGS" value={props.earnings} valueColor={COLORS.gold} size={20} />
                 </IosGlassCard>
                 <IosGlassCard>
@@ -527,10 +511,10 @@ function LargeWidget({ props }: { props: WidgetData }) {
 
             {/* Row 3: AI% + BrainLift + optional Approvals */}
             <HStack spacing={10}>
-              <IosGlassCard borderColor={COLORS.cyan + '50'}>
+              <IosGlassCard>
                 <MetricView label="AI" value={props.aiPct} valueColor={COLORS.cyan} size={16} />
               </IosGlassCard>
-              <IosGlassCard borderColor={COLORS.violet + '50'}>
+              <IosGlassCard>
                 <MetricView label="BRAINLIFT" value={props.brainlift} valueColor={COLORS.violet} size={16} />
               </IosGlassCard>
             </HStack>
