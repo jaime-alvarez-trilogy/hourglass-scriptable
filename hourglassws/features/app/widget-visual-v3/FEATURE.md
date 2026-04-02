@@ -84,4 +84,5 @@ All four specs are independent and can run in parallel.
 
 | Date | Spec | Description |
 |------|------|-------------|
+| 2026-04-02 | [01-atmospheric-background](specs/01-atmospheric-background/spec.md) | Spec: Replace two-circle WidgetBackground with single top-center elliptical glow |
 | 2026-04-02 | [02-glass-card](specs/02-glass-card/spec.md) | Spec: IosGlassCard fill 75%, specular edge 15%, remove borderColor prop |
