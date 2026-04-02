@@ -361,3 +361,77 @@ describe('FR5: Android MediumWidget Hours mode labels', () => {
     expect(mediumHoursSrc).toContain('AI Usage:');
   });
 });
+
+// ─── 02-glass-card: IosGlassCard fill/stroke/prop ───────────────────────────────
+
+describe('02-glass-card FR1: IosGlassCard fill opacity 75%', () => {
+  let glassCardSrc: string;
+
+  beforeAll(() => {
+    const src = readIosWidget();
+    // Extract IosGlassCard function body
+    const start = src.indexOf('function IosGlassCard(');
+    const end = src.indexOf('\n// ', start);
+    glassCardSrc = src.slice(start, end);
+  });
+
+  it('SC1.1: IosGlassCard RoundedRectangle fill is #1C1E26BF (75% opacity)', () => {
+    expect(glassCardSrc).toContain('fill="#1C1E26BF"');
+  });
+
+  it('SC1.2: IosGlassCard RoundedRectangle fill is NOT #1C1E26CC (old 80% value)', () => {
+    expect(glassCardSrc).not.toContain('#1C1E26CC');
+  });
+});
+
+describe('02-glass-card FR2: IosGlassCard specular edge 15% white', () => {
+  let glassCardSrc: string;
+
+  beforeAll(() => {
+    const src = readIosWidget();
+    const start = src.indexOf('function IosGlassCard(');
+    const end = src.indexOf('\n// ', start);
+    glassCardSrc = src.slice(start, end);
+  });
+
+  it('SC2.1: IosGlassCard stroke is #FFFFFF26 (15% white)', () => {
+    expect(glassCardSrc).toContain('stroke="#FFFFFF26"');
+  });
+
+  it('SC2.2: IosGlassCard stroke is NOT #FFFFFF1A (old 10% value)', () => {
+    expect(glassCardSrc).not.toContain('#FFFFFF1A');
+  });
+
+  it('SC2.3: IosGlassCard strokeWidth is 0.5', () => {
+    expect(glassCardSrc).toContain('strokeWidth={0.5}');
+  });
+});
+
+describe('02-glass-card FR3: borderColor prop removed', () => {
+  let glassCardSrc: string;
+  let fullSrc: string;
+
+  beforeAll(() => {
+    fullSrc = readIosWidget();
+    const start = fullSrc.indexOf('function IosGlassCard(');
+    const end = fullSrc.indexOf('\n// ', start);
+    glassCardSrc = fullSrc.slice(start, end);
+  });
+
+  it('SC3.1: IosGlassCard function signature does not include borderColor parameter', () => {
+    // The signature block (up to first `{`) must not contain borderColor
+    const signatureEnd = glassCardSrc.indexOf(') {');
+    const signature = glassCardSrc.slice(0, signatureEnd);
+    expect(signature).not.toContain('borderColor');
+  });
+
+  it('SC3.2: IosGlassCard body does not reference borderColor', () => {
+    expect(glassCardSrc).not.toContain('borderColor');
+  });
+
+  it('SC3.3: No IosGlassCard caller passes borderColor prop', () => {
+    // Search entire file for IosGlassCard usage with borderColor prop
+    expect(fullSrc).not.toMatch(/IosGlassCard borderColor=/);
+    expect(fullSrc).not.toMatch(/<IosGlassCard[^>]*borderColor/);
+  });
+});
