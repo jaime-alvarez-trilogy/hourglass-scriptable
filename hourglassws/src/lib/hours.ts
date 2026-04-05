@@ -1,6 +1,7 @@
 // FR1: Business logic — calculateHours, date utilities
 // Pure functions with no side effects. Fully testable.
 // getWeekLabels added for 07-overview-sync FR2.
+// computeHoursVariance added for 03-hours-variance.
 
 export type UrgencyLevel = 'none' | 'low' | 'high' | 'critical' | 'expired';
 
@@ -258,3 +259,50 @@ export function calculateHours(
 }
 
 // getWeekLabels is defined above (added by 05-earnings-scrub, reused by 07-overview-sync)
+
+// ─── computeHoursVariance ─────────────────────────────────────────────────────
+
+export interface HoursVarianceResult {
+  stdDev: number;
+  label: string;       // 'Consistent' | '±X.Xh/week' | 'Variable'
+  isConsistent: boolean; // stdDev <= 2
+}
+
+/**
+ * Computes the population standard deviation of weekly hours, excluding the
+ * last entry (current partial week) and any zero values.
+ *
+ * Returns null if fewer than 3 non-zero completed entries are available.
+ *
+ * Label thresholds:
+ *   stdDev <= 1 → 'Consistent'
+ *   stdDev <= 3 → '±X.Xh/week'
+ *   else        → 'Variable'
+ *
+ * isConsistent: stdDev <= 2
+ */
+export function computeHoursVariance(hours: number[]): HoursVarianceResult | null {
+  // Exclude last entry (current partial week), then filter zeros
+  const completed = hours.slice(0, -1).filter((h) => h > 0);
+
+  if (completed.length < 3) return null;
+
+  const mean = completed.reduce((sum, h) => sum + h, 0) / completed.length;
+  const variance = completed.reduce((sum, h) => sum + Math.pow(h - mean, 2), 0) / completed.length;
+  const stdDev = Math.sqrt(variance);
+
+  let label: string;
+  if (stdDev <= 1) {
+    label = 'Consistent';
+  } else if (stdDev <= 3) {
+    label = `\u00B1${stdDev.toFixed(1)}h/week`;
+  } else {
+    label = 'Variable';
+  }
+
+  return {
+    stdDev,
+    label,
+    isConsistent: stdDev <= 2,
+  };
+}

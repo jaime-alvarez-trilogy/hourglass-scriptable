@@ -30,7 +30,7 @@ import { useOverviewData } from '@/src/hooks/useOverviewData';
 import { useFocusKey } from '@/src/hooks/useFocusKey';
 import { useEarningsHistory } from '@/src/hooks/useEarningsHistory';
 import { colors } from '@/src/lib/colors';
-import { springPremium } from '@/src/lib/reanimated-presets';
+import { springPremium, springBouncy, springSnappy } from '@/src/lib/reanimated-presets';
 import { useStaggeredEntry } from '@/src/hooks/useStaggeredEntry';
 import AmbientBackground, { getAmbientColor } from '@/src/components/AmbientBackground';
 import AnimatedMeshBackground from '@/src/components/AnimatedMeshBackground';
@@ -39,7 +39,8 @@ import SectionLabel from '@/src/components/SectionLabel';
 import TrendSparkline from '@/src/components/TrendSparkline';
 import FadeInScreen from '@/src/components/FadeInScreen';
 import OverviewHeroCard from '@/src/components/OverviewHeroCard';
-import { computeEarningsPace } from '@/src/lib/overviewUtils';
+import { computeEarningsPace, computeStreak, computeTargetHitRate } from '@/src/lib/overviewUtils';
+import { computeHoursVariance } from '@/src/lib/hours';
 import { setTag } from '@/src/lib/sharedTransitions';
 import { ApprovalUrgencyCard } from '@/src/components/ApprovalUrgencyCard';
 import { useApprovalItems } from '@/src/hooks/useApprovalItems';
@@ -84,6 +85,8 @@ interface ChartSectionProps {
   showGuide?: boolean;
   capLabel?: string;
   weekLabels?: string[];
+  /** Consecutive weeks hitting target — shows streak chip when >= 1 */
+  streak?: number;
   onScrubChange: ScrubChangeCallback;
   externalCursorIndex: number | null;
   chartKey: string;
@@ -103,6 +106,7 @@ function ChartSection({
   showGuide,
   capLabel,
   weekLabels,
+  streak,
   onScrubChange,
   externalCursorIndex,
   chartKey,
@@ -131,12 +135,26 @@ function ChartSection({
       <View onLayout={e => setCardWidth(e.nativeEvent.layout.width)}>
         <Card borderAccentColor={borderAccentColor}>
           <SectionLabel className="mb-2">{label}</SectionLabel>
-          <Text
-            className="font-display-bold"
-            style={{ color, fontSize: 28, fontVariant: ['tabular-nums'], letterSpacing: -0.56 }}
-          >
-            {heroValue}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text
+              className="font-display-bold"
+              style={{ color, fontSize: 28, fontVariant: ['tabular-nums'], letterSpacing: -0.56 }}
+            >
+              {heroValue}
+            </Text>
+            {streak !== undefined && streak >= 1 && (
+              <View style={{
+                backgroundColor: color + '22',
+                borderRadius: 10,
+                paddingHorizontal: 7,
+                paddingVertical: 2,
+              }}>
+                <Text style={{ color, fontSize: 11, fontWeight: '600' }}>
+                  {streak}W ↑
+                </Text>
+              </View>
+            )}
+          </View>
           {subtitle ? (
             <Text className="text-textSecondary text-xs font-sans mt-0.5">{subtitle}</Text>
           ) : null}
@@ -184,10 +202,10 @@ export default function OverviewScreen() {
   const { getEntryStyle } = useStaggeredEntry({ count: 3 });
 
   // Ensure earnings/hours history is populated even if home tab hasn't run yet
-  useEarningsHistory(12);
+  useEarningsHistory(24);
 
   // ── Time window ────────────────────────────────────────────────────────────
-  const [window, setWindow] = useState<4 | 12>(4);
+  const [window, setWindow] = useState<4 | 12 | 24>(4);
 
   // ── Synchronized scrub state ───────────────────────────────────────────────
   const [scrubWeekIndex, setScrubWeekIndex] = useState<number | null>(null);
@@ -208,7 +226,7 @@ export default function OverviewScreen() {
   }, []);
 
   // Reset scrub when window changes (avoids stale index)
-  const handleWindowChange = (newWindow: 4 | 12) => {
+  const handleWindowChange = (newWindow: 4 | 12 | 24) => {
     setScrubWeekIndex(null);
     setWindow(newWindow);
   };
@@ -229,6 +247,14 @@ export default function OverviewScreen() {
   // sourced directly from the payments dashboard data (not derived from hours math).
   const overtimeHours = overviewData.overtimeHours.reduce((s, v) => s + v, 0);
 
+  // ── Hours variance (03-hours-variance) ────────────────────────────────────
+  const hoursVariance = computeHoursVariance(overviewData.hours);
+
+  // ── Streaks & hit rate ─────────────────────────────────────────────────────
+  const aiStreak = computeStreak(overviewData.aiPct, 75);
+  const brainliftStreak = computeStreak(overviewData.brainliftHours, 5);
+  const hoursHitRate = computeTargetHitRate(overviewData.hours, weeklyLimit);
+
   // ── Ambient color ───────────────────────────────────────────────────────────
   // FR4: earnings pace ratio → ambient signal → color
   const earningsPace = overviewData.earnings.length > 0
@@ -239,22 +265,34 @@ export default function OverviewScreen() {
     : null;
 
   // ── Snapshot panel animation ───────────────────────────────────────────────
+  // Height animates 0 → SNAPSHOT_PANEL_HEIGHT so the panel takes no space at rest —
+  // charts sit flush below the hero card and the panel slides in during scrub.
+  const SNAPSHOT_PANEL_HEIGHT = 64;
   const panelOpacity = useSharedValue(0);
   const panelTranslateY = useSharedValue(8);
+  const panelHeight = useSharedValue(0);
+  const panelMarginBottom = useSharedValue(0);
 
   useEffect(() => {
     if (scrubWeekIndex !== null) {
       panelOpacity.value = withSpring(1, springPremium);
       panelTranslateY.value = withSpring(0, springPremium);
+      panelHeight.value = withSpring(SNAPSHOT_PANEL_HEIGHT, springBouncy);
+      panelMarginBottom.value = withSpring(4, springBouncy);
     } else {
       panelOpacity.value = withSpring(0, springPremium);
       panelTranslateY.value = withSpring(8, springPremium);
+      panelHeight.value = withSpring(0, springSnappy);
+      panelMarginBottom.value = withSpring(0, springSnappy);
     }
-  }, [scrubWeekIndex]);
+  }, [scrubWeekIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const panelStyle = useAnimatedStyle(() => ({
     opacity: panelOpacity.value,
     transform: [{ translateY: panelTranslateY.value }],
+    height: panelHeight.value,
+    marginBottom: panelMarginBottom.value,
+    overflow: 'hidden',
   }));
 
   // ── Hero value helpers ─────────────────────────────────────────────────────
@@ -313,6 +351,7 @@ export default function OverviewScreen() {
             overtimeHours={overtimeHours}
             window={window}
             onWindowChange={handleWindowChange}
+            hoursHitRate={hoursHitRate}
           />
 
           {/* Week snapshot panel — always rendered, animated opacity/translateY */}
@@ -322,7 +361,6 @@ export default function OverviewScreen() {
               borderRadius: 12,
               paddingHorizontal: 16,
               paddingVertical: 10,
-              marginBottom: 4,
             }]}
             pointerEvents={scrubWeekIndex !== null ? 'auto' : 'none'}
           >
@@ -386,7 +424,9 @@ export default function OverviewScreen() {
             <ChartSection
               label="WEEKLY HOURS"
               heroValue={`${heroHours.toFixed(1)}h`}
-              subtitle={`Goal: ${weeklyLimit}h / week`}
+              subtitle={hoursVariance
+                ? `Goal: ${weeklyLimit}h · ${hoursVariance.label}`
+                : `Goal: ${weeklyLimit}h / week`}
               data={overviewData.hours}
               color={colors.success}
               borderAccentColor={computeSnapshotHoursColor(heroHours, weeklyLimit)}
@@ -412,6 +452,7 @@ export default function OverviewScreen() {
               targetValue={75}
               showGuide
               capLabel="75%"
+              streak={aiStreak}
               weekLabels={overviewData.weekLabels}
               onScrubChange={handleScrubChange}
               externalCursorIndex={scrubWeekIndex}
@@ -432,6 +473,7 @@ export default function OverviewScreen() {
             showGuide
             targetValue={5}
             capLabel="5h"
+            streak={brainliftStreak}
             weekLabels={overviewData.weekLabels}
             onScrubChange={handleScrubChange}
             externalCursorIndex={scrubWeekIndex}
