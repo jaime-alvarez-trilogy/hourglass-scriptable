@@ -26,8 +26,8 @@ describe('computeDeadlineCountdown', () => {
     expect(result.urgency).toBe('warning');
     expect(result.msRemaining).toBeGreaterThan(24 * 60 * 60 * 1000);
     expect(result.msRemaining).toBeLessThan(48 * 60 * 60 * 1000);
-    // Label should contain hours and minutes (e.g. "32h 59m left")
-    expect(result.label).toMatch(/^\d+h \d+m left$/);
+    // Wednesday 15:00 UTC to Thursday 23:59:59 UTC = ~33h → "1d 8h left"
+    expect(result.label).toMatch(/^\d+d \d+h left$/);
   });
 
   it('Thursday 14:00 UTC → ~10h → urgency critical', () => {

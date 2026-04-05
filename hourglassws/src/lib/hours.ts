@@ -260,6 +260,114 @@ export function calculateHours(
 
 // getWeekLabels is defined above (added by 05-earnings-scrub, reused by 07-overview-sync)
 
+// ─── computeDeadlineCountdown ─────────────────────────────────────────────────
+
+/**
+ * Returns time remaining until the Crossover week cutoff (Thursday 23:59:59 UTC).
+ *
+ * - If today is Friday/Sat/Sun, targets NEXT Thursday (next week's deadline).
+ * - urgency: 'none' (>48h), 'warning' (24–48h), 'critical' (<24h)
+ * - label: "2d 14h left" | "23h 45m left" | "45m left"
+ */
+export function computeDeadlineCountdown(now = new Date()): {
+  msRemaining: number;
+  label: string;
+  urgency: 'none' | 'warning' | 'critical';
+} {
+  // Day of week in UTC: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+  const utcDay = now.getUTCDay();
+
+  // Days until Thursday from current UTC day:
+  // Mon(1)=3, Tue(2)=2, Wed(3)=1, Thu(4)=0, Fri(5)=6, Sat(6)=5, Sun(0)=4
+  let daysUntilThursday: number;
+  if (utcDay <= 4) {
+    // Mon–Thu: target this week's Thursday
+    daysUntilThursday = 4 - utcDay;
+  } else {
+    // Fri(5) or Sat(6): target next week's Thursday
+    daysUntilThursday = 7 - utcDay + 4;
+  }
+
+  // Build deadline: Thursday 23:59:59 UTC
+  const deadline = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() + daysUntilThursday,
+    23, 59, 59, 0
+  ));
+
+  const msRemaining = deadline.getTime() - now.getTime();
+
+  // Urgency thresholds
+  const hoursRemaining = msRemaining / (1000 * 60 * 60);
+  const urgency: 'none' | 'warning' | 'critical' =
+    hoursRemaining > 48 ? 'none'
+    : hoursRemaining > 24 ? 'warning'
+    : 'critical';
+
+  // Label format
+  const totalMinutes = Math.floor(msRemaining / (1000 * 60));
+  const totalHours = Math.floor(totalMinutes / 60);
+  const days = Math.floor(totalHours / 24);
+  const remainingHours = totalHours % 24;
+  const remainingMinutes = totalMinutes % 60;
+
+  let label: string;
+  if (days > 0) {
+    label = `${days}d ${remainingHours}h left`;
+  } else if (totalHours > 0) {
+    label = `${totalHours}h ${remainingMinutes}m left`;
+  } else {
+    label = `${totalMinutes}m left`;
+  }
+
+  return { msRemaining, label, urgency };
+}
+
+// ─── computePacingSignal ──────────────────────────────────────────────────────
+
+/**
+ * Returns intra-week pacing signal: how many hours/day are needed to hit the goal.
+ *
+ * - daysRemaining: Mon=4, Tue=3, Wed=2, Thu=1 (working days left including today)
+ * - Weekend (Fri/Sat/Sun): returns null
+ * - hoursWorked >= weeklyLimit: returns { label: "Target met", hoursPerDayNeeded: 0 }
+ * - Otherwise: hoursPerDayNeeded = (weeklyLimit - hoursWorked) / daysRemaining
+ */
+export function computePacingSignal(
+  hoursWorked: number,
+  weeklyLimit: number,
+  now = new Date(),
+): {
+  hoursPerDayNeeded: number;
+  label: string;
+} | null {
+  const utcDay = now.getUTCDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+
+  // Map UTC day to daysRemaining (Mon=4, Tue=3, Wed=2, Thu=1; weekend=null)
+  const DAY_TO_REMAINING: Record<number, number | null> = {
+    1: 4, // Monday
+    2: 3, // Tuesday
+    3: 2, // Wednesday
+    4: 1, // Thursday
+    5: null, // Friday
+    6: null, // Saturday
+    0: null, // Sunday
+  };
+
+  const daysRemaining = DAY_TO_REMAINING[utcDay];
+  if (daysRemaining === null || daysRemaining === undefined) return null;
+
+  if (hoursWorked >= weeklyLimit) {
+    return { hoursPerDayNeeded: 0, label: 'Target met' };
+  }
+
+  const hoursPerDayNeeded = (weeklyLimit - hoursWorked) / daysRemaining;
+  const label = `${hoursPerDayNeeded.toFixed(1)}h/day needed`;
+
+  return { hoursPerDayNeeded, label };
+}
+
 // ─── computeHoursVariance ─────────────────────────────────────────────────────
 
 export interface HoursVarianceResult {
