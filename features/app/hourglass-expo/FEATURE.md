@@ -96,7 +96,7 @@ Widget reads local store
 | 2026-03-08 | [06-widgets](specs/06-widgets/spec.md) | iOS (expo-widgets) + Android (react-native-android-widget) home screen widgets, WidgetData bridge, timeline entry generation, graceful degradation — **Complete** |
 | 2026-03-18 | [08-widget-enhancements](specs/08-widget-enhancements/spec.md) | Daily bar chart (large, Mon–Sun), manager approval mode-switch, contributor request status mode-switch, WidgetData type extension — **Complete** |
 | 2026-04-05 | [09-notifications-wiring](specs/09-notifications-wiring/spec.md) | Wire setNotificationHandler, registerPushToken, registerBackgroundPushHandler into _layout.tsx; unregisterPushToken on logout in modal.tsx — **Complete** |
-| 2026-04-05 | [10-scheduled-notifications](specs/10-scheduled-notifications/spec.md) | useScheduledNotifications hook: Thursday 6pm deadline reminder + Monday 9am weekly summary as local scheduled notifications |
+| 2026-04-05 | [10-scheduled-notifications](specs/10-scheduled-notifications/spec.md) | useScheduledNotifications hook: Thursday 6pm deadline reminder + Monday 9am weekly summary as local scheduled notifications — **Complete** |
 
 ## Files Created/Modified
 
@@ -126,10 +126,12 @@ WS/
         widgetBridge.ts         ← Boundary stub: updateWidgetData()       [07-ping-server, 08-widget-enhancements]
       hooks/
         useWidgetSync.ts        ← Foreground widget sync hook             [06-widgets, 08-widget-enhancements]
+        useScheduledNotifications.ts  ← Thursday/Monday local notification scheduling  [10-scheduled-notifications]
       notifications/
         handler.ts              ← FR5: background push handler            [07-ping-server]
     app/
       _layout.tsx               ← FR1-FR3: setNotificationHandler + push token + handler wiring  [09-notifications-wiring]
+                                ← FR4: useScheduledNotifications(config) wiring                 [10-scheduled-notifications]
       modal.tsx                 ← FR4: unregisterPushToken on logout                             [09-notifications-wiring]
       __tests__/
         layout-notifications.test.tsx  ← FR1-FR3 tests                                          [09-notifications-wiring]
