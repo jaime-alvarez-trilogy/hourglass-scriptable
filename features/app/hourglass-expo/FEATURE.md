@@ -96,6 +96,7 @@ Widget reads local store
 | 2026-03-08 | [06-widgets](specs/06-widgets/spec.md) | iOS (expo-widgets) + Android (react-native-android-widget) home screen widgets, WidgetData bridge, timeline entry generation, graceful degradation — **Complete** |
 | 2026-03-18 | [08-widget-enhancements](specs/08-widget-enhancements/spec.md) | Daily bar chart (large, Mon–Sun), manager approval mode-switch, contributor request status mode-switch, WidgetData type extension — **Complete** |
 | 2026-04-05 | [09-notifications-wiring](specs/09-notifications-wiring/spec.md) | Wire setNotificationHandler, registerPushToken, registerBackgroundPushHandler into _layout.tsx; unregisterPushToken on logout in modal.tsx — **Complete** |
+| 2026-04-05 | [10-scheduled-notifications](specs/10-scheduled-notifications/spec.md) | useScheduledNotifications hook: Thursday 6pm deadline reminder + Monday 9am weekly summary as local scheduled notifications |
 
 ## Files Created/Modified
 
