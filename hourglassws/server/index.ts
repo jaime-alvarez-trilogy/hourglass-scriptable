@@ -42,7 +42,7 @@ app.get('/health', (_req: Request, res: Response) => {
 
 // Start server (only when this module is the entry point)
 if (require.main === module) {
-  const PORT = parseInt(process.env.PING_SERVER_PORT ?? '3000', 10);
+  const PORT = parseInt(process.env.PORT ?? process.env.PING_SERVER_PORT ?? '3000', 10);
   app.listen(PORT, () => {
     console.log(`[server] Listening on port ${PORT}`);
     startCron();

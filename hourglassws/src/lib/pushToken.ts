@@ -10,7 +10,7 @@ import Constants from 'expo-constants';
 
 const PING_SERVER_URL =
   (process.env.EXPO_PUBLIC_PING_SERVER_URL as string | undefined) ??
-  'https://hourglass-ping.railway.app';
+  'https://dynamic-balance-production-1696.up.railway.app';
 
 const PUSH_TOKEN_KEY = 'push_token';
 
