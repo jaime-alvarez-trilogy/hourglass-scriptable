@@ -68,7 +68,7 @@ function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   useRoleRefresh();
-  useScheduledNotifications(config ?? null);
+  useScheduledNotifications(config);
 
   // FR2: Register push token once when setup completes
   const hasRegisteredToken = useRef(false);

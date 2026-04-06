@@ -151,9 +151,8 @@ export function useScheduledNotifications(
 
         // Read hoursRemaining from the last widget bridge write
         const raw = await AsyncStorage.getItem(WIDGET_DATA_KEY);
-        const hoursRemaining = raw
-          ? ((JSON.parse(raw) as Record<string, unknown>)?.hoursRemaining as number) ?? 0
-          : 0;
+        const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+        const hoursRemaining = (parsed?.hoursRemaining as number) ?? 0;
 
         await scheduleThursdayReminder(hoursRemaining, config.weeklyLimit);
         await scheduleMondaySummary();
