@@ -1,7 +1,13 @@
 {
   "cli": {
-    "version": ">= 18.0.0",
-    "appVersionSource": "remote"
+    "version": ">= 18.0.0"
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "jalvarez0907@gmail.com"
+      }
+    }
   },
   "build": {
     "development": {
@@ -16,5 +22,5 @@
     "production": {
       "channel": "production"
     }
-  },
+  }
 }
