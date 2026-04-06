@@ -36,6 +36,7 @@ import {
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useConfig } from '@/src/hooks/useConfig';
 import { useRoleRefresh } from '@/src/hooks/useRoleRefresh';
+import { useScheduledNotifications } from '@/src/hooks/useScheduledNotifications';
 import { colors } from '@/src/lib/colors';
 import { registerPushToken } from '@/src/lib/pushToken';
 import { registerBackgroundPushHandler } from '@/src/notifications/handler';
@@ -67,6 +68,7 @@ function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   useRoleRefresh();
+  useScheduledNotifications(config ?? null);
 
   // FR2: Register push token once when setup completes
   const hasRegisteredToken = useRef(false);
