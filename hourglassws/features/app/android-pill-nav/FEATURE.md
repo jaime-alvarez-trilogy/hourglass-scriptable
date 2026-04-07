@@ -23,3 +23,4 @@ Split tab bar navigation by platform: iOS keeps `NativeTabs` (UITabBarController
 ## Changelog
 
 - 2026-04-07: Feature created — platform-split nav (NativeTabs iOS, floating pill Android)
+- 2026-04-06: [01-floating-pill-tab](specs/01-floating-pill-tab/spec.md) — Spec and checklist created for FloatingPillTabBar component
