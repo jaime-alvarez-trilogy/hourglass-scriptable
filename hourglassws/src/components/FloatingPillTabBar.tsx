@@ -40,7 +40,7 @@ const ICON_MAP: Record<string, string> = {
 // ─── Pill tab configuration ───────────────────────────────────────────────────
 // Mirrors TAB_SCREENS in _layout.tsx but excludes 'explore' (href: null).
 
-const PILL_TABS = [
+export const PILL_TABS = [
   { name: 'index',     label: 'Home',     icon: 'house.fill' },
   { name: 'overview',  label: 'Overview', icon: 'chart.bar.fill' },
   { name: 'ai',        label: 'AI',       icon: 'sparkles' },
@@ -48,6 +48,9 @@ const PILL_TABS = [
 ] as const;
 
 type PillTabName = (typeof PILL_TABS)[number]['name'];
+
+// Module-level set for O(1) route filtering — avoids reconstructing on every render
+const PILL_TAB_NAMES = new Set<string>(PILL_TABS.map(t => t.name));
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -88,8 +91,7 @@ function PillTabItem({
   }));
 
   const mdIcon = (ICON_MAP[iconName] ?? 'help') as React.ComponentProps<typeof MaterialIcons>['name'];
-  const iconColor = isActive ? tintColor : inactiveTintColor;
-  const labelColor = isActive ? tintColor : inactiveTintColor;
+  const itemColor = isActive ? tintColor : inactiveTintColor;
 
   return (
     <Animated.View
@@ -127,7 +129,7 @@ function PillTabItem({
       >
         {/* Icon with optional badge */}
         <View style={{ position: 'relative' }}>
-          <MaterialIcons name={mdIcon} size={20} color={iconColor} />
+          <MaterialIcons name={mdIcon} size={20} color={itemColor} />
           {badge > 0 && (
             <View
               style={{
@@ -159,7 +161,7 @@ function PillTabItem({
         {/* Label */}
         <Text
           style={{
-            color: labelColor,
+            color: itemColor,
             fontSize: 10,
             marginTop: 2,
           }}
@@ -184,9 +186,6 @@ export function FloatingPillTabBar({
 }: FloatingPillTabBarProps) {
   const insets = useSafeAreaInsets();
 
-  // Build a lookup for PILL_TABS by name for fast filtering
-  const pillTabNames = new Set<string>(PILL_TABS.map(t => t.name));
-
   return (
     <View
       style={{
@@ -210,11 +209,10 @@ export function FloatingPillTabBar({
       }}
     >
       {state.routes.map((route, index) => {
-        // Filter out 'explore' and any route not in PILL_TABS
-        if (!pillTabNames.has(route.name)) return null;
+        // Filter out 'explore' and any route not in PILL_TABS (module-level Set)
+        if (!PILL_TAB_NAMES.has(route.name)) return null;
 
-        const pillTab = PILL_TABS.find(t => t.name === route.name);
-        if (!pillTab) return null;
+        const pillTab = PILL_TABS.find(t => t.name === route.name)!;
 
         const isActive = state.index === index;
 

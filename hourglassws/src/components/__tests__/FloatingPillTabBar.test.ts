@@ -90,14 +90,16 @@ describe('01-floating-pill-tab — FR1: Pill Container', () => {
 
 describe('01-floating-pill-tab — FR2: Tab Items', () => {
   it('SC2.2 — explore route is excluded from rendering (filtered)', () => {
-    // Must explicitly exclude 'explore' from the pill
-    expect(source).toMatch(/explore/);
-    // The filtering mechanism: either PILL_TABS constant or explicit filter
-    // The explore route must be handled — check that PILL_TABS doesn't include it
-    // OR that there is an explicit filter/skip for 'explore'
-    const hasPillTabs = source.includes('PILL_TABS');
-    const hasExploreFilter = source.match(/filter|explore.*null|skip.*explore/i);
-    expect(hasPillTabs || hasExploreFilter).toBeTruthy();
+    // PILL_TABS must NOT contain 'explore' — it is excluded from the pill
+    // Import the exported constant to verify at the type/value level
+    const componentPath = COMPONENT_FILE;
+    const src = fs.readFileSync(componentPath, 'utf8');
+    // PILL_TABS should contain index, overview, ai, approvals — but NOT explore
+    expect(src).toContain("name: 'index'");
+    expect(src).toContain("name: 'overview'");
+    expect(src).toContain("name: 'approvals'");
+    // 'explore' must not appear as a PILL_TABS entry name
+    expect(src).not.toMatch(/PILL_TABS[\s\S]{0,500}name:\s*'explore'/);
   });
 
   it('SC2.3 — MaterialIcons imported from @expo/vector-icons/MaterialIcons', () => {
