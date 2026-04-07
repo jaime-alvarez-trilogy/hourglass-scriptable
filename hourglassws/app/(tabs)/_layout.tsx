@@ -90,7 +90,7 @@ export default function TabLayout() {
         <NativeTabs
           tintColor={colors.violet}
           iconColor={{ default: colors.textMuted, selected: colors.violet }}
-          backgroundColor={Platform.OS === 'android' ? colors.surface : 'transparent'}
+          backgroundColor="transparent"
           blurEffect="systemUltraThinMaterialDark"
           disableTransparentOnScrollEdge={false}
           shadowColor="transparent"
