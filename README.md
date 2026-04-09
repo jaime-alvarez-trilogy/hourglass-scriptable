@@ -1,4 +1,16 @@
-# HourGlass — Crossover Widget for iOS
+# ⚠️ Deprecated — This project has been superseded
+
+**Hourglass.xo is now a native iOS and Android app.**
+
+> Download on TestFlight: **https://testflight.apple.com/join/eV25Wbvh**
+>
+> Source code: **https://github.com/jaime-alvarez-trilogy/hourglass-app**
+
+This Scriptable widget is no longer maintained. The new app has everything the widget had — hours, earnings, AI%, BrainLift, manager approvals — plus native iOS/Android widgets, push notifications, and a full dashboard. No Scriptable required.
+
+---
+
+# HourGlass — Crossover Widget for iOS (Archived)
 
 A Scriptable widget that brings your Crossover hours tracking, AI usage metrics, and time approval management to your iOS Home Screen, Lock Screen, and StandBy.
 
