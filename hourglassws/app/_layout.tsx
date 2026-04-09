@@ -1,10 +1,10 @@
 import '../global.css';
 
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, AppState, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -52,6 +52,15 @@ Notifications.setNotificationHandler({
 
 // Prevent auto-hide so we can control it after config loads
 SplashScreen.preventAutoHideAsync();
+
+// Wire TanStack Query focus manager to React Native AppState so queries
+// refetch automatically when the app comes to the foreground.
+focusManager.setEventListener((handleFocus) => {
+  const subscription = AppState.addEventListener('change', (state) => {
+    handleFocus(state === 'active');
+  });
+  return () => subscription.remove();
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {
