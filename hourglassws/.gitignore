@@ -40,6 +40,9 @@ app-example
 
 # generated output
 gauntlet-output/
+gauntlet-runs/
+Brand Revamp/
+simulator_screenshot*.png
 
 # generated native folders
 /ios
