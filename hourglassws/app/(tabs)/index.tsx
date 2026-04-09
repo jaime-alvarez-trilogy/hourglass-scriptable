@@ -278,7 +278,7 @@ export default function HoursDashboard() {
         {/* ── Header ────────────────────────────────────────────────────── */}
         <View className="flex-row items-center justify-between mb-2">
           <View className="flex-row items-center gap-2">
-            <Text className="text-textPrimary font-display-bold text-2xl">Hourglass</Text>
+            <Text className="text-textPrimary font-display-bold text-2xl">Hourglass.xo</Text>
             {config?.useQA && (
               <View
                 className="bg-warning rounded-lg px-1.5 py-0.5"

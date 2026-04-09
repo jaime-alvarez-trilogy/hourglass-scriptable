@@ -61,7 +61,7 @@ export default function WelcomeScreen() {
         </Animated.View>
 
         <Animated.View style={[styles.titles, textStyle]}>
-          <Text style={styles.appName}>Hourglass</Text>
+          <Text style={styles.appName}>Hourglass.xo</Text>
           <Text style={styles.tagline}>Crossover Time Tracker</Text>
         </Animated.View>
       </View>
