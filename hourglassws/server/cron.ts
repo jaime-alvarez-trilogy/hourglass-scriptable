@@ -1,6 +1,6 @@
 /**
  * FR3: Cron Push Dispatcher
- * node-cron task: every 15 minutes, fetch all tokens → send silent pushes → clean stale tokens.
+ * node-cron task: every 30 minutes, fetch all tokens → send silent pushes → clean stale tokens.
  */
 
 import cron from 'node-cron';
@@ -33,15 +33,15 @@ export async function runCron(): Promise<void> {
 }
 
 /**
- * Start the node-cron schedule: every 15 minutes.
+ * Start the node-cron schedule: every 30 minutes.
  */
 export function startCron(): void {
-  cron.schedule('*/15 * * * *', async () => {
+  cron.schedule('*/30 * * * *', async () => {
     try {
       await runCron();
     } catch (err) {
       console.error('[cron] Unexpected error in cron run:', err);
     }
   });
-  console.log('[cron] Scheduled: every 15 minutes.');
+  console.log('[cron] Scheduled: every 30 minutes.');
 }
